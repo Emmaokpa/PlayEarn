@@ -13,7 +13,7 @@ import {
   HelpCircle,
   LogOut,
   Moon,
-  PaintBrush,
+  Paintbrush,
   Shield,
   User as UserIcon,
 } from 'lucide-react';
@@ -25,7 +25,7 @@ const menuItems = [
   { icon: Shield, text: 'Change Password' },
   { icon: Moon, text: 'Dark/light themes', hasSwitch: true },
   { icon: CreditCard, text: 'Payment history' },
-  { icon: PaintBrush, text: 'Language' },
+  { icon: Paintbrush, text: 'Language' },
   { icon: Bell, text: 'Notifications' },
   { icon: FileText, text: 'Terms and conditions' },
   { icon: HelpCircle, text: 'Support' },
