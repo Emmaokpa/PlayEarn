@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "game-1",
+      "description": "Arcade racing game",
+      "imageUrl": "https://images.unsplash.com/photo-1620855522342-de6d0ad7c3d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cmFjaW5nJTIwZ2FtZXxlbnwwfHx8fDE3NjM0MDkwNjB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "racing game"
+    },
+    {
+      "id": "game-2",
+      "description": "Jungle adventure platformer",
+      "imageUrl": "https://images.unsplash.com/photo-1699694927495-4b8da5df6ce5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxqdW5nbGUlMjBhZHZlbnR1cmV8ZW58MHx8fHwxNzYzNDEwNDkxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "jungle adventure"
+    },
+    {
+      "id": "game-3",
+      "description": "Space shooter game",
+      "imageUrl": "https://images.unsplash.com/photo-1612026934848-464065aa2c8c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxzcGFjZSUyMHNob290ZXJ8ZW58MHx8fHwxNzYzNDA5MDYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "space shooter"
+    },
+    {
+      "id": "game-4",
+      "description": "Puzzle block game",
+      "imageUrl": "https://images.unsplash.com/photo-1608934827529-e9756c4d7e4c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwdXp6bGUlMjBnYW1lfGVufDB8fHx8MTc2MzQwMzY5OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "puzzle game"
+    },
+    {
+      "id": "game-5",
+      "description": "Fantasy RPG",
+      "imageUrl": "https://images.unsplash.com/photo-1763194980278-d888773aaa9a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmYW50YXN5JTIwY2hhcmFjdGVyfGVufDB8fHx8MTc2MzQ3MTc5M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fantasy character"
+    },
+    {
+      "id": "game-6",
+      "description": "Strategy board game",
+      "imageUrl": "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxib2FyZCUyMGdhbWV8ZW58MHx8fHwxNzYzNDM0NTQxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "board game"
+    },
+    {
+      "id": "reward-1",
+      "description": "A gift card for a popular online store.",
+      "imageUrl": "https://images.unsplash.com/photo-1612619732485-1ae018b63c55?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxnaWZ0JTIwY2FyZHxlbnwwfHx8fDE3NjM0Mzk2MzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gift card"
+    },
+    {
+      "id": "reward-2",
+      "description": "A discount coupon for your next purchase.",
+      "imageUrl": "https://images.unsplash.com/photo-1623068285726-21b0fcabe7f8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjb3Vwb258ZW58MHx8fHwxNzYzNDc3MDc0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coupon"
+    },
+    {
+      "id": "reward-3",
+      "description": "Exclusive in-game item pack.",
+      "imageUrl": "https://images.unsplash.com/photo-1573325743508-f6eef36bb65f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx0cmVhc3VyZSUyMGNoZXN0fGVufDB8fHx8MTc2MzM4Nzg0OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "treasure chest"
+    },
+    {
+      "id": "reward-4",
+      "description": "A premium subscription for a month.",
+      "imageUrl": "https://images.unsplash.com/photo-1617909517211-c4e4275bf5b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdWJzY3JpcHRpb258ZW58MHx8fHwxNzYzNDc3MDc0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "subscription"
+    }
+  ]
 }
