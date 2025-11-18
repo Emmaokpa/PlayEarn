@@ -78,7 +78,7 @@ export const games: Game[] = [
   },
   {
     id: 'game-5',
-    name: 'Dragon's Lair',
+    name: "Dragon's Lair",
     category: 'Fantasy',
     iframeUrl: 'https://playgama.com/embed/dragons-lair',
     imageUrl: getImage('game-5').imageUrl,
