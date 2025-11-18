@@ -64,21 +64,31 @@ export default function ProfilePage() {
         </Card>
 
         <div className="space-y-2">
-          {menuItems.map((item, index) => (
-            <Button
-              key={index}
-              variant="ghost"
-              className="w-full justify-start h-14"
-            >
-              <item.icon className="mr-4 h-6 w-6 text-muted-foreground" />
-              <span className="flex-grow text-left">{item.text}</span>
-              {item.hasSwitch ? (
-                <Switch defaultChecked />
-              ) : (
+          {menuItems.map((item, index) => {
+            if (item.hasSwitch) {
+              return (
+                <div
+                  key={index}
+                  className="flex items-center justify-start h-14 w-full px-4"
+                >
+                  <item.icon className="mr-4 h-6 w-6 text-muted-foreground" />
+                  <span className="flex-grow text-left">{item.text}</span>
+                  <Switch defaultChecked />
+                </div>
+              );
+            }
+            return (
+              <Button
+                key={index}
+                variant="ghost"
+                className="w-full justify-start h-14"
+              >
+                <item.icon className="mr-4 h-6 w-6 text-muted-foreground" />
+                <span className="flex-grow text-left">{item.text}</span>
                 <ChevronRight className="h-6 w-6 text-muted-foreground" />
-              )}
-            </Button>
-          ))}
+              </Button>
+            );
+          })}
         </div>
 
         <Button variant="destructive" className="w-full">
