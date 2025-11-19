@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import { mockUser } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Star } from 'lucide-react';
+import { Coin } from 'lucide-react';
 
 export default function RewardCard({ reward }: { reward: Reward }) {
   const { toast } = useToast();
@@ -23,10 +23,10 @@ export default function RewardCard({ reward }: { reward: Reward }) {
     if (!canAfford) {
       toast({
         variant: 'destructive',
-        title: 'Not enough points!',
+        title: 'Not enough coins!',
         description: `You need ${
           reward.points - mockUser.points
-        } more points to redeem this.`,
+        } more coins to redeem this.`,
       });
       return;
     }
@@ -58,7 +58,7 @@ export default function RewardCard({ reward }: { reward: Reward }) {
       </CardContent>
       <CardFooter className="flex justify-between items-center p-4 bg-secondary/50 rounded-b-lg">
         <div className="flex items-center gap-1 font-bold text-lg">
-          <Star className="h-5 w-5 text-yellow-400" />
+          <Coin className="h-5 w-5 text-primary" />
           <span>{reward.points.toLocaleString()}</span>
         </div>
         <Button onClick={handleRedeem} disabled={!canAfford}>
