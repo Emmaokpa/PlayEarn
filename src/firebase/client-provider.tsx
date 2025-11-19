@@ -3,7 +3,7 @@
 import React, { useMemo, type ReactNode, useEffect } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 
 // This function calls our secure API route to get a custom token
@@ -44,16 +44,19 @@ export function FirebaseClientProvider({
       return;
     }
 
-    const signInWithTelegram = async () => {
+    const signIn = async () => {
       // @ts-ignore
       const tg = window.Telegram?.WebApp;
 
       if (!tg?.initData) {
-        console.error(
-          'Telegram web app data not found. App must be run inside Telegram.'
+        console.warn(
+          'Telegram web app data not found. Falling back to anonymous sign-in for development.'
         );
-        // Here you might want to display an error to the user,
-        // or attempt a different sign-in method like anonymous.
+        try {
+          await signInAnonymously(auth);
+        } catch (error) {
+            console.error("Anonymous sign-in failed:", error)
+        }
         return;
       }
 
@@ -89,7 +92,7 @@ export function FirebaseClientProvider({
       }
     };
 
-    signInWithTelegram();
+    signIn();
   }, [firebaseServices]);
 
   return (
