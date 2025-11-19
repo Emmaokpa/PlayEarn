@@ -1,0 +1,317 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile in the RewardPlay application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "telegramId": {
+          "type": "string",
+          "description": "The Telegram user ID associated with this profile."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "The date and time the user registered.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "telegramId",
+        "username",
+        "registrationDate"
+      ]
+    },
+    "Game": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Game",
+      "type": "object",
+      "description": "Represents a game available in the RewardPlay application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the game."
+        },
+        "playgamaId": {
+          "type": "string",
+          "description": "The Playgama ID of the game."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the game."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the game."
+        }
+      },
+      "required": [
+        "id",
+        "playgamaId",
+        "title",
+        "description"
+      ]
+    },
+    "Reward": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reward",
+      "type": "object",
+      "description": "Represents a reward that a user can earn or redeem.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the reward."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the reward."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the reward."
+        },
+        "pointsRequired": {
+          "type": "number",
+          "description": "The number of points required to redeem this reward."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "pointsRequired"
+      ]
+    },
+    "UserReward": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserReward",
+      "type": "object",
+      "description": "Represents a reward earned or redeemed by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user reward."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N UserReward)"
+        },
+        "rewardId": {
+          "type": "string",
+          "description": "Reference to Reward. (Relationship: Reward 1:N UserReward)"
+        },
+        "dateEarned": {
+          "type": "string",
+          "description": "The date and time the reward was earned.",
+          "format": "date-time"
+        },
+        "dateRedeemed": {
+          "type": "string",
+          "description": "The date and time the reward was redeemed. Null if not redeemed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "rewardId",
+        "dateEarned"
+      ]
+    },
+    "AdView": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AdView",
+      "type": "object",
+      "description": "Represents a video ad view by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ad view."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N AdView)"
+        },
+        "adId": {
+          "type": "string",
+          "description": "Identifier for the ad. Could be an external ad network ID."
+        },
+        "viewDate": {
+          "type": "string",
+          "description": "The date and time the ad was viewed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "adId",
+        "viewDate"
+      ]
+    },
+    "GameProgress": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GameProgress",
+      "type": "object",
+      "description": "Represents a user's progress in a specific game.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the game progress record."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N GameProgress)"
+        },
+        "gameId": {
+          "type": "string",
+          "description": "Reference to Game. (Relationship: Game 1:N GameProgress)"
+        },
+        "progressData": {
+          "type": "string",
+          "description": "JSON string representing the user's progress in the game. Format is game-specific."
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "The date and time the progress was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "gameId",
+        "progressData",
+        "lastUpdated"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Path-based ownership: only the user with matching userId can read/write. This implicitly grants the user to read and write all subcollections of this document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/games/{gameId}",
+        "definition": {
+          "entityName": "Game",
+          "schema": {
+            "$ref": "#/backend/entities/Game"
+          },
+          "description": "Stores game metadata. Publicly readable, but only admins (defined elsewhere, perhaps via a role collection) can create/update.",
+          "params": [
+            {
+              "name": "gameId",
+              "description": "The unique ID of the game."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/rewards/{rewardId}",
+        "definition": {
+          "entityName": "Reward",
+          "schema": {
+            "$ref": "#/backend/entities/Reward"
+          },
+          "description": "Stores reward definitions. Publicly readable, but only admins can create/update.",
+          "params": [
+            {
+              "name": "rewardId",
+              "description": "The unique ID of the reward."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/rewards/{rewardId}",
+        "definition": {
+          "entityName": "UserReward",
+          "schema": {
+            "$ref": "#/backend/entities/UserReward"
+          },
+          "description": "Stores rewards earned or redeemed by a user. Path-based ownership: only the user with matching userId can read/write.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "rewardId",
+              "description": "The unique ID of the reward."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/adViews/{adViewId}",
+        "definition": {
+          "entityName": "AdView",
+          "schema": {
+            "$ref": "#/backend/entities/AdView"
+          },
+          "description": "Stores ad views by a user. Path-based ownership: only the user with matching userId can read/write.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "adViewId",
+              "description": "The unique ID of the ad view."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/gameProgress/{gameProgressId}",
+        "definition": {
+          "entityName": "GameProgress",
+          "schema": {
+            "$ref": "#/backend/entities/GameProgress"
+          },
+          "description": "Stores game progress for a user. Path-based ownership: only the user with matching userId can read/write.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            },
+            {
+              "name": "gameProgressId",
+              "description": "The unique ID of the game progress record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game metadata. These are globally accessible.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **User Rewards:** `/users/{userId}/rewards/{rewardId}` tracks rewards earned/redeemed by a specific user. Path-based ownership ensures only the user can modify their rewards.\n*   **Ad Views:** `/users/{userId}/adViews/{adViewId}` records ad views by each user. Path-based ownership applies.\n*   **Game Progress:** `/users/{userId}/gameProgress/{gameProgressId}` stores user's progress in each game. Again, path-based ownership.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` (rewards, adViews, gameProgress) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
+  }
+}
