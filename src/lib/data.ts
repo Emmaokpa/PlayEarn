@@ -20,9 +20,12 @@ export interface Reward {
 
 export interface UserProfile {
   id: string;
+  telegramId: string;
+  username: string;
   name: string;
   avatarUrl: string;
   coins: number;
   referralCode: string;
   isVip: boolean;
+  registrationDate: string;
 }

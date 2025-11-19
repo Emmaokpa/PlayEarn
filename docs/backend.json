@@ -8,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user profile."
+          "description": "Unique identifier for the user profile, matching the Telegram user ID."
         },
         "telegramId": {
           "type": "string",
@@ -16,7 +16,27 @@
         },
         "username": {
           "type": "string",
-          "description": "The username of the user."
+          "description": "The Telegram username of the user."
+        },
+        "name": {
+            "type": "string",
+            "description": "The display name of the user."
+        },
+        "avatarUrl": {
+            "type": "string",
+            "description": "URL of the user's avatar image."
+        },
+        "coins": {
+            "type": "number",
+            "description": "The number of coins the user has."
+        },
+        "referralCode": {
+            "type": "string",
+            "description": "The user's unique referral code."
+        },
+        "isVip": {
+            "type": "boolean",
+            "description": "Indicates if the user is a VIP member."
         },
         "registrationDate": {
           "type": "string",
@@ -28,6 +48,11 @@
         "id",
         "telegramId",
         "username",
+        "name",
+        "avatarUrl",
+        "coins",
+        "referralCode",
+        "isVip",
         "registrationDate"
       ]
     },
@@ -198,7 +223,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "custom"
     ]
   },
   "firestore": {
@@ -210,11 +236,11 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profile information. Path-based ownership: only the user with matching userId can read/write. This implicitly grants the user to read and write all subcollections of this document.",
+          "description": "Stores user profile information, keyed by Telegram user ID. Path-based ownership: only the user with matching userId can read/write. This implicitly grants the user to read and write all subcollections of this document.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique ID of the user."
+              "description": "The unique ID of the user, from Telegram."
             }
           ]
         }
