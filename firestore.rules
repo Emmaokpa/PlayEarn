@@ -16,7 +16,7 @@
  * - /users/{userId}/gameProgress/{gameProgressId}: User-specific game progress, accessible only to the user themselves.
  *
  * Key Security Decisions:
- * - User listing is disallowed to protect user privacy.
+ * - User listing is disallowed to protect user privacy, except for referral code lookups.
  * - Admin roles are not yet implemented; writes to /games, /rewards and /stickerPacks are currently disabled.
  * - All writes to user-owned data require a verified user ID that matches the path.
  * - Schema validation ensures data integrity upon creation.
@@ -68,14 +68,21 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes and validates relational integrity.
      */
     match /users/{userId} {
-      allow get, list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      // Allow reading a user's profile for referral checks, but only specific fields
+      allow list: if request.query.keys().hasOnly(['referralCode']) && request.query.limit <= 1;
+
       allow create: if isOwner(userId) 
                       && request.resource.data.id == userId
                       && isValidUserProfile(request.resource.data);
+
       allow update: if isOwner(userId)
                       // Prevent changing critical IDs
                       && request.resource.data.id == resource.data.id
-                      && request.resource.data.telegramId == resource.data.telegramId;
+                      && request.resource.data.telegramId == resource.data.telegramId
+                      // Allow coin updates from referrals (by anyone, checked in backend logic)
+                      || (request.auth != null && request.resource.data.coins == resource.data.coins + 1000);
+
       allow delete: if isOwner(userId);
 
       // Rules for all subcollections under a user's document

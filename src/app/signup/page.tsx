@@ -18,7 +18,17 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { Gamepad2 } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  writeBatch,
+  query,
+  collection,
+  where,
+  getDocs,
+  limit,
+} from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
@@ -28,6 +38,7 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
+  referralCode: z.string().optional(),
 });
 
 export default function SignUpPage() {
@@ -42,6 +53,7 @@ export default function SignUpPage() {
       name: '',
       email: '',
       password: '',
+      referralCode: '',
     },
   });
 
@@ -55,27 +67,62 @@ export default function SignUpPage() {
       );
       const user = userCredential.user;
 
-      // 2. Create user profile in Firestore
+      const batch = writeBatch(firestore);
+      let initialCoins = 100; // Default starting coins
+      const referralReward = 1000;
+
+      // 2. Handle referral if code is provided
+      if (values.referralCode) {
+        const usersRef = collection(firestore, 'users');
+        const q = query(
+          usersRef,
+          where('referralCode', '==', values.referralCode.toUpperCase()),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const referrerDoc = querySnapshot.docs[0];
+          batch.update(referrerDoc.ref, {
+            coins: referrerDoc.data().coins + referralReward,
+          });
+          initialCoins += referralReward; // Give bonus to new user
+          toast({
+            title: 'Referral Applied!',
+            description: `You and your friend both received ${referralReward} coins!`,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Invalid Referral Code',
+            description: 'The code you entered was not found.',
+          });
+        }
+      }
+
+      // 3. Create new user's profile in Firestore
       const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, {
+      batch.set(userDocRef, {
         id: user.uid,
-        telegramId: user.uid, // Using UID as a placeholder for now
+        telegramId: user.uid, // Using UID as a placeholder
         name: values.name,
         username: values.name.toLowerCase().replace(/\\s/g, ''), // simple username
         avatarUrl: `https://picsum.photos/seed/${user.uid}/100/100`, // Placeholder
-        coins: 100, // Starting coins
+        coins: initialCoins, // Starting coins + referral bonus
         referralCode: `${user.uid.substring(0, 6).toUpperCase()}`,
         isVip: false,
         registrationDate: serverTimestamp(),
       });
-      
+
+      // 4. Commit all database changes
+      await batch.commit();
+
       toast({
         title: 'Account Created!',
         description: "Welcome to RewardPlay! We're glad to have you.",
       });
 
       router.push('/dashboard');
-
     } catch (error: any) {
       console.error('Sign up error:', error);
       let errorMessage = 'An unknown error occurred.';
@@ -97,13 +144,17 @@ export default function SignUpPage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary">
             <Gamepad2 className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-4xl font-bold font-headline">Create an Account</h1>
-          <p className="text-muted-foreground">Join the fun and start earning!</p>
+          <h1 className="text-4xl font-bold font-headline">
+            Create an Account
+          </h1>
+          <p className="text-muted-foreground">
+            Join the fun and start earning!
+          </p>
         </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-             <FormField
+            <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
@@ -142,19 +193,37 @@ export default function SignUpPage() {
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="referralCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Referral Code (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="ABC123" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button
               type="submit"
               className="w-full"
               size="lg"
               disabled={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? 'Creating Account...' : 'Sign Up'}
+              {form.formState.isSubmitting
+                ? 'Creating Account...'
+                : 'Sign Up'}
             </Button>
           </form>
         </Form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {'Already have an account? '}
-          <Link href="/login" className="font-semibold text-primary hover:underline">
+          <Link
+            href="/login"
+            className="font-semibold text-primary hover:underline"
+          >
             Log In
           </Link>
         </p>
