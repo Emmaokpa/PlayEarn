@@ -38,12 +38,8 @@ export default function AppLayout({
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
   const isLoading = isUserLoading || isProfileLoading;
 
-  // Render a loading state or nothing while redirecting
-  if (!user && !isUserLoading) {
-    return null;
-  }
-  
-  if (isLoading) {
+  // Render a loading state or nothing while auth is being checked or redirecting
+  if (isLoading || (!user && !isUserLoading)) {
      return (
       <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6">
