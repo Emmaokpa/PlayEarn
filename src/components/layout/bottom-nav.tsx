@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -55,6 +56,10 @@ function NavLink({
   isSidebar?: boolean;
   onClick?: () => void;
 }) {
+  const isAuthPage = href === '/login' || href === '/signup';
+  if (isAuthPage) return null;
+
+
   return (
     <Link
       href={href}
@@ -103,6 +108,11 @@ function SidebarNav({
 export default function BottomNav() {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  if (isAuthPage) {
+    return null;
+  }
 
   return (
     <>

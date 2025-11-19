@@ -1,12 +1,13 @@
+
 /**
  * @fileoverview Firestore Security Rules for the RewardPlay application.
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for user-specific data and allows public read access for game and reward metadata.
- * It is designed for a Telegram Mini App, where authentication is handled via custom tokens and the user's Telegram ID serves as their Firebase UID.
+ * Authentication is handled via Firebase's email/password provider.
  *
  * Data Structure:
- * - /users/{userId}: User profiles, accessible only to the user themselves. The {userId} is the user's Telegram ID.
+ * - /users/{userId}: User profiles, accessible only to the user themselves. The {userId} is the Firebase Auth UID.
  * - /games/{gameId}: Game metadata, publicly readable, writeable by admins only. Admin status is not yet enforced, so writes are currently disabled.
  * - /rewards/{rewardId}: Reward definitions, publicly readable, writeable by admins only. Admin status is not yet enforced, so writes are currently disabled.
  * - /stickerPacks/{stickerPackId}: Sticker packs, publicly readable, writeable by admins only.
@@ -114,5 +115,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
