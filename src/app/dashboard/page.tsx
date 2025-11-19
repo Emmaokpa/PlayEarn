@@ -1,3 +1,4 @@
+'use client';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -11,10 +12,32 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/components/layout/app-layout';
+import { useEffect, useState } from 'react';
+import DailyBonusDialog from '@/components/app/daily-bonus-dialog';
 
 export default function DashboardPage() {
-  const exclusiveGames = games.slice(1, 4);
-  const freeGames = games.slice(3);
+  const exclusiveGames = games.slice(0, 2);
+  const freeGames = games.slice(2, 4);
+  const newGames = games.slice(4);
+
+  const [isBonusDialogOpen, setIsBonusDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const lastClaimed = localStorage.getItem('dailyBonusClaimed');
+    const today = new Date().toDateString();
+    if (lastClaimed !== today) {
+      setIsBonusDialogOpen(true);
+    }
+  }, []);
+
+  const handleBonusClaim = () => {
+    const today = new Date().toDateString();
+    localStorage.setItem('dailyBonusClaimed', today);
+    // In a real app, you would also update the user's coin balance on the server.
+    // For now, we can just close the dialog.
+    setIsBonusDialogOpen(false);
+  };
+
 
   return (
     <AppLayout title="Explore">
@@ -55,7 +78,7 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {exclusiveGames.map((game) => (
               <GameCard key={game.id} game={game} />
             ))}
@@ -71,13 +94,33 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {freeGames.map((game) => (
               <GameCard key={game.id} game={game} />
             ))}
           </div>
         </div>
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-bold">New Releases</h2>
+            <Link href="/games">
+              <Button variant="link" className="text-primary">
+                See All
+              </Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {newGames.map((game) => (
+              <GameCard key={game.id} game={game} />
+            ))}
+          </div>
+        </div>
       </div>
+       <DailyBonusDialog
+        open={isBonusDialogOpen}
+        onOpenChange={setIsBonusDialogOpen}
+        onClaim={handleBonusClaim}
+      />
     </AppLayout>
   );
 }
