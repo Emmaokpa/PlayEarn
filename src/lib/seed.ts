@@ -1,7 +1,8 @@
+
 'use server';
 
 import { initializeFirebase } from '@/firebase';
-import { collection, writeBatch } from 'firebase/firestore';
+import { collection, writeBatch, doc } from 'firebase/firestore';
 import { PlaceHolderImages } from './placeholder-images';
 
 function getImage(id: string) {
@@ -120,10 +121,4 @@ export async function seedDatabase() {
     console.error('Error seeding database:', error);
     return { success: false, message: 'Error seeding database.' };
   }
-}
-
-// Helper function to get doc reference, assuming it might be needed.
-// It seems writeBatch uses its own internal way to handle document references.
-function doc(collectionRef: any, id: string) {
-    return { ...collectionRef, path: `${collectionRef.path}/${id}` };
 }
