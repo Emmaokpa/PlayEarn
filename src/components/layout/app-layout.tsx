@@ -14,8 +14,8 @@ export default function AppLayout({
   return (
     <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6">
-        <h1 className="text-xl font-bold font-headline">{title}</h1>
-        <div className="flex items-center gap-4">
+        <h1 className="text-xl font-bold font-headline truncate pr-4">{title}</h1>
+        <div className="flex items-center gap-4 flex-shrink-0">
           <div className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm">
             <Coins className="h-5 w-5 text-primary" />
             <span className="font-bold">{mockUser.coins.toLocaleString()}</span>

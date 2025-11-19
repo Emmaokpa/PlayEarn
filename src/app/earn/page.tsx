@@ -36,7 +36,7 @@ export default function EarnPage() {
   };
 
   return (
-    <AppLayout title="Earn Rewards">
+    <AppLayout title="Earn">
       <div className="space-y-6">
         <div className="text-center">
           <h2 className="text-3xl font-bold font-headline">
