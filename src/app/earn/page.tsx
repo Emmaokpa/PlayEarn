@@ -20,6 +20,11 @@ export default function EarnPage() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  const isVip = mockUser.isVip;
+  const adReward = isVip ? 30 : 10;
+  const referralReward = isVip ? 3000 : 1000;
+
+
   const handleCopy = () => {
     navigator.clipboard.writeText(mockUser.referralCode);
     setCopied(true);
@@ -38,7 +43,7 @@ export default function EarnPage() {
             More Ways to Earn
           </h2>
           <p className="text-muted-foreground mt-2">
-            Complete tasks to collect more reward points.
+            Complete tasks to collect more reward coins.
           </p>
         </div>
 
@@ -50,7 +55,7 @@ export default function EarnPage() {
                 Watch & Earn
               </CardTitle>
               <CardDescription className="pt-2">
-                Watch a short video ad and get rewarded with 10 points
+                Watch a short video ad and get rewarded with {adReward} coins
                 instantly!
               </CardDescription>
             </CardHeader>
@@ -73,7 +78,7 @@ export default function EarnPage() {
               </CardTitle>
               <CardDescription className="pt-2">
                 Invite a friend with your code and you both get{' '}
-                <span className="font-bold text-primary">1,000 coins</span>!
+                <span className="font-bold text-primary">{referralReward.toLocaleString()} coins</span>!
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -100,7 +105,11 @@ export default function EarnPage() {
           </Card>
         </div>
       </div>
-      <WatchAdDialog open={isAdDialogOpen} onOpenChange={setIsAdDialogOpen} />
+      <WatchAdDialog
+        open={isAdDialogOpen}
+        onOpenChange={setIsAdDialogOpen}
+        reward={adReward}
+      />
     </AppLayout>
   );
 }

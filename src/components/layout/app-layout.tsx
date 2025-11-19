@@ -18,7 +18,7 @@ export default function AppLayout({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm">
             <Coins className="h-5 w-5 text-primary" />
-            <span className="font-bold">{mockUser.points.toLocaleString()}</span>
+            <span className="font-bold">{mockUser.coins.toLocaleString()}</span>
           </div>
           <Avatar className="h-9 w-9">
             <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />

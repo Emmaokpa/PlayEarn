@@ -15,9 +15,12 @@ import {
   Paintbrush,
   Shield,
   User as UserIcon,
+  Crown,
+  Sparkles,
 } from 'lucide-react';
 import AppLayout from '@/components/layout/app-layout';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 const menuItems = [
   { icon: UserIcon, text: 'Edit Profile' },
@@ -31,34 +34,52 @@ const menuItems = [
 ];
 
 export default function ProfilePage() {
+  const { isVip } = mockUser;
+
   return (
     <AppLayout title="Profile">
       <div className="space-y-8">
         <div className="flex flex-col items-center space-y-2">
-          <Avatar className="h-24 w-24 border-4 border-primary">
-            <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />
-            <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-24 w-24 border-4 border-primary">
+              <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />
+              <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            {isVip && (
+              <div className="absolute -top-2 -right-2 transform rotate-12">
+                <Badge className="bg-primary hover:bg-primary text-primary-foreground border-2 border-background">
+                  <Crown className="mr-1 h-4 w-4" />
+                  VIP
+                </Badge>
+              </div>
+            )}
+          </div>
           <h2 className="text-2xl font-bold">{mockUser.name}</h2>
           <p className="text-muted-foreground">omar@gmail.com</p>
         </div>
 
-        <Card className="bg-green-800/20">
+        <Card className="bg-gradient-to-br from-primary/20 to-accent/20 border-primary/30">
           <CardHeader>
-            <CardTitle className="text-green-400">Try Premium</CardTitle>
+            <CardTitle className="flex items-center justify-between text-yellow-400">
+              <span>VIP Subscription</span>
+              <span className="text-lg font-normal text-white">$4.99/month</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-green-400" /> Remove ads
-            </p>
-            <p className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-green-400" /> Exclusive
-              Tournaments
-            </p>
-            <p className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-green-400" /> Access to 8000+
-              game library
-            </p>
+          <CardContent className="space-y-4">
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-yellow-400" /> 3x Earnings on all rewards
+              </li>
+              <li className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-yellow-400" /> Remove all ads
+              </li>
+              <li className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-yellow-400" /> Claim exclusive gift cards
+              </li>
+            </ul>
+             <Button className="w-full font-bold" size="lg">
+              {isVip ? 'Manage Subscription' : 'Upgrade to VIP'}
+            </Button>
           </CardContent>
         </Card>
 

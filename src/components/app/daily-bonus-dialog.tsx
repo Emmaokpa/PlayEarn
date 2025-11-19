@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Coins, PartyPopper } from 'lucide-react';
+import { mockUser } from '@/lib/data';
 
 export default function DailyBonusDialog({
   open,
@@ -22,6 +23,7 @@ export default function DailyBonusDialog({
   onClaim: () => void;
 }) {
   const { toast } = useToast();
+  const bonusAmount = mockUser.isVip ? 600 : 200;
 
   const handleClaim = () => {
     onClaim();
@@ -32,7 +34,7 @@ export default function DailyBonusDialog({
           <span className="font-bold">Bonus Claimed!</span>
         </div>
       ),
-      description: "You've received 200 coins.",
+      description: `You've received ${bonusAmount} coins.`,
     });
   };
 
@@ -50,12 +52,12 @@ export default function DailyBonusDialog({
         </DialogHeader>
         <div className="my-4 flex flex-col items-center justify-center space-y-2 rounded-lg bg-secondary p-8 text-secondary-foreground">
           <p className="text-lg">You've earned</p>
-          <p className="text-5xl font-bold text-primary">200</p>
+          <p className="text-5xl font-bold text-primary">{bonusAmount}</p>
           <p className="text-lg">Coins!</p>
         </div>
         <DialogFooter>
           <Button className="w-full" onClick={handleClaim}>
-            Claim Your 200 Coins
+            Claim Your {bonusAmount} Coins
           </Button>
         </DialogFooter>
       </DialogContent>

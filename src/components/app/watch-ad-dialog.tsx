@@ -17,9 +17,11 @@ import { useToast } from '@/hooks/use-toast';
 export default function WatchAdDialog({
   open,
   onOpenChange,
+  reward,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  reward: number;
 }) {
   const [countdown, setCountdown] = useState(15);
   const [isComplete, setIsComplete] = useState(false);
@@ -44,7 +46,7 @@ export default function WatchAdDialog({
   }, [open]);
 
   const handleClaim = () => {
-    // In a real app, this would call a server action to update points
+    // In a real app, this would call a server action to update coins
     toast({
       title: (
         <div className="flex items-center gap-2">
@@ -52,7 +54,7 @@ export default function WatchAdDialog({
           <span className="font-bold">Reward Claimed!</span>
         </div>
       ),
-      description: "You've earned 10 points.",
+      description: `You've earned ${reward} coins.`,
     });
     onOpenChange(false);
   };
@@ -87,7 +89,7 @@ export default function WatchAdDialog({
             disabled={!isComplete}
             variant={isComplete ? 'default' : 'secondary'}
           >
-            {isComplete ? 'Claim 10 Points' : 'Claiming...'}
+            {isComplete ? `Claim ${reward} Coins` : 'Claiming...'}
           </Button>
         </DialogFooter>
       </DialogContent>
