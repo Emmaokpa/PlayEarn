@@ -1,9 +1,3 @@
-import { PlaceHolderImages } from './placeholder-images';
-
-function getImage(id: string) {
-  const image = PlaceHolderImages.find((img) => img.id === id);
-  return image || { imageUrl: '', imageHint: 'placeholder' };
-}
 
 export interface Game {
   id: string;
@@ -15,7 +9,7 @@ export interface Game {
 }
 
 export interface Reward {
-  id: string;
+  id:string;
   name: string;
   description: string;
   coins: number;
@@ -24,113 +18,11 @@ export interface Reward {
   isVipOnly?: boolean;
 }
 
-export interface User {
+export interface UserProfile {
+  id: string;
   name: string;
   avatarUrl: string;
   coins: number;
   referralCode: string;
   isVip: boolean;
-  progress: {
-    gameId: string;
-    value: number;
-  }[];
 }
-
-export const mockUser: User = {
-  name: 'Alex',
-  avatarUrl: 'https://picsum.photos/seed/user/100/100',
-  coins: 1250,
-  referralCode: 'ALEX2077',
-  isVip: false,
-  progress: [
-    { gameId: 'game-1', value: 75 },
-    { gameId: 'game-3', value: 50 },
-  ],
-};
-
-export const games: Game[] = [
-  {
-    id: 'game-1',
-    name: 'Nitro Racer',
-    category: 'Racing',
-    iframeUrl: 'https://playgama.com/embed/nitro-racer',
-    imageUrl: getImage('game-1').imageUrl,
-    imageHint: getImage('game-1').imageHint,
-  },
-  {
-    id: 'game-2',
-    name: 'Jungle Quest',
-    category: 'Adventure',
-    iframeUrl: 'https://playgama.com/embed/jungle-quest',
-    imageUrl: getImage('game-2').imageUrl,
-    imageHint: getImage('game-2').imageHint,
-  },
-  {
-    id: 'game-3',
-    name: 'Galaxy Wars',
-    category: 'Sci-Fi',
-    iframeUrl: 'https://playgama.com/embed/galaxy-wars',
-    imageUrl: getImage('game-3').imageUrl,
-    imageHint: getImage('game-3').imageHint,
-  },
-  {
-    id: 'game-4',
-    name: 'Block Master',
-    category: 'Puzzle',
-    iframeUrl: 'https://playgama.com/embed/block-master',
-    imageUrl: getImage('game-4').imageUrl,
-    imageHint: getImage('game-4').imageHint,
-  },
-  {
-    id: 'game-5',
-    name: "Dragon's Lair",
-    category: 'Fantasy',
-    iframeUrl: 'https://playgama.com/embed/dragons-lair',
-    imageUrl: getImage('game-5').imageUrl,
-    imageHint: getImage('game-5').imageHint,
-  },
-  {
-    id: 'game-6',
-    name: 'Checkmate',
-    category: 'Strategy',
-    iframeUrl: 'https://playgama.com/embed/checkmate',
-    imageUrl: getImage('game-6').imageUrl,
-    imageHint: getImage('game-6').imageHint,
-  },
-];
-
-export const rewards: Reward[] = [
-  {
-    id: 'reward-1',
-    name: '$5 Gift Card',
-    description: 'A gift card for a popular online store.',
-    coins: 50000,
-    imageUrl: getImage('reward-1').imageUrl,
-    imageHint: getImage('reward-1').imageHint,
-    isVipOnly: true,
-  },
-  {
-    id: 'reward-2',
-    name: '20% Off Coupon',
-    description: 'A discount coupon for your next purchase.',
-    coins: 1000,
-    imageUrl:getImage('reward-2').imageUrl,
-    imageHint: getImage('reward-2').imageHint,
-  },
-  {
-    id: 'reward-3',
-    name: 'Epic Loot Box',
-    description: 'Exclusive in-game item pack for your favorite game.',
-    coins: 2500,
-    imageUrl: getImage('reward-3').imageUrl,
-    imageHint: getImage('reward-3').imageHint,
-  },
-  {
-    id: 'reward-4',
-    name: '1-Month Premium',
-    description: 'A premium subscription for a month on our platform.',
-    coins: 10000,
-    imageUrl: getImage('reward-4').imageUrl,
-    imageHint: getImage('reward-4').imageHint,
-  },
-];

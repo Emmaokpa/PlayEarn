@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Coins, PartyPopper } from 'lucide-react';
-import { mockUser } from '@/lib/data';
+import { useUser } from '@/firebase';
 
 export default function DailyBonusDialog({
   open,
@@ -20,13 +20,17 @@ export default function DailyBonusDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onClaim: () => void;
+  onClaim: (amount: number) => void;
 }) {
   const { toast } = useToast();
-  const bonusAmount = mockUser.isVip ? 600 : 200;
+  // We're leaving mockUser here just to get the isVip flag.
+  // In a real app, this would come from the user's profile data.
+  const { user } = useUser(); // Using a placeholder for now
+  const isVip = false; // Placeholder
+  const bonusAmount = isVip ? 600 : 200;
 
   const handleClaim = () => {
-    onClaim();
+    onClaim(bonusAmount);
     toast({
       title: (
         <div className="flex items-center gap-2">
@@ -42,7 +46,7 @@ export default function DailyBonusDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl font-headline">
+          <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
             <Coins className="h-8 w-8 text-primary" />
             Daily Login Bonus
           </DialogTitle>

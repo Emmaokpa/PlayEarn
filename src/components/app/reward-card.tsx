@@ -11,29 +11,34 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { mockUser } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Coins, Crown } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { useFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc, increment } from 'firebase/firestore';
 
 interface RewardCardProps {
   reward: Reward;
-  isVipOnly?: boolean;
-  isUserVip?: boolean;
+  isUserVip: boolean;
+  userCoins: number;
 }
 
 export default function RewardCard({
   reward,
-  isVipOnly,
   isUserVip,
+  userCoins,
 }: RewardCardProps) {
   const { toast } = useToast();
-  const canAfford = mockUser.coins >= reward.coins;
-  const canRedeem = isVipOnly ? isUserVip && canAfford : canAfford;
+  const { firestore, user } = useFirebase();
+
+  const canAfford = userCoins >= reward.coins;
+  const canRedeem = reward.isVipOnly ? isUserVip && canAfford : canAfford;
 
   const handleRedeem = () => {
-    if (isVipOnly && !isUserVip) {
+    if (!user || !firestore) return;
+
+    if (reward.isVipOnly && !isUserVip) {
       toast({
         variant: 'destructive',
         title: 'VIP Exclusive Reward',
@@ -47,13 +52,18 @@ export default function RewardCard({
         variant: 'destructive',
         title: 'Not enough coins!',
         description: `You need ${
-          reward.coins - mockUser.coins
+          reward.coins - userCoins
         } more coins to redeem this.`,
       });
       return;
     }
+    
+    const userRef = doc(firestore, 'users', user.uid);
+    updateDocumentNonBlocking(userRef, { coins: increment(-reward.coins) });
 
-    // In a real app, this would be a server action to deduct coins
+    // Here you would typically also create a record of the redemption
+    // For example, in a `/users/{userId}/redeemedRewards` collection
+    
     toast({
       title: 'Reward Redeemed!',
       description: `You've successfully redeemed "${reward.name}".`,
@@ -64,7 +74,7 @@ export default function RewardCard({
     <Card
       className={cn(
         'flex flex-col transition-shadow hover:shadow-lg',
-        isVipOnly && !isUserVip && 'bg-secondary/50 opacity-70'
+        reward.isVipOnly && !isUserVip && 'opacity-70'
       )}
     >
       <CardHeader className="p-0">
@@ -73,14 +83,14 @@ export default function RewardCard({
             src={reward.imageUrl}
             alt={reward.name}
             fill
-            className="object-cover rounded-t-lg"
+            className="rounded-t-lg object-cover"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             data-ai-hint={reward.imageHint}
           />
-          {isVipOnly && (
+          {reward.isVipOnly && (
             <Badge
               variant="default"
-              className="absolute top-2 right-2 bg-primary text-primary-foreground"
+              className="absolute right-2 top-2 bg-primary text-primary-foreground"
             >
               <Crown className="mr-1 h-3 w-3" />
               VIP Only
@@ -92,8 +102,8 @@ export default function RewardCard({
         <CardTitle>{reward.name}</CardTitle>
         <CardDescription className="mt-2">{reward.description}</CardDescription>
       </CardContent>
-      <CardFooter className="flex justify-between items-center p-4 bg-secondary/50 rounded-b-lg">
-        <div className="flex items-center gap-1 font-bold text-lg">
+      <CardFooter className="flex items-center justify-between rounded-b-lg bg-secondary/50 p-4">
+        <div className="flex items-center gap-1 text-lg font-bold">
           <Coins className="h-5 w-5 text-primary" />
           <span>{reward.coins.toLocaleString()}</span>
         </div>

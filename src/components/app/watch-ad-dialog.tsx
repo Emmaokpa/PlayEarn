@@ -13,6 +13,8 @@ import { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Film, CheckCircle, PartyPopper } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc, increment } from 'firebase/firestore';
 
 export default function WatchAdDialog({
   open,
@@ -26,6 +28,7 @@ export default function WatchAdDialog({
   const [countdown, setCountdown] = useState(15);
   const [isComplete, setIsComplete] = useState(false);
   const { toast } = useToast();
+  const { firestore, user } = useFirebase();
 
   useEffect(() => {
     if (open) {
@@ -46,7 +49,11 @@ export default function WatchAdDialog({
   }, [open]);
 
   const handleClaim = () => {
-    // In a real app, this would call a server action to update coins
+    if (!user || !firestore) return;
+
+    const userRef = doc(firestore, 'users', user.uid);
+    updateDocumentNonBlocking(userRef, { coins: increment(reward) });
+    
     toast({
       title: (
         <div className="flex items-center gap-2">
@@ -70,7 +77,7 @@ export default function WatchAdDialog({
         </DialogHeader>
         <div className="my-4 flex flex-col items-center justify-center space-y-4 rounded-lg bg-secondary p-8 text-secondary-foreground">
           {isComplete ? (
-            <CheckCircle className="h-16 w-16 text-accent animate-in fade-in zoom-in" />
+            <CheckCircle className="h-16 w-16 animate-in fade-in zoom-in text-accent" />
           ) : (
             <Film className="h-16 w-16 animate-pulse" />
           )}
@@ -79,7 +86,7 @@ export default function WatchAdDialog({
           </p>
           <Progress
             value={((15 - countdown) / 15) * 100}
-            className="w-full h-2"
+            className="h-2 w-full"
           />
         </div>
         <DialogFooter>

@@ -13,20 +13,30 @@ import { Trophy, Users, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 import WatchAdDialog from '@/components/app/watch-ad-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { mockUser } from '@/lib/data';
+import { useFirebase, useDoc, useUser, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EarnPage() {
   const [isAdDialogOpen, setIsAdDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const { firestore, user } = useFirebase();
 
-  const isVip = mockUser.isVip;
+  const userProfileRef = useMemoFirebase(
+    () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
+    [user, firestore]
+  );
+  const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
+
+  const isVip = userProfile?.isVip ?? false;
   const adReward = isVip ? 30 : 10;
   const referralReward = isVip ? 3000 : 1000;
 
-
   const handleCopy = () => {
-    navigator.clipboard.writeText(mockUser.referralCode);
+    if (!userProfile?.referralCode) return;
+    navigator.clipboard.writeText(userProfile.referralCode);
     setCopied(true);
     toast({
       title: 'Copied to clipboard!',
@@ -35,19 +45,36 @@ export default function EarnPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (isLoading) {
+    return (
+      <AppLayout title="Earn">
+        <div className="space-y-6">
+          <div className="text-center">
+            <Skeleton className="h-9 w-64 mx-auto" />
+            <Skeleton className="h-5 w-80 mx-auto mt-2" />
+          </div>
+          <div className="mx-auto max-w-lg space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-56 w-full" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="Earn">
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-3xl font-bold font-headline">
+          <h2 className="font-headline text-3xl font-bold">
             More Ways to Earn
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="mt-2 text-muted-foreground">
             Complete tasks to collect more reward coins.
           </p>
         </div>
 
-        <div className="max-w-lg mx-auto space-y-6">
+        <div className="mx-auto max-w-lg space-y-6">
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-2xl">
@@ -78,14 +105,19 @@ export default function EarnPage() {
               </CardTitle>
               <CardDescription className="pt-2">
                 Invite a friend with your code and you both get{' '}
-                <span className="font-bold text-primary">{referralReward.toLocaleString()} coins</span>!
+                <span className="font-bold text-primary">
+                  {referralReward.toLocaleString()} coins
+                </span>
+                !
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">Your referral code:</p>
+              <p className="text-sm text-muted-foreground">
+                Your referral code:
+              </p>
               <div className="flex gap-2">
                 <div className="flex-grow select-all rounded-md border border-dashed border-border bg-secondary/50 px-4 py-2 text-center font-mono text-lg tracking-widest text-secondary-foreground">
-                  {mockUser.referralCode}
+                  {userProfile?.referralCode ?? '...'}
                 </div>
                 <Button
                   variant="outline"
@@ -93,6 +125,7 @@ export default function EarnPage() {
                   onClick={handleCopy}
                   className="shrink-0"
                   aria-label="Copy referral code"
+                  disabled={!userProfile?.referralCode}
                 >
                   {copied ? (
                     <Check className="h-5 w-5 text-green-500" />

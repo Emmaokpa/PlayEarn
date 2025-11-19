@@ -6,7 +6,7 @@ import {
   CarouselContent,
   CarouselItem,
 } from '@/components/ui/carousel';
-import { games } from '@/lib/data';
+import type { Game } from '@/lib/data';
 import GameCard from '@/components/app/game-card';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,107 +14,120 @@ import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/components/layout/app-layout';
 import { useEffect, useState } from 'react';
 import DailyBonusDialog from '@/components/app/daily-bonus-dialog';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, increment, writeBatch } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const exclusiveGames = games.slice(0, 2);
-  const freeGames = games.slice(2, 4);
-  const newGames = games.slice(4);
+  const { firestore, user } = useFirebase();
+
+  const gamesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'games') : null),
+    [firestore]
+  );
+  const { data: games, isLoading: gamesLoading } = useCollection<Game>(gamesQuery);
+
+  const exclusiveGames = games?.slice(0, 2) ?? [];
+  const freeGames = games?.slice(2, 4) ?? [];
+  const newGames = games?.slice(4) ?? [];
 
   const [isBonusDialogOpen, setIsBonusDialogOpen] = useState(false);
 
   useEffect(() => {
-    const lastClaimed = localStorage.getItem('dailyBonusClaimed');
+    // Basic check to prevent dialog on every render.
+    // In a real app, you'd fetch user's last claim date from Firestore.
+    if (!user) return;
+    const lastClaimed = localStorage.getItem(`dailyBonusClaimed_${user.uid}`);
     const today = new Date().toDateString();
     if (lastClaimed !== today) {
       setIsBonusDialogOpen(true);
     }
-  }, []);
+  }, [user]);
 
-  const handleBonusClaim = () => {
+  const handleBonusClaim = async (amount: number) => {
+    if (!firestore || !user) return;
     const today = new Date().toDateString();
-    localStorage.setItem('dailyBonusClaimed', today);
-    // In a real app, you would also update the user's coin balance on the server.
-    // For now, we can just close the dialog.
+    localStorage.setItem(`dailyBonusClaimed_${user.uid}`, today);
+
+    const userProfileRef = doc(firestore, 'users', user.uid);
+    try {
+      // Use a batch write or transaction for atomic update
+      const batch = writeBatch(firestore);
+      batch.update(userProfileRef, { coins: increment(amount) });
+      await batch.commit();
+    } catch (error) {
+      console.error('Failed to claim bonus:', error);
+      // Revert local storage if server update fails
+      localStorage.removeItem(`dailyBonusClaimed_${user.uid}`);
+    }
+
     setIsBonusDialogOpen(false);
   };
+
+  const renderGameCarousel = () => {
+    if (gamesLoading || !games) {
+      return (
+        <Skeleton className="aspect-video w-full overflow-hidden rounded-xl" />
+      );
+    }
+    return (
+      <Carousel opts={{ loop: true }}>
+        <CarouselContent>
+          {games.map((game, index) => (
+            <CarouselItem key={game.id}>
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl">
+                <Image
+                  src={game.imageUrl}
+                  alt={game.name}
+                  fill
+                  className="object-cover"
+                  priority={index === 0}
+                  sizes="100vw"
+                  data-ai-hint={game.imageHint}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 p-4 text-white">
+                  <h3 className="text-2xl font-bold">{game.name}</h3>
+                  <Badge variant="secondary" className="mt-2">
+                    {game.category}
+                  </Badge>
+                </div>
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
+    );
+  };
+
+  const renderGameSection = (title: string, gamesList: Game[], isLoading: boolean) => (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-2xl font-bold">{title}</h2>
+        <Link href="/games">
+          <Button variant="link" className="text-primary">
+            See All
+          </Button>
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2">
+        {isLoading
+          ? Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+            ))
+          : gamesList.map((game) => <GameCard key={game.id} game={game} />)}
+      </div>
+    </div>
+  );
 
 
   return (
     <AppLayout title="Explore">
       <div className="space-y-8">
-        <Carousel opts={{ loop: true }}>
-          <CarouselContent>
-            {games.map((game, index) => (
-              <CarouselItem key={game.id}>
-                <div className="relative aspect-video w-full overflow-hidden rounded-xl">
-                  <Image
-                    src={game.imageUrl}
-                    alt={game.name}
-                    fill
-                    className="object-cover"
-                    priority={index === 0}
-                    sizes="100vw"
-                    data-ai-hint={game.imageHint}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 p-4 text-white">
-                    <h3 className="text-2xl font-bold">{game.name}</h3>
-                    <Badge variant="secondary" className="mt-2">
-                      {game.category}
-                    </Badge>
-                  </div>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
-
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Exclusive Games</h2>
-            <Link href="/games">
-              <Button variant="link" className="text-primary">
-                See All
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {exclusiveGames.map((game) => (
-              <GameCard key={game.id} game={game} />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Try for free</h2>
-            <Link href="/games">
-              <Button variant="link" className="text-primary">
-                See All
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {freeGames.map((game) => (
-              <GameCard key={game.id} game={game} />
-            ))}
-          </div>
-        </div>
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold">New Releases</h2>
-            <Link href="/games">
-              <Button variant="link" className="text-primary">
-                See All
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {newGames.map((game) => (
-              <GameCard key={game.id} game={game} />
-            ))}
-          </div>
-        </div>
+        {renderGameCarousel()}
+        {renderGameSection('Exclusive Games', exclusiveGames, gamesLoading)}
+        {renderGameSection('Try for free', freeGames, gamesLoading)}
+        {renderGameSection('New Releases', newGames, gamesLoading)}
       </div>
        <DailyBonusDialog
         open={isBonusDialogOpen}

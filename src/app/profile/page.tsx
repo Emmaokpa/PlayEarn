@@ -3,7 +3,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockUser } from '@/lib/data';
 import {
   ChevronRight,
   CreditCard,
@@ -21,6 +20,10 @@ import {
 import AppLayout from '@/components/layout/app-layout';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { useFirebase, useDoc, useUser, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const menuItems = [
   { icon: UserIcon, text: 'Edit Profile' },
@@ -34,31 +37,52 @@ const menuItems = [
 ];
 
 export default function ProfilePage() {
-  const { isVip } = mockUser;
+  const { auth, user, firestore } = useFirebase();
+  
+  const userProfileRef = useMemoFirebase(() => 
+    user ? doc(firestore, 'users', user.uid) : null, 
+    [user, firestore]
+  );
+  const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
+
+  const isVip = userProfile?.isVip ?? false;
 
   return (
     <AppLayout title="Profile">
       <div className="space-y-8">
         <div className="flex flex-col items-center space-y-2">
           <div className="relative">
-            <Avatar className="h-24 w-24 border-4 border-primary">
-              <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />
-              <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+            {isLoading ? (
+              <Skeleton className="h-24 w-24 rounded-full" />
+            ) : (
+              <Avatar className="h-24 w-24 border-4 border-primary">
+                <AvatarImage src={userProfile?.avatarUrl} alt={userProfile?.name} />
+                <AvatarFallback>{userProfile?.name?.charAt(0) ?? 'U'}</AvatarFallback>
+              </Avatar>
+            )}
             {isVip && (
               <div className="absolute -top-2 -right-2 transform rotate-12">
-                <Badge className="bg-primary hover:bg-primary text-primary-foreground border-2 border-background">
+                <Badge className="border-2 border-background bg-primary text-primary-foreground hover:bg-primary">
                   <Crown className="mr-1 h-4 w-4" />
                   VIP
                 </Badge>
               </div>
             )}
           </div>
-          <h2 className="text-2xl font-bold">{mockUser.name}</h2>
-          <p className="text-muted-foreground">omar@gmail.com</p>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-7 w-32" />
+              <Skeleton className="h-5 w-40" />
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold">{userProfile?.name}</h2>
+              <p className="text-muted-foreground">{user?.email ?? 'anonymous'}</p>
+            </>
+          )}
         </div>
 
-        <Card className="bg-gradient-to-br from-primary/20 to-accent/20 border-primary/30">
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/20 to-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-yellow-400">
               <span>VIP Subscription</span>
@@ -96,7 +120,7 @@ export default function ProfilePage() {
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-start h-14 w-full px-4"
+                  className="flex h-14 w-full items-center justify-start px-4"
                 >
                   {content}
                   <Switch defaultChecked />
@@ -107,7 +131,7 @@ export default function ProfilePage() {
               <Button
                 key={index}
                 variant="ghost"
-                className="w-full justify-start h-14"
+                className="h-14 w-full justify-start"
               >
                 {content}
                 <ChevronRight className="h-6 w-6 text-muted-foreground" />
@@ -116,7 +140,7 @@ export default function ProfilePage() {
           })}
         </div>
 
-        <Button variant="destructive" className="w-full">
+        <Button variant="destructive" className="w-full" onClick={() => auth.signOut()}>
           <LogOut className="mr-2" />
           Logout
         </Button>
