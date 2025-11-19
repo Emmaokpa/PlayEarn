@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockUser } from '@/lib/data';
-import { Coin } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import BottomNav from './bottom-nav';
 
 export default function AppLayout({
@@ -17,7 +17,7 @@ export default function AppLayout({
         <h1 className="text-xl font-bold font-headline">{title}</h1>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm">
-            <Coin className="h-5 w-5 text-primary" />
+            <Coins className="h-5 w-5 text-primary" />
             <span className="font-bold">{mockUser.points.toLocaleString()}</span>
           </div>
           <Avatar className="h-9 w-9">

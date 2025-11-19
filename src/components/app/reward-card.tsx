@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import { mockUser } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { Coin } from 'lucide-react';
+import { Coins } from 'lucide-react';
 
 export default function RewardCard({ reward }: { reward: Reward }) {
   const { toast } = useToast();
@@ -58,7 +58,7 @@ export default function RewardCard({ reward }: { reward: Reward }) {
       </CardContent>
       <CardFooter className="flex justify-between items-center p-4 bg-secondary/50 rounded-b-lg">
         <div className="flex items-center gap-1 font-bold text-lg">
-          <Coin className="h-5 w-5 text-primary" />
+          <Coins className="h-5 w-5 text-primary" />
           <span>{reward.points.toLocaleString()}</span>
         </div>
         <Button onClick={handleRedeem} disabled={!canAfford}>
