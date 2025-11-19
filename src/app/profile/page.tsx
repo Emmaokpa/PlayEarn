@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -65,14 +64,20 @@ export default function ProfilePage() {
 
         <div className="space-y-2">
           {menuItems.map((item, index) => {
+            const content = (
+              <>
+                <item.icon className="mr-4 h-6 w-6 text-muted-foreground" />
+                <span className="flex-grow text-left">{item.text}</span>
+              </>
+            );
+
             if (item.hasSwitch) {
               return (
                 <div
                   key={index}
                   className="flex items-center justify-start h-14 w-full px-4"
                 >
-                  <item.icon className="mr-4 h-6 w-6 text-muted-foreground" />
-                  <span className="flex-grow text-left">{item.text}</span>
+                  {content}
                   <Switch defaultChecked />
                 </div>
               );
@@ -83,8 +88,7 @@ export default function ProfilePage() {
                 variant="ghost"
                 className="w-full justify-start h-14"
               >
-                <item.icon className="mr-4 h-6 w-6 text-muted-foreground" />
-                <span className="flex-grow text-left">{item.text}</span>
+                {content}
                 <ChevronRight className="h-6 w-6 text-muted-foreground" />
               </Button>
             );
