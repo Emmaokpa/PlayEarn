@@ -27,6 +27,7 @@ export interface User {
   name: string;
   avatarUrl: string;
   points: number;
+  referralCode: string;
   progress: {
     gameId: string;
     value: number;
@@ -37,6 +38,7 @@ export const mockUser: User = {
   name: 'Alex',
   avatarUrl: 'https://picsum.photos/seed/user/100/100',
   points: 1250,
+  referralCode: 'ALEX2077',
   progress: [
     { gameId: 'game-1', value: 75 },
     { gameId: 'game-3', value: 50 },
