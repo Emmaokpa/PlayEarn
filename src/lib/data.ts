@@ -29,3 +29,14 @@ export interface UserProfile {
   isVip: boolean;
   registrationDate: string;
 }
+
+export interface StickerPack {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  imageHint: string;
+}
+
+    

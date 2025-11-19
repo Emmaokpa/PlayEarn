@@ -9,13 +9,14 @@
  * - /users/{userId}: User profiles, accessible only to the user themselves. The {userId} is the user's Telegram ID.
  * - /games/{gameId}: Game metadata, publicly readable, writeable by admins only. Admin status is not yet enforced, so writes are currently disabled.
  * - /rewards/{rewardId}: Reward definitions, publicly readable, writeable by admins only. Admin status is not yet enforced, so writes are currently disabled.
+ * - /stickerPacks/{stickerPackId}: Sticker packs, publicly readable, writeable by admins only.
  * - /users/{userId}/rewards/{rewardId}: User-specific rewards, accessible only to the user themselves.
  * - /users/{userId}/adViews/{adViewId}: User-specific ad views, accessible only to the user themselves.
  * - /users/{userId}/gameProgress/{gameProgressId}: User-specific game progress, accessible only to the user themselves.
  *
  * Key Security Decisions:
  * - User listing is disallowed to protect user privacy.
- * - Admin roles are not yet implemented; writes to /games and /rewards are currently disabled.
+ * - Admin roles are not yet implemented; writes to /games, /rewards and /stickerPacks are currently disabled.
  * - All writes to user-owned data require a verified user ID that matches the path.
  * - Schema validation ensures data integrity upon creation.
  *
@@ -101,5 +102,17 @@ service cloud.firestore {
       allow get, list: if true;
       allow create, update, delete: if false; // TODO: Add admin role check once defined.
     }
+
+    /**
+     * @description Rules for sticker packs.
+     * @path /stickerPacks/{stickerPackId}
+     * @principle Publicly readable, but only admins can create/update (currently disabled).
+     */
+    match /stickerPacks/{stickerPackId} {
+        allow get, list: if true;
+        allow create, update, delete: if false; // TODO: Add admin role check once defined.
+    }
   }
 }
+
+    

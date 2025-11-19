@@ -59,6 +59,30 @@
       "description": "A premium subscription for a month.",
       "imageUrl": "https://images.unsplash.com/photo-1617909517211-c4e4275bf5b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdWJzY3JpcHRpb258ZW58MHx8fHwxNzYzNDc3MDc0fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "subscription"
+    },
+    {
+      "id": "sticker-1",
+      "description": "Cute animated cat stickers.",
+      "imageUrl": "https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjdXRlJTIwY2F0fGVufDB8fHx8MTc2MzQ4MjgzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cute cat"
+    },
+    {
+      "id": "sticker-2",
+      "description": "Expressive meme reaction stickers.",
+      "imageUrl": "https://images.unsplash.com/photo-1611262588024-d12430b98920?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtZW1lfGVufDB8fHx8MTc2MzQ4MjgzOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "funny meme"
+    },
+    {
+      "id": "sticker-3",
+      "description": "Pixel art video game character stickers.",
+      "imageUrl": "https://images.unsplash.com/photo-1615184697985-c9bde1b07286?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwaXhlbCUyMGFydHxlbnwwfHx8fDE3NjM0ODI4Mzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pixel art"
+    },
+    {
+      "id": "sticker-4",
+      "description": "Vibrant space and galaxy themed stickers.",
+      "imageUrl": "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxnYWxheHl8ZW58MHx8fHwxNzYzNDgyODM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "galaxy"
     }
   ]
 }

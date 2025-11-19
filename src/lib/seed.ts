@@ -80,6 +80,33 @@ const rewardsSeed = [
   },
 ];
 
+const stickerPacksSeed = [
+    {
+        id: 'sticker-1',
+        name: 'Cool Cats',
+        description: 'A collection of cute and funny cat stickers.',
+        price: 500,
+    },
+    {
+        id: 'sticker-2',
+        name: 'Meme Lords',
+        description: 'The most popular memes, now as stickers.',
+        price: 750,
+    },
+    {
+        id: 'sticker-3',
+        name: 'Pixel Power',
+        description: '8-bit video game characters and items.',
+        price: 400,
+    },
+    {
+        id: 'sticker-4',
+        name: 'Galaxy Explorers',
+        description: 'Explore the cosmos with these space stickers.',
+        price: 600,
+    },
+];
+
 export async function seedDatabase() {
   const { firestore } = initializeFirebase();
 
@@ -114,6 +141,20 @@ export async function seedDatabase() {
     }
     console.log('Rewards added to batch.');
 
+     // Seed Sticker Packs
+    const stickerPacksCollection = collection(firestore, 'stickerPacks');
+    console.log('Seeding sticker packs...');
+    for (const pack of stickerPacksSeed) {
+      const { imageUrl, imageHint } = getImage(pack.id);
+      const packRef = doc(stickerPacksCollection, pack.id);
+      batch.set(packRef, {
+        ...pack,
+        imageUrl,
+        imageHint,
+      });
+    }
+    console.log('Sticker packs added to batch.');
+
     await batch.commit();
     console.log('Database seeded successfully!');
     return { success: true, message: 'Database seeded successfully!' };
@@ -122,3 +163,5 @@ export async function seedDatabase() {
     return { success: false, message: 'Error seeding database.' };
   }
 }
+
+    
