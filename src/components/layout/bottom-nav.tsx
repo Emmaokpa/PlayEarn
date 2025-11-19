@@ -26,7 +26,7 @@ import { useState } from 'react';
 const bottomNavItems = [
   { href: '/dashboard', label: 'Explore', icon: Home },
   { href: '/games', label: 'Games', icon: Gamepad2 },
-  { href: '/redeem', label: 'Redeem', icon: Gift },
+  { href: '/store', label: 'Store', icon: ShoppingCart },
   { href: '/profile', label: 'Profile', icon: User },
 ];
 
