@@ -29,8 +29,9 @@ import { doc, addDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const formSchema = z.object({
+const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
   category: z.string().min(2, { message: 'Category is required.' }),
   iframeUrl: z.string().url({ message: 'Please enter a valid URL.' }),
@@ -38,146 +39,116 @@ const formSchema = z.object({
   imageHint: z.string().min(2, { message: 'Image hint is required.' }),
 });
 
-function AdminDashboard() {
+const affiliateFormSchema = z.object({
+  title: z.string().min(2, { message: 'Offer title is required.' }),
+  description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
+  link: z.string().url({ message: 'Please enter a valid affiliate URL.' }),
+  imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }),
+  imageHint: z.string().min(2, { message: 'Image hint is required.' }),
+  rewardCoins: z.coerce.number().min(1, { message: 'Reward must be at least 1 coin.' }),
+});
+
+
+function AddGameForm() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      category: '',
-      iframeUrl: '',
-      imageUrl: '',
-      imageHint: '',
-    },
+  const form = useForm<z.infer<typeof gameFormSchema>>({
+    resolver: zodResolver(gameFormSchema),
+    defaultValues: { name: '', category: '', iframeUrl: '', imageUrl: '', imageHint: '' },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof gameFormSchema>) {
     if (!firestore) return;
-
     try {
-      const gamesCollection = collection(firestore, 'games');
-      await addDoc(gamesCollection, {
-        name: values.name,
-        category: values.category,
-        iframeUrl: values.iframeUrl,
-        imageUrl: values.imageUrl,
-        imageHint: values.imageHint,
-      });
-      toast({
-        title: 'Game Added!',
-        description: `${values.name} is now available in the library.`,
-      });
+      await addDoc(collection(firestore, 'games'), values);
+      toast({ title: 'Game Added!', description: `${values.name} is now available.` });
       form.reset();
     } catch (error) {
       console.error('Error adding game: ', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not add the game. Check console for details.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not add the game.' });
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Add a New Game</CardTitle>
-        <CardDescription>
-          Fill out the form to add a new game to the platform.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Game Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Galaxy Wars" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Sci-Fi" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="iframeUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Game Iframe URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://playgama.com/embed/..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    The URL used to embed the game.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://images.unsplash.com/..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    The URL for the game's cover image.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="imageHint"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image AI Hint</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. space shooter" {...field} />
-                  </FormControl>
-                   <FormDescription>
-                    One or two keywords for AI image search.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Adding Game...' : 'Add Game'}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Game Name</FormLabel> <FormControl> <Input placeholder="e.g. Galaxy Wars" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="category" render={({ field }) => ( <FormItem> <FormLabel>Category</FormLabel> <FormControl> <Input placeholder="e.g. Sci-Fi" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="iframeUrl" render={({ field }) => ( <FormItem> <FormLabel>Game Iframe URL</FormLabel> <FormControl> <Input placeholder="https://playgama.com/embed/..." {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem> <FormLabel>Image URL</FormLabel> <FormControl> <Input placeholder="https://images.unsplash.com/..." {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="imageHint" render={({ field }) => ( <FormItem> <FormLabel>Image AI Hint</FormLabel> <FormControl> <Input placeholder="e.g. space shooter" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Game...' : 'Add Game'} </Button>
+      </form>
+    </Form>
+  );
+}
+
+function AddAffiliateOfferForm() {
+  const { firestore } = useFirebase();
+  const { toast } = useToast();
+  const form = useForm<z.infer<typeof affiliateFormSchema>>({
+    resolver: zodResolver(affiliateFormSchema),
+    defaultValues: { title: '', description: '', link: '', imageUrl: '', imageHint: '', rewardCoins: 1000 },
+  });
+
+  async function onSubmit(values: z.infer<typeof affiliateFormSchema>) {
+    if (!firestore) return;
+    try {
+      await addDoc(collection(firestore, 'affiliateOffers'), values);
+      toast({ title: 'Affiliate Offer Added!', description: `The "${values.title}" offer is now live.` });
+      form.reset();
+    } catch (error) {
+      console.error('Error adding offer: ', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not add the offer.' });
+    }
+  }
+
+    return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField control={form.control} name="title" render={({ field }) => ( <FormItem> <FormLabel>Offer Title</FormLabel> <FormControl> <Input placeholder="e.g. BC.Game Sign Up" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="description" render={({ field }) => ( <FormItem> <FormLabel>Description</FormLabel> <FormControl> <Input placeholder="Sign up for this awesome service and get..." {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="link" render={({ field }) => ( <FormItem> <FormLabel>Affiliate Link</FormLabel> <FormControl> <Input placeholder="https://example.com/aff_id=123" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="rewardCoins" render={({ field }) => ( <FormItem> <FormLabel>Coin Reward</FormLabel> <FormControl> <Input type="number" placeholder="1000" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem> <FormLabel>Image URL</FormLabel> <FormControl> <Input placeholder="https://images.unsplash.com/..." {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <FormField control={form.control} name="imageHint" render={({ field }) => ( <FormItem> <FormLabel>Image AI Hint</FormLabel> <FormControl> <Input placeholder="e.g. casino chips" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+        <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Offer...' : 'Add Offer'} </Button>
+      </form>
+    </Form>
+  );
+}
+
+
+function AdminDashboard() {
+  return (
+    <Tabs defaultValue="games" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="games">Manage Games</TabsTrigger>
+        <TabsTrigger value="affiliates">Manage Affiliates</TabsTrigger>
+      </TabsList>
+      <TabsContent value="games">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add a New Game</CardTitle>
+            <CardDescription>Fill out the form to add a new game to the platform.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AddGameForm />
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="affiliates">
+         <Card>
+          <CardHeader>
+            <CardTitle>Add a New Affiliate Offer</CardTitle>
+            <CardDescription>Fill out the form to add a new offer for users.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AddAffiliateOfferForm />
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -228,3 +199,5 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
+
+    

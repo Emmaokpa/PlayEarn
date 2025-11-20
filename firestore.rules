@@ -9,15 +9,14 @@
  * Data Structure:
  * - /users/{userId}: User profiles, accessible only to the user themselves. The {userId} is the Firebase Auth UID.
  * - /games/{gameId}: Game metadata, publicly readable, writeable by admins only.
- * - /rewards/{rewardId}: Reward definitions, publicly readable, writeable by admins only. Admin status is not yet enforced, so writes are currently disabled.
+ * - /rewards/{rewardId}: Reward definitions, publicly readable, writeable by admins only.
  * - /stickerPacks/{stickerPackId}: Sticker packs, publicly readable, writeable by admins only.
- * - /users/{userId}/rewards/{rewardId}: User-specific rewards, accessible only to the user themselves.
- * - /users/{userId}/adViews/{adViewId}: User-specific ad views, accessible only to the user themselves.
- * - /users/{userId}/gameProgress/{gameProgressId}: User-specific game progress, accessible only to the user themselves.
+ * - /affiliateOffers/{offerId}: Affiliate offers, publicly readable, writeable by admins only.
+ * - All user subcollections (/users/{userId}/**): Accessible only to the owning user.
  *
  * Key Security Decisions:
  * - User listing is disallowed to protect user privacy, except for referral code lookups.
- * - Admin roles are now implemented for the /games collection.
+ * - Admin roles are now implemented for the /games and /affiliateOffers collections.
  * - All writes to user-owned data require a verified user ID that matches the path.
  * - Schema validation ensures data integrity upon creation.
  *
@@ -94,7 +93,7 @@ service cloud.firestore {
                       // Allow coin updates from referrals (by anyone, checked in backend logic)
                       || (request.auth != null && request.resource.data.coins == resource.data.coins + 1000);
 
-      allow delete: if isOwner(userId);
+      allow delete: if false; // Deleting users should be handled carefully, disabling for now.
 
       // Rules for all subcollections under a user's document
       match /{allPaths=**} {
@@ -115,21 +114,33 @@ service cloud.firestore {
     /**
      * @description Rules for rewards.
      * @path /rewards/{rewardId}
-     * @principle Publicly readable, but only admins can create/update (currently disabled).
+     * @principle Publicly readable, but only admins can create/update.
      */
     match /rewards/{rewardId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role check once defined.
+      allow create, update, delete: if isAdmin();
     }
 
     /**
      * @description Rules for sticker packs.
      * @path /stickerPacks/{stickerPackId}
-     * @principle Publicly readable, but only admins can create/update (currently disabled).
+     * @principle Publicly readable, but only admins can create/update.
      */
     match /stickerPacks/{stickerPackId} {
         allow get, list: if true;
-        allow create, update, delete: if false; // TODO: Add admin role check once defined.
+        allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Rules for affiliate offers.
+     * @path /affiliateOffers/{offerId}
+     * @principle Publicly readable, but only admins can create/update.
+     */
+    match /affiliateOffers/{offerId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
     }
   }
 }
+
+    

@@ -72,24 +72,34 @@
           "type": "string",
           "description": "Unique identifier for the game."
         },
-        "playgamaId": {
+        "name": {
           "type": "string",
-          "description": "The Playgama ID of the game."
+          "description": "The name of the game."
         },
-        "title": {
+        "category": {
           "type": "string",
-          "description": "The title of the game."
+          "description": "The category of the game."
         },
-        "description": {
+        "iframeUrl": {
           "type": "string",
-          "description": "A description of the game."
+          "description": "The URL to embed the game."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "The URL for the game's cover image."
+        },
+        "imageHint": {
+          "type": "string",
+          "description": "Keywords for AI image search."
         }
       },
       "required": [
         "id",
-        "playgamaId",
-        "title",
-        "description"
+        "name",
+        "category",
+        "iframeUrl",
+        "imageUrl",
+        "imageHint"
       ]
     },
     "Reward": {
@@ -110,16 +120,16 @@
           "type": "string",
           "description": "A description of the reward."
         },
-        "pointsRequired": {
+        "coins": {
           "type": "number",
-          "description": "The number of points required to redeem this reward."
+          "description": "The number of coins required to redeem this reward."
         }
       },
       "required": [
         "id",
         "name",
         "description",
-        "pointsRequired"
+        "coins"
       ]
     },
     "UserReward": {
@@ -252,6 +262,35 @@
         "name",
         "price"
       ]
+    },
+    "AffiliateOffer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AffiliateOffer",
+      "type": "object",
+      "description": "Represents an affiliate offer that users can complete for rewards.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the offer." },
+        "title": { "type": "string", "description": "The title of the offer." },
+        "description": { "type": "string", "description": "A description of the offer." },
+        "link": { "type": "string", "description": "The affiliate URL." },
+        "imageUrl": { "type": "string", "description": "URL for the offer's image." },
+        "imageHint": { "type": "string", "description": "Keywords for AI image search." },
+        "rewardCoins": { "type": "number", "description": "Coins awarded for completing the offer." }
+      },
+      "required": ["id", "title", "description", "link", "imageUrl", "imageHint", "rewardCoins"]
+    },
+    "UserAffiliate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserAffiliate",
+      "type": "object",
+      "description": "Tracks a user's completion of an affiliate offer.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for this completion record." },
+        "userId": { "type": "string", "description": "ID of the user who completed the offer." },
+        "offerId": { "type": "string", "description": "ID of the completed affiliate offer." },
+        "completedAt": { "type": "string", "description": "Timestamp of completion.", "format": "date-time" }
+      },
+      "required": ["id", "userId", "offerId", "completedAt"]
     }
   },
   "auth": {
@@ -326,6 +365,15 @@
         }
       },
       {
+        "path": "/affiliateOffers/{offerId}",
+        "definition": {
+          "entityName": "AffiliateOffer",
+          "schema": { "$ref": "#/backend/entities/AffiliateOffer" },
+          "description": "Stores affiliate offer details. Publicly readable, but only admins can create/update.",
+          "params": [{ "name": "offerId", "description": "The unique ID of the affiliate offer." }]
+        }
+      },
+      {
         "path": "/users/{userId}/rewards/{rewardId}",
         "definition": {
           "entityName": "UserReward",
@@ -384,8 +432,22 @@
             }
           ]
         }
+      },
+       {
+        "path": "/users/{userId}/affiliateSignups/{offerId}",
+        "definition": {
+          "entityName": "UserAffiliate",
+          "schema": { "$ref": "#/backend/entities/UserAffiliate" },
+          "description": "Tracks which affiliate offers a user has completed. Path-based ownership.",
+          "params": [
+            { "name": "userId", "description": "The unique ID of the user." },
+            { "name": "offerId", "description": "The unique ID of the offer." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game metadata. These are globally accessible.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **User Rewards:** `/users/{userId}/rewards/{rewardId}` tracks rewards earned/redeemed by a specific user. Path-based ownership ensures only the user can modify their rewards.\n*   **Ad Views:** `/users/{userId}/adViews/{adViewId}` records ad views by each user. Path-based ownership applies.\n*   **Game Progress:** `/users/{userId}/gameProgress/{gameProgressId}` stores user's progress in each game. Again, path-based ownership.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` (rewards, adViews, gameProgress) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
+    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game metadata. These are globally accessible.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` (rewards, adViews, gameProgress) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
   }
 }
+
+    

@@ -1,3 +1,4 @@
+
 import { FieldValue } from 'firebase/firestore';
 
 export interface Game {
@@ -47,3 +48,22 @@ export interface StickerPack {
   imageUrl: string;
   imageHint: string;
 }
+
+export interface AffiliateOffer {
+  id: string;
+  title: string;
+  description: string;
+  link: string;
+  imageUrl: string;
+  imageHint: string;
+  rewardCoins: number;
+}
+
+export interface UserAffiliate {
+    id: string;
+    userId: string;
+    offerId: string;
+    completedAt: FieldValue;
+}
+
+    

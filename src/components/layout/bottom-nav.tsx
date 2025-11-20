@@ -20,6 +20,7 @@ import {
   BarChart,
   Home,
   Shield,
+  Handshake,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -40,6 +41,7 @@ const sidebarNavItems = [
     { href: '/dashboard', label: 'Explore', icon: LayoutGrid },
     { href: '/games', label: 'Games', icon: Gamepad2 },
     { href: '/earn', label: 'Earn', icon: Trophy },
+    { href: '/earn/affiliate', label: 'Affiliate', icon: Handshake },
     { href: '/redeem', label: 'Redeem', icon: Gift },
     { href: '/store', label: 'Store', icon: ShoppingCart },
     { href: '/predictor', label: 'Predictor', icon: BarChart },
@@ -100,9 +102,9 @@ function SidebarNav({
     <nav className="grid items-start gap-2 text-sm font-medium">
       {items.map((item) => {
          const isActive =
-         item.href === '/dashboard'
+         item.href === '/dashboard' || item.href === '/earn'
            ? pathname === item.href
-           : pathname.startsWith(item.href) && item.href !== '/dashboard';
+           : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/earn';
         return (
           <NavLink
             key={item.href}
@@ -174,3 +176,5 @@ export default function BottomNav() {
     </>
   );
 }
+
+    

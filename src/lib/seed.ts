@@ -107,6 +107,16 @@ const stickerPacksSeed = [
     },
 ];
 
+const affiliateOffersSeed = [
+  {
+    id: 'bc-game',
+    title: 'BC.Game Sign Up',
+    description: 'Sign up for BC.Game, a leading crypto casino, and get a huge bonus!',
+    link: 'https://bc.game/i-heydz3ou-n/',
+    rewardCoins: 5000,
+  }
+];
+
 export async function seedDatabase() {
   const { firestore } = initializeFirebase();
 
@@ -154,6 +164,20 @@ export async function seedDatabase() {
       });
     }
     console.log('Sticker packs added to batch.');
+
+    // Seed Affiliate Offers
+    const affiliateOffersCollection = collection(firestore, 'affiliateOffers');
+    console.log('Seeding affiliate offers...');
+    for (const offer of affiliateOffersSeed) {
+        const { imageUrl, imageHint } = getImage(offer.id) || getImage('reward-1');
+        const offerRef = doc(affiliateOffersCollection, offer.id);
+        batch.set(offerRef, {
+            ...offer,
+            imageUrl,
+            imageHint,
+        });
+    }
+    console.log('Affiliate offers added to batch.');
 
     await batch.commit();
     console.log('Database seeded successfully!');
