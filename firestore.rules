@@ -16,7 +16,7 @@
  * - All user subcollections (/users/{userId}/**): Accessible only to the owning user.
  *
  * Key Security Decisions:
- * - User listing is disallowed to protect user privacy, except for referral code lookups.
+ * - User listing is allowed for leaderboards but protected so only signed-in users can view it.
  * - Admin roles are now implemented for the /games and /affiliateOffers collections.
  * - All writes to user-owned data require a verified user ID that matches the path.
  * - Schema validation ensures data integrity upon creation.
@@ -79,8 +79,9 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      // Allow reading a user's profile for referral checks, but only specific fields
-      allow list: if request.query.keys().hasOnly(['referralCode']) && request.query.limit <= 1;
+      // Allow signed-in users to list profiles for the leaderboard
+      // and also allow referral code checks.
+      allow list: if isSignedIn();
 
       allow create: if isOwner(userId) 
                       && request.resource.data.id == userId
@@ -153,5 +154,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
