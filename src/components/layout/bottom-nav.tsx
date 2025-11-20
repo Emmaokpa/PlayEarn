@@ -35,7 +35,7 @@ const bottomNavItems = [
   { href: '/dashboard', label: 'Explore', icon: Home },
   { href: '/games', label: 'Games', icon: Gamepad2 },
   { href: '/leaderboard', label: 'Top', icon: Award },
-  { href: '/profile', label: 'Profile', icon: User },
+  { href: '/store', label: 'Store', icon: ShoppingCart },
 ];
 
 const sidebarNavItems = [
@@ -155,9 +155,9 @@ export default function BottomNav() {
             </SheetTrigger>
             {bottomNavItems.map((item) => {
               const isActive =
-                item.href === '/dashboard' || item.href === '/leaderboard'
+                item.href === '/dashboard' || item.href === '/leaderboard' || item.href === '/store'
                   ? pathname === item.href
-                  : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/leaderboard';
+                  : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/leaderboard' && item.href !== '/store';
               return (
                  <NavLink
                     key={item.href}

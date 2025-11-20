@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Crown, Trophy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function LeaderboardPage() {
@@ -46,7 +47,7 @@ export default function LeaderboardPage() {
       <div className="mb-8 text-center">
         <h2 className="font-headline text-3xl font-bold">Top Earners</h2>
         <p className="mt-2 text-muted-foreground">
-          See who's at the top of their game. The #1 player wins a $10 gift card!
+          The #1 VIP player wins a $10 gift card! Upgrade to compete.
         </p>
       </div>
 
@@ -94,7 +95,10 @@ export default function LeaderboardPage() {
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <p className="font-bold">{user.name}</p>
+                            <p className="font-bold flex items-center gap-2">
+                                {user.name}
+                                {user.isVip && <Badge className="bg-primary text-primary-foreground"><Crown className="h-3 w-3 mr-1"/>VIP</Badge>}
+                            </p>
                             <p className="text-sm text-muted-foreground">@{user.username}</p>
                         </div>
                         </div>
