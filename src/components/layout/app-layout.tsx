@@ -39,7 +39,7 @@ export default function AppLayout({
   const isLoading = isUserLoading || isProfileLoading;
 
   // Render a loading state or nothing while auth is being checked or redirecting
-  if (isLoading || (!user && !isUserLoading)) {
+  if (isLoading || !user) {
      return (
       <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6">
