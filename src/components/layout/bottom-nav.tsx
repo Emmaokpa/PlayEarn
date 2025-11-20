@@ -19,10 +19,15 @@ import {
   ShoppingCart,
   BarChart,
   Home,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/data';
+
 
 const bottomNavItems = [
   { href: '/dashboard', label: 'Explore', icon: Home },
@@ -40,6 +45,10 @@ const sidebarNavItems = [
     { href: '/predictor', label: 'Predictor', icon: BarChart },
     { href: '/profile', label: 'Profile', icon: User },
 ];
+
+const adminNavItems = [
+    { href: '/admin', label: 'Admin', icon: Shield },
+]
 
 function NavLink({
   href,
@@ -80,13 +89,16 @@ function NavLink({
 
 function SidebarNav({
   closeSidebar,
+  isAdmin,
 }: {
   closeSidebar: () => void;
+  isAdmin: boolean;
 }) {
   const pathname = usePathname();
+  const items = isAdmin ? [...sidebarNavItems, ...adminNavItems] : sidebarNavItems;
   return (
     <nav className="grid items-start gap-2 text-sm font-medium">
-      {sidebarNavItems.map((item) => {
+      {items.map((item) => {
          const isActive =
          item.href === '/dashboard'
            ? pathname === item.href
@@ -107,8 +119,16 @@ function SidebarNav({
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { user, firestore } = useFirebase();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  const userProfileRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'users', user.uid) : null),
+    [user, firestore]
+  );
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+  const isAdmin = userProfile?.isAdmin ?? false;
 
   if (isAuthPage) {
     return null;
@@ -148,7 +168,7 @@ export default function BottomNav() {
           <SheetHeader className="mb-4 text-left">
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
-          <SidebarNav closeSidebar={() => setIsSidebarOpen(false)} />
+          <SidebarNav isAdmin={isAdmin} closeSidebar={() => setIsSidebarOpen(false)} />
         </SheetContent>
       </Sheet>
     </>

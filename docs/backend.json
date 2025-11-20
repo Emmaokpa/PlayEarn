@@ -39,6 +39,10 @@
             "type": "boolean",
             "description": "Indicates if the user is a VIP member."
         },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Indicates if the user has administrative privileges."
+        },
         "registrationDate": {
           "type": "string",
           "description": "The date and time the user registered.",
@@ -54,6 +58,7 @@
         "coins",
         "referralCode",
         "isVip",
+        "isAdmin",
         "registrationDate"
       ]
     },

@@ -27,6 +27,7 @@ export interface UserProfile {
   coins: number;
   referralCode: string;
   isVip: boolean;
+  isAdmin: boolean;
   registrationDate: string;
 }
 

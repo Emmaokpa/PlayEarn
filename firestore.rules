@@ -8,7 +8,7 @@
  *
  * Data Structure:
  * - /users/{userId}: User profiles, accessible only to the user themselves. The {userId} is the Firebase Auth UID.
- * - /games/{gameId}: Game metadata, publicly readable, writeable by admins only. Admin status is not yet enforced, so writes are currently disabled.
+ * - /games/{gameId}: Game metadata, publicly readable, writeable by admins only.
  * - /rewards/{rewardId}: Reward definitions, publicly readable, writeable by admins only. Admin status is not yet enforced, so writes are currently disabled.
  * - /stickerPacks/{stickerPackId}: Sticker packs, publicly readable, writeable by admins only.
  * - /users/{userId}/rewards/{rewardId}: User-specific rewards, accessible only to the user themselves.
@@ -17,7 +17,7 @@
  *
  * Key Security Decisions:
  * - User listing is disallowed to protect user privacy, except for referral code lookups.
- * - Admin roles are not yet implemented; writes to /games, /rewards and /stickerPacks are currently disabled.
+ * - Admin roles are now implemented for the /games collection.
  * - All writes to user-owned data require a verified user ID that matches the path.
  * - Schema validation ensures data integrity upon creation.
  *
@@ -44,6 +44,15 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+
+    /**
+     * @description Checks if the requesting user has an admin role.
+     * It reads the user's profile from the /users collection.
+     * @return {boolean} True if the user is an admin, false otherwise.
+     */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
     
     /**
      * @description Validates the fields of a UserProfile document on creation.
@@ -58,7 +67,8 @@ service cloud.firestore {
                data.coins is number &&
                data.referralCode is string &&
                data.isVip == false && // New users cannot be VIPs
-               data.registrationDate == request.time;
+               data.registrationDate == request.time &&
+               data.isAdmin == false; // New users cannot be admins
     }
 
 
@@ -77,9 +87,10 @@ service cloud.firestore {
                       && isValidUserProfile(request.resource.data);
 
       allow update: if isOwner(userId)
-                      // Prevent changing critical IDs
+                      // Prevent changing critical IDs or admin status by user
                       && request.resource.data.id == resource.data.id
                       && request.resource.data.telegramId == resource.data.telegramId
+                      && request.resource.data.isAdmin == resource.data.isAdmin
                       // Allow coin updates from referrals (by anyone, checked in backend logic)
                       || (request.auth != null && request.resource.data.coins == resource.data.coins + 1000);
 
@@ -94,11 +105,11 @@ service cloud.firestore {
     /**
      * @description Rules for games.
      * @path /games/{gameId}
-     * @principle Publicly readable, but only admins can create/update (currently disabled).
+     * @principle Publicly readable, but only admins can create/update.
      */
     match /games/{gameId} {
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add admin role check once defined.
+      allow create, update, delete: if isAdmin();
     }
 
     /**

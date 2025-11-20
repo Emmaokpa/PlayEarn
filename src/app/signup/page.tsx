@@ -28,6 +28,7 @@ import {
   where,
   getDocs,
   limit,
+  increment,
 } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -58,6 +59,14 @@ export default function SignUpPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!firestore || !auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Firebase not initialized. Please try again later.',
+      });
+      return;
+    }
     try {
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
@@ -76,7 +85,7 @@ export default function SignUpPage() {
         const usersRef = collection(firestore, 'users');
         const q = query(
           usersRef,
-          where('referralCode', '==', values.referralCode.toUpperCase()),
+          where('referralCode', '==', values.referralCode.trim().toUpperCase()),
           limit(1)
         );
         const querySnapshot = await getDocs(q);
@@ -84,18 +93,18 @@ export default function SignUpPage() {
         if (!querySnapshot.empty) {
           const referrerDoc = querySnapshot.docs[0];
           batch.update(referrerDoc.ref, {
-            coins: referrerDoc.data().coins + referralReward,
+            coins: increment(referralReward),
           });
           initialCoins += referralReward; // Give bonus to new user
           toast({
             title: 'Referral Applied!',
-            description: `You and your friend both received ${referralReward} coins!`,
+            description: `You and your friend both received ${referralReward.toLocaleString()} coins!`,
           });
         } else {
           toast({
             variant: 'destructive',
             title: 'Invalid Referral Code',
-            description: 'The code you entered was not found.',
+            description: 'The code you entered was not found. Continuing sign-up without bonus.',
           });
         }
       }
@@ -111,6 +120,7 @@ export default function SignUpPage() {
         coins: initialCoins, // Starting coins + referral bonus
         referralCode: `${user.uid.substring(0, 6).toUpperCase()}`,
         isVip: false,
+        isAdmin: false, // New users are never admins
         registrationDate: serverTimestamp(),
       });
 
