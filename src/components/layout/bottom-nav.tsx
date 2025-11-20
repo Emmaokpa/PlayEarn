@@ -21,6 +21,7 @@ import {
   Home,
   Shield,
   Handshake,
+  Award,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,13 +34,14 @@ import type { UserProfile } from '@/lib/data';
 const bottomNavItems = [
   { href: '/dashboard', label: 'Explore', icon: Home },
   { href: '/games', label: 'Games', icon: Gamepad2 },
-  { href: '/store', label: 'Store', icon: ShoppingCart },
+  { href: '/leaderboard', label: 'Top', icon: Award },
   { href: '/profile', label: 'Profile', icon: User },
 ];
 
 const sidebarNavItems = [
     { href: '/dashboard', label: 'Explore', icon: LayoutGrid },
     { href: '/games', label: 'Games', icon: Gamepad2 },
+    { href: '/leaderboard', label: 'Leaderboard', icon: Award },
     { href: '/earn', label: 'Earn', icon: Trophy },
     { href: '/earn/affiliate', label: 'Affiliate', icon: Handshake },
     { href: '/redeem', label: 'Redeem', icon: Gift },
@@ -102,9 +104,9 @@ function SidebarNav({
     <nav className="grid items-start gap-2 text-sm font-medium">
       {items.map((item) => {
          const isActive =
-         item.href === '/dashboard' || item.href === '/earn'
+         item.href === '/dashboard' || item.href === '/earn' || item.href === '/leaderboard'
            ? pathname === item.href
-           : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/earn';
+           : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/earn' && item.href !== '/leaderboard';
         return (
           <NavLink
             key={item.href}
@@ -153,9 +155,9 @@ export default function BottomNav() {
             </SheetTrigger>
             {bottomNavItems.map((item) => {
               const isActive =
-                item.href === '/dashboard'
+                item.href === '/dashboard' || item.href === '/leaderboard'
                   ? pathname === item.href
-                  : pathname.startsWith(item.href) && item.href !== '/dashboard';
+                  : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/leaderboard';
               return (
                  <NavLink
                     key={item.href}
@@ -176,5 +178,3 @@ export default function BottomNav() {
     </>
   );
 }
-
-    
