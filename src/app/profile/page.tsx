@@ -20,10 +20,11 @@ import {
 import AppLayout from '@/components/layout/app-layout';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { useFirebase, useDoc, useUser, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 const menuItems = [
   { icon: UserIcon, text: 'Edit Profile' },
@@ -38,6 +39,7 @@ const menuItems = [
 
 export default function ProfilePage() {
   const { auth, user, firestore } = useFirebase();
+  const { toast } = useToast();
   
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, 'users', user.uid) : null, 
@@ -46,6 +48,26 @@ export default function ProfilePage() {
   const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
 
   const isVip = userProfile?.isVip ?? false;
+
+  const handleVipUpgrade = async () => {
+    if (!user || !firestore || isVip) return;
+
+    const userRef = doc(firestore, 'users', user.uid);
+    try {
+      await updateDoc(userRef, { isVip: true });
+      toast({
+        title: 'Congratulations!',
+        description: "You're now a VIP member. All VIP features are unlocked.",
+      });
+    } catch (error) {
+      console.error('VIP Upgrade Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Upgrade Failed',
+        description: 'Something went wrong. Please try again.',
+      });
+    }
+  };
 
   return (
     <AppLayout title="Profile">
@@ -101,7 +123,7 @@ export default function ProfilePage() {
                 <Crown className="h-4 w-4 text-yellow-400" /> Claim exclusive gift cards
               </li>
             </ul>
-             <Button className="w-full font-bold" size="lg">
+             <Button className="w-full font-bold" size="lg" onClick={handleVipUpgrade} disabled={isVip}>
               {isVip ? 'Manage Subscription' : 'Upgrade to VIP'}
             </Button>
           </CardContent>
