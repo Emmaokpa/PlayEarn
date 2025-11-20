@@ -117,6 +117,37 @@ const affiliateOffersSeed = [
   }
 ];
 
+const coinPacksSeed = [
+    {
+        id: 'coin-pack-1',
+        name: 'Starter Pack',
+        description: 'A little boost to get you started.',
+        coins: 10000,
+        price: 1.99,
+    },
+    {
+        id: 'coin-pack-2',
+        name: 'Player Pack',
+        description: 'A solid amount of coins for the average player.',
+        coins: 55000,
+        price: 9.99,
+    },
+    {
+        id: 'coin-pack-3',
+        name: 'Pro Gamer Pack',
+        description: 'For the serious player who wants it all.',
+        coins: 120000,
+        price: 19.99,
+    },
+     {
+        id: 'coin-pack-4',
+        name: 'Whale Pack',
+        description: 'The ultimate pack for the ultimate player.',
+        coins: 1000000,
+        price: 99.99,
+    },
+];
+
 export async function seedDatabase() {
   const { firestore } = initializeFirebase();
 
@@ -164,6 +195,20 @@ export async function seedDatabase() {
       });
     }
     console.log('Sticker packs added to batch.');
+    
+    // Seed Coin Packs
+    const coinPacksCollection = collection(firestore, 'coinPacks');
+    console.log('Seeding coin packs...');
+    for (const pack of coinPacksSeed) {
+        const { imageUrl, imageHint } = getImage('reward-3'); // Using a generic image for now
+        const packRef = doc(coinPacksCollection, pack.id);
+        batch.set(packRef, {
+            ...pack,
+            imageUrl,
+            imageHint,
+        });
+    }
+    console.log('Coin packs added to batch.');
 
     // Seed Affiliate Offers
     const affiliateOffersCollection = collection(firestore, 'affiliateOffers');

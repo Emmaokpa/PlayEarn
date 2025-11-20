@@ -49,6 +49,16 @@ export interface StickerPack {
   imageHint: string;
 }
 
+export interface CoinPack {
+    id: string;
+    name: string;
+    description: string;
+    coins: number;
+    price: number;
+    imageUrl: string;
+    imageHint: string;
+}
+
 export interface AffiliateOffer {
   id: string;
   title: string;
