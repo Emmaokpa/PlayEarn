@@ -176,17 +176,16 @@
           "type": "string",
           "description": "Identifier for the ad. Could be an external ad network ID."
         },
-        "viewDate": {
-          "type": "string",
-          "description": "The date and time the ad was viewed.",
-          "format": "date-time"
+        "timestamp": {
+          "type": "object",
+          "description": "The server-side timestamp when the ad was viewed."
         }
       },
       "required": [
         "id",
         "userId",
         "adId",
-        "viewDate"
+        "timestamp"
       ]
     },
     "GameProgress": {

@@ -13,8 +13,8 @@ import { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Film, CheckCircle, PartyPopper } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment } from 'firebase/firestore';
+import { useFirebase, addDocumentNonBlocking } from '@/firebase';
+import { doc, increment, serverTimestamp, writeBatch, collection } from 'firebase/firestore';
 
 export default function WatchAdDialog({
   open,
@@ -48,22 +48,45 @@ export default function WatchAdDialog({
     }
   }, [open]);
 
-  const handleClaim = () => {
+  const handleClaim = async () => {
     if (!user || !firestore) return;
 
-    const userRef = doc(firestore, 'users', user.uid);
-    updateDocumentNonBlocking(userRef, { coins: increment(reward) });
-    
-    toast({
-      title: (
-        <div className="flex items-center gap-2">
-          <PartyPopper className="h-5 w-5 text-accent" />
-          <span className="font-bold">Reward Claimed!</span>
-        </div>
-      ),
-      description: `You've earned ${reward} coins.`,
-    });
-    onOpenChange(false);
+    try {
+      const batch = writeBatch(firestore);
+
+      // 1. Update user's coin balance
+      const userRef = doc(firestore, 'users', user.uid);
+      batch.update(userRef, { coins: increment(reward) });
+
+      // 2. Create a new AdView document
+      const adViewRef = doc(collection(firestore, `users/${user.uid}/adViews`));
+      batch.set(adViewRef, {
+        userId: user.uid,
+        adId: `ad_${Date.now()}`, // Simple unique ID for the ad
+        timestamp: serverTimestamp(),
+      });
+
+      // Commit both operations atomically
+      await batch.commit();
+
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <PartyPopper className="h-5 w-5 text-accent" />
+            <span className="font-bold">Reward Claimed!</span>
+          </div>
+        ),
+        description: `You've earned ${reward} coins.`,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to claim ad reward:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to claim reward. Please try again.',
+      });
+    }
   };
 
   return (

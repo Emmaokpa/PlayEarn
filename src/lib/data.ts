@@ -1,3 +1,4 @@
+import { FieldValue } from 'firebase/firestore';
 
 export interface Game {
   id: string;
@@ -31,6 +32,13 @@ export interface UserProfile {
   registrationDate: string;
 }
 
+export interface AdView {
+    id: string;
+    userId: string;
+    adId: string;
+    timestamp: FieldValue;
+}
+
 export interface StickerPack {
   id: string;
   name: string;
@@ -39,5 +47,3 @@ export interface StickerPack {
   imageUrl: string;
   imageHint: string;
 }
-
-    

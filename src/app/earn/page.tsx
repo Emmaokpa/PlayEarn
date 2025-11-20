@@ -9,18 +9,27 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Trophy, Users, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { Trophy, Users, Copy, Check, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import WatchAdDialog from '@/components/app/watch-ad-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirebase, useDoc, useUser, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/data';
+import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import type { UserProfile, AdView } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const AD_REWARD = 100;
+const REGULAR_AD_LIMIT = 10;
+const VIP_AD_LIMIT = 50;
+const AD_COOLDOWN_MINUTES = 5;
 
 export default function EarnPage() {
   const [isAdDialogOpen, setIsAdDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [adStatus, setAdStatus] = useState({
+    canWatch: false,
+    message: 'Loading ad status...',
+  });
   const { toast } = useToast();
   const { firestore, user } = useFirebase();
 
@@ -28,11 +37,58 @@ export default function EarnPage() {
     () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
     [user, firestore]
   );
-  const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
+  // Query for today's ad views
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const adViewsQuery = useMemoFirebase(
+    () =>
+      user && firestore
+        ? query(
+            collection(firestore, 'users', user.uid, 'adViews'),
+            where('timestamp', '>=', today),
+            orderBy('timestamp', 'desc')
+          )
+        : null,
+    [user, firestore, today.getTime()] // Re-run when day changes
+  );
+  const { data: adViews, isLoading: areAdsLoading } = useCollection<AdView>(adViewsQuery);
 
   const isVip = userProfile?.isVip ?? false;
-  const adReward = isVip ? 30 : 10;
   const referralReward = isVip ? 3000 : 1000;
+  const isLoading = isProfileLoading || areAdsLoading;
+  
+  useEffect(() => {
+    if (isLoading || !adViews || !userProfile) {
+      setAdStatus({ canWatch: false, message: 'Loading status...' });
+      return;
+    }
+
+    const adLimit = userProfile.isVip ? VIP_AD_LIMIT : REGULAR_AD_LIMIT;
+    const adsWatchedToday = adViews.length;
+
+    if (adsWatchedToday >= adLimit) {
+      setAdStatus({ canWatch: false, message: `Daily ad limit reached (${adsWatchedToday}/${adLimit})` });
+      return;
+    }
+
+    if (!userProfile.isVip && adViews.length > 0) {
+      const lastAdTime = adViews[0].timestamp.toDate();
+      const now = new Date();
+      const diffMinutes = (now.getTime() - lastAdTime.getTime()) / (1000 * 60);
+
+      if (diffMinutes < AD_COOLDOWN_MINUTES) {
+        const minutesLeft = Math.ceil(AD_COOLDOWN_MINUTES - diffMinutes);
+        setAdStatus({ canWatch: false, message: `Next ad available in ${minutesLeft} min` });
+        return;
+      }
+    }
+    
+    setAdStatus({ canWatch: true, message: `Ads watched today: ${adsWatchedToday}/${adLimit}` });
+
+  }, [adViews, userProfile, isLoading]);
+
 
   const handleCopy = () => {
     if (!userProfile?.referralCode) return;
@@ -82,7 +138,7 @@ export default function EarnPage() {
                 Watch & Earn
               </CardTitle>
               <CardDescription className="pt-2">
-                Watch a short video ad and get rewarded with {adReward} coins
+                Watch a short video ad and get rewarded with {AD_REWARD} coins
                 instantly!
               </CardDescription>
             </CardHeader>
@@ -91,9 +147,14 @@ export default function EarnPage() {
                 size="lg"
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
                 onClick={() => setIsAdDialogOpen(true)}
+                disabled={!adStatus.canWatch}
               >
                 Watch Video Ad
               </Button>
+               <p className="mt-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-1.5">
+                <Info className="h-4 w-4" />
+                {adStatus.message}
+              </p>
             </CardContent>
           </Card>
 
@@ -141,7 +202,7 @@ export default function EarnPage() {
       <WatchAdDialog
         open={isAdDialogOpen}
         onOpenChange={setIsAdDialogOpen}
-        reward={adReward}
+        reward={AD_REWARD}
       />
     </AppLayout>
   );
