@@ -4,22 +4,10 @@
  * @fileOverview An AI flow for predicting game outcomes or giving tips.
  *
  * - predictGameOutcome - A function that provides a prediction for a given game.
- * - GamePredictorInput - The input type for the predictGameOutcome function.
- * - GamePredictorOutput - The return type for the predictGameOutcome function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
-
-export const GamePredictorInputSchema = z.object({
-  gameName: z.string().describe('The name of the game to predict.'),
-});
-export type GamePredictorInput = z.infer<typeof GamePredictorInputSchema>;
-
-export const GamePredictorOutputSchema = z.object({
-  prediction: z.string().describe("The AI's prediction or tip for the game."),
-});
-export type GamePredictorOutput = z.infer<typeof GamePredictorOutputSchema>;
+import { GamePredictorInputSchema, GamePredictorOutputSchema, type GamePredictorInput, type GamePredictorOutput } from '@/ai/schemas';
 
 export async function predictGameOutcome(input: GamePredictorInput): Promise<GamePredictorOutput> {
   return gamePredictorFlow(input);
