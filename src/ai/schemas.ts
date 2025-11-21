@@ -1,3 +1,4 @@
+
 import {z} from 'zod';
 
 /**
@@ -6,11 +7,12 @@ import {z} from 'zod';
  */
 
 export const GamePredictorInputSchema = z.object({
-  gameName: z.string().describe('The name of the game to predict.'),
+  description: z.string().describe('A description of the casino game or betting scenario.'),
 });
 export type GamePredictorInput = z.infer<typeof GamePredictorInputSchema>;
 
 export const GamePredictorOutputSchema = z.object({
-  prediction: z.string().describe("The AI's prediction or tip for the game."),
+  prediction: z.string().describe("The AI's analysis, prediction, or advice for the betting scenario."),
 });
 export type GamePredictorOutput = z.infer<typeof GamePredictorOutputSchema>;
+

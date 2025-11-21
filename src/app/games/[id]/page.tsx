@@ -1,3 +1,4 @@
+
 'use client';
 
 import { notFound } from 'next/navigation';
@@ -5,21 +6,27 @@ import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Game } from '@/lib/data';
+import { getGameById } from '@/lib/games';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
 
 export default function GamePage({ params }: { params: { id: string } }) {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
+  
+  const [game, setGame] = useState<Game | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const gameRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'games', params.id) : null),
-    [firestore, params.id]
-  );
-  const { data: game, isLoading } = useDoc<Game>(gameRef);
+  useEffect(() => {
+    const foundGame = getGameById(params.id);
+    setGame(foundGame);
+    setIsLoading(false);
+  }, [params.id]);
+
 
   const handleSaveProgress = async () => {
     if (!firestore || !user || !game) return;

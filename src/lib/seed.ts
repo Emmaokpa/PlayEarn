@@ -10,45 +10,6 @@ function getImage(id: string) {
   return image || { imageUrl: '', imageHint: 'placeholder' };
 }
 
-const gamesSeed = [
-  {
-    id: 'game-1',
-    name: 'Nitro Racer',
-    category: 'Racing',
-    iframeUrl: 'https://playgama.com/embed/nitro-racer',
-  },
-  {
-    id: 'game-2',
-    name: 'Jungle Quest',
-    category: 'Adventure',
-    iframeUrl: 'https://playgama.com/embed/jungle-quest',
-  },
-  {
-    id: 'game-3',
-    name: 'Galaxy Wars',
-    category: 'Sci-Fi',
-    iframeUrl: 'https://playgama.com/embed/galaxy-wars',
-  },
-  {
-    id: 'game-4',
-    name: 'Block Master',
-    category: 'Puzzle',
-    iframeUrl: 'https://playgama.com/embed/block-master',
-  },
-  {
-    id: 'game-5',
-    name: "Dragon's Lair",
-    category: 'Fantasy',
-    iframeUrl: 'https://playgama.com/embed/dragons-lair',
-  },
-  {
-    id: 'game-6',
-    name: 'Checkmate',
-    category: 'Strategy',
-    iframeUrl: 'https://playgama.com/embed/checkmate',
-  },
-];
-
 const rewardsSeed = [
   {
     id: 'reward-1',
@@ -154,20 +115,6 @@ export async function seedDatabase() {
   try {
     const batch = writeBatch(firestore);
 
-    // Seed Games
-    const gamesCollection = collection(firestore, 'games');
-    console.log('Seeding games...');
-    for (const game of gamesSeed) {
-      const { imageUrl, imageHint } = getImage(game.id);
-      const gameRef = doc(gamesCollection, game.id);
-      batch.set(gameRef, {
-        ...game,
-        imageUrl,
-        imageHint,
-      });
-    }
-    console.log('Games added to batch.');
-
     // Seed Rewards
     const rewardsCollection = collection(firestore, 'rewards');
     console.log('Seeding rewards...');
@@ -232,5 +179,3 @@ export async function seedDatabase() {
     return { success: false, message: 'Error seeding database.' };
   }
 }
-
-    

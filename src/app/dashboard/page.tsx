@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel';
 import type { Game } from '@/lib/data';
+import { getAllGames } from '@/lib/games';
 import GameCard from '@/components/app/game-card';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -14,18 +16,21 @@ import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/components/layout/app-layout';
 import { useEffect, useState } from 'react';
 import DailyBonusDialog from '@/components/app/daily-bonus-dialog';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, increment, writeBatch } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
+import { doc, increment, writeBatch } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
   const { firestore, user } = useFirebase();
+  
+  const [games, setGames] = useState<Game[]>([]);
+  const [gamesLoading, setGamesLoading] = useState(true);
 
-  const gamesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'games') : null),
-    [firestore]
-  );
-  const { data: games, isLoading: gamesLoading } = useCollection<Game>(gamesQuery);
+  useEffect(() => {
+    const allGames = getAllGames();
+    setGames(allGames);
+    setGamesLoading(false);
+  }, []);
 
   const exclusiveGames = games?.slice(0, 2) ?? [];
   const freeGames = games?.slice(2, 4) ?? [];
@@ -34,8 +39,6 @@ export default function DashboardPage() {
   const [isBonusDialogOpen, setIsBonusDialogOpen] = useState(false);
 
   useEffect(() => {
-    // Basic check to prevent dialog on every render.
-    // In a real app, you'd fetch user's last claim date from Firestore.
     if (!user) return;
     const lastClaimed = localStorage.getItem(`dailyBonusClaimed_${user.uid}`);
     const today = new Date().toDateString();
@@ -51,13 +54,11 @@ export default function DashboardPage() {
 
     const userProfileRef = doc(firestore, 'users', user.uid);
     try {
-      // Use a batch write or transaction for atomic update
       const batch = writeBatch(firestore);
       batch.update(userProfileRef, { coins: increment(amount) });
       await batch.commit();
     } catch (error) {
       console.error('Failed to claim bonus:', error);
-      // Revert local storage if server update fails
       localStorage.removeItem(`dailyBonusClaimed_${user.uid}`);
     }
 

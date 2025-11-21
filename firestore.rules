@@ -3,12 +3,11 @@
  * @fileoverview Firestore Security Rules for the RewardPlay application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user-specific data and allows public read access for game and reward metadata.
+ * This ruleset enforces a strict user-ownership model for user-specific data and allows public read access for reward metadata.
  * Authentication is handled via Firebase's email/password provider.
  *
  * Data Structure:
  * - /users/{userId}: User profiles, accessible only to the user themselves. The {userId} is the Firebase Auth UID.
- * - /games/{gameId}: Game metadata, publicly readable, writeable by admins only.
  * - /rewards/{rewardId}: Reward definitions, publicly readable, writeable by admins only.
  * - /stickerPacks/{stickerPackId}: Sticker packs, publicly readable, writeable by admins only.
  * - /coinPacks/{coinPackId}: Coin packs, publicly readable, writeable by admins only.
@@ -17,7 +16,7 @@
  *
  * Key Security Decisions:
  * - User listing is allowed for leaderboards but protected so only signed-in users can view it.
- * - Admin roles are now implemented for the /games and /affiliateOffers collections.
+ * - Admin roles are implemented for the collections.
  * - All writes to user-owned data require a verified user ID that matches the path.
  * - Schema validation ensures data integrity upon creation.
  *
@@ -80,7 +79,6 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId);
       // Allow signed-in users to list profiles for the leaderboard
-      // and also allow referral code checks.
       allow list: if isSignedIn();
 
       allow create: if isOwner(userId) 
@@ -101,16 +99,6 @@ service cloud.firestore {
       match /{allPaths=**} {
         allow read, write: if isOwner(userId);
       }
-    }
-
-    /**
-     * @description Rules for games.
-     * @path /games/{gameId}
-     * @principle Publicly readable, but only admins can create/update.
-     */
-    match /games/{gameId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
     }
 
     /**
