@@ -1,34 +1,81 @@
-[
-  {
-    "id": "space-shooter",
-    "name": "Galaxy Raiders",
-    "category": "Shooter",
-    "iframeUrl": "https://2022.stateofcss.com/en-US/survey-results-game/",
-    "imageUrl": "https://picsum.photos/seed/space-shooter/400/533",
-    "imageHint": "space shooter"
-  },
-  {
-    "id": "jungle-adventure",
-    "name": "Jungle Quest",
-    "category": "Adventure",
-    "iframeUrl": "https://2022.stateofcss.com/en-US/survey-results-game/",
-    "imageUrl": "https://picsum.photos/seed/jungle-adventure/400/533",
-    "imageHint": "jungle adventure"
-  },
-  {
-    "id": "racing-fever",
-    "name": "Asphalt Burn",
-    "category": "Racing",
-    "iframeUrl": "https://2022.stateofcss.com/en-US/survey-results-game/",
-    "imageUrl": "https://picsum.photos/seed/racing-fever/400/533",
-    "imageHint": "racing game"
-  },
-  {
-    "id": "puzzle-master",
-    "name": "Block Breaker",
-    "category": "Puzzle",
-    "iframeUrl": "https://2022.stateofcss.com/en-US/survey-results-game/",
-    "imageUrl": "https://picsum.photos/seed/puzzle-master/400/533",
-    "imageHint": "puzzle game"
-  }
-]
+{
+  "input": null,
+  "sort": null,
+  "segments": [
+    {
+      "title": "Specially for you",
+      "count": 1,
+      "hits": [
+        {
+          "id": "110265",
+          "slug": "hazmob-fps-online-shooter",
+          "title": "Hazmob FPS: Online Shooter",
+          "description": "Hazmob FPS is a multiplayer shooting FPS game where every second counts! Play against other players across multiple game modes in non-stop combat. This first-person shooter game is ideal for those seeking a bit of thrill.\n\nSkilled FPS players will love Hazmob FPS. The game features excellent, clean 3D graphics with a fluid and intuitive control system that allows you to maneuver quickly and tactically. The maps are designed for fast-paced battles in a close-quarters setting, leaving it down to pure reflex and skill to get the job done.\n\nPlay various game modes\n\nTeam Deathmatch\nSearch and Destroy\nCapture the flag\nDomination\nFree for all\nElimination\nGun race\n",
+          "howToPlayText": "Controls\n\nWASD = move\nSpace = jump\nLeft mouse = shoot\nRight mouse / V = aim\nP = leaderboard, pause, and settings\nG = pick up the gun\nC = crouch\nShift = run\n1, 2, 3 = switch weapons\n4, 5, 6 = skills\nE = alternative skills\nQ = alternative skills",
+          "gameURL": "https://playgama.com/export/game/hazmob-fps-online-shooter?clid=p_8dff5bc5-ea62-4191-84ce-5f9c816cd09c",
+          "playgamaGameUrl": "https://playgama.com/game/hazmob-fps-online-shooter",
+          "genres": [
+            "action",
+            "arcade",
+            "skill",
+            "3d",
+            "multiplayer",
+            "shooting",
+            "gun",
+            "fighting",
+            "popular",
+            "first-person-shooter",
+            "sniper",
+            "train",
+            "battle-royale",
+            "partners-top-inapp"
+          ],
+          "tags": [
+            "first-person-shooter-fps-games",
+            "reaction-games",
+            "multiple-players-games",
+            "exciting-games",
+            "accuracy-games",
+            "competitive-games",
+            "military-games",
+            "combat-games",
+            "agility-games",
+            "teams-games",
+            "sniper-shooter",
+            "action-fighting"
+          ],
+          "images": [
+            "https://playgama.com/cdn-cgi/imagedelivery/LN2S-4p3-GgZvEx3IPaKUA/c1f0c7c3-3611-4f93-49ae-3b779e216c00/enlarged",
+            "https://playgama.com/cdn-cgi/imagedelivery/LN2S-4p3-GgZvEx3IPaKUA/a2e46182-077e-4ec8-d0aa-3435536eb800/enlarged"
+          ],
+          "videos": [
+            {
+              "playgama_id": "8a7a62bfcec943b6a64d1188c8baf31d",
+              "external_url": "",
+              "type": "gameplay"
+            }
+          ],
+          "videoId": "8a7a62bfcec943b6a64d1188c8baf31d",
+          "mobileReady": [
+            "For Desktop"
+          ],
+          "gender": [
+            "Male",
+            "Female"
+          ],
+          "imageSrc": "https://playgama.com/cdn-cgi/imagedelivery/LN2S-4p3-GgZvEx3IPaKUA/c1f0c7c3-3611-4f93-49ae-3b779e216c00/enlarged",
+          "imageSrcSquare": "https://playgama.com/cdn-cgi/imagedelivery/LN2S-4p3-GgZvEx3IPaKUA/a2e46182-077e-4ec8-d0aa-3435536eb800/enlarged",
+          "inGamePurchases": "Yes",
+          "screenOrientation": {
+            "horizontal": true,
+            "vertical": false
+          },
+          "supportedLanguages": [
+            "en-US"
+          ],
+          "embed": "<iframe src='https://playgama.com/export/game/hazmob-fps-online-shooter?clid=p_8dff5bc5-ea62-4191-84ce-5f9c816cd09c' allow='fullscreen; accelerometer; camera; clipboard-read; clipboard-write; screen-wake-lock; speaker-selection; web-share; geolocation; gyroscope; microphone; xr-spatial-tracking; autoplay; encrypted-media; picture-in-picture; payment; publickey-credentials-get; publickey-credentials-create; storage-access; attribution-reporting; browsing-topics' frameborder='0' width='800' height='450'></iframe>"
+        }
+      ]
+    }
+  ]
+}
