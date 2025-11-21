@@ -31,7 +31,7 @@ export default function GamesPage() {
           ? Array.from({ length: 10 }).map((_, i) => (
               <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
             ))
-          : games?.map((game) => <GameCard key={game.id} game={game} />)}
+          : games.map((game) => <GameCard key={game.id} game={game} />)}
       </div>
     </AppLayout>
   );

@@ -66,7 +66,7 @@ export default function DashboardPage() {
   };
 
   const renderGameCarousel = () => {
-    if (gamesLoading || !games) {
+    if (gamesLoading || !games || games.length === 0) {
       return (
         <Skeleton className="aspect-video w-full overflow-hidden rounded-xl" />
       );

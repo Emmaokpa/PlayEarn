@@ -6,7 +6,7 @@ import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { useFirebase, useMemoFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { Game } from '@/lib/data';
 import { getGameById } from '@/lib/games';
