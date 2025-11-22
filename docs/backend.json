@@ -305,6 +305,35 @@
         "completedAt": { "type": "string", "description": "Timestamp of completion.", "format": "date-time" }
       },
       "required": ["id", "userId", "offerId", "completedAt"]
+    },
+    "UserSpinData": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "UserSpinData",
+        "type": "object",
+        "description": "Tracks a user's spin-to-win feature status.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID, same as user ID." },
+            "freeSpinsRemaining": { "type": "number", "description": "Resets to 1 daily." },
+            "adSpinsUsedToday": { "type": "number", "description": "Resets daily, max 3." },
+            "purchasedSpinsRemaining": { "type": "number", "description": "Number of spins bought." },
+            "lastSpinTimestamp": { "type": "string", "format": "date-time", "description": "Timestamp of the last spin." },
+            "lastResetDate": { "type": "string", "format": "date", "description": "The date of the last daily reset (YYYY-MM-DD)." }
+        },
+        "required": ["id", "freeSpinsRemaining", "adSpinsUsedToday", "purchasedSpinsRemaining", "lastResetDate"]
+    },
+    "SpinHistory": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "SpinHistory",
+        "type": "object",
+        "description": "A record of a single spin event for a user.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID for the spin record." },
+            "userId": { "type": "string", "description": "ID of the user who spun." },
+            "prizeWon": { "type": "object", "description": "An object detailing the prize won." },
+            "spinType": { "type": "string", "enum": ["free", "ad", "purchased"], "description": "The type of spin used." },
+            "timestamp": { "type": "string", "format": "date-time", "description": "When the spin occurred." }
+        },
+        "required": ["id", "userId", "prizeWon", "spinType", "timestamp"]
     }
   },
   "auth": {
@@ -467,10 +496,31 @@
             { "name": "offerId", "description": "The unique ID of the offer." }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/spinData/spin_status",
+        "definition": {
+          "entityName": "UserSpinData",
+          "schema": { "$ref": "#/backend/entities/UserSpinData" },
+          "description": "A singleton document storing the spin status for a user. Path-based ownership.",
+          "params": [
+            { "name": "userId", "description": "The unique ID of the user." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/spinHistory/{spinId}",
+        "definition": {
+          "entityName": "SpinHistory",
+          "schema": { "$ref": "#/backend/entities/SpinHistory" },
+          "description": "A collection of all spins a user has made. Path-based ownership.",
+          "params": [
+            { "name": "userId", "description": "The unique ID of the user." },
+            { "name": "spinId", "description": "The unique ID for the spin event." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game definitions. These are publicly readable.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **Coin Packs:** `/coinPacks/{coinPackId}` stores coin pack definitions. These are also globally accessible.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` (rewards, adViews, gameProgress) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
+    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game definitions. These are publicly readable.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **Coin Packs:** `/coinPacks/{coinPackId}` stores coin pack definitions. These are also globally accessible.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups, spinData, spinHistory) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
   }
 }
-
-    

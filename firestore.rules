@@ -92,7 +92,7 @@ service cloud.firestore {
                       && request.resource.data.telegramId == resource.data.telegramId
                       && request.resource.data.isAdmin == resource.data.isAdmin
                       // Allow coin updates from referrals (by anyone, checked in backend logic)
-                      || (request.auth != null && request.resource.data.coins == resource.data.coins + 1000);
+                      || (request.auth != null && request.resource.data.coins > resource.data.coins);
 
       allow delete: if false; // Deleting users should be handled carefully, disabling for now.
 
@@ -153,5 +153,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
