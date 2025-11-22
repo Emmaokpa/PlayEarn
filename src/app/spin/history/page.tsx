@@ -4,7 +4,7 @@
 import AppLayout from '@/components/layout/app-layout';
 import type { SpinHistory, SpinPrize } from '@/lib/data';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, orderBy, query, limit } from 'firebase/firestore';
+import { collection, orderBy, query, limit, Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -69,6 +69,18 @@ export default function SpinHistoryPage() {
   );
   const { data: history, isLoading } = useCollection<SpinHistory>(historyQuery);
 
+  const getFormattedDate = (timestamp: any) => {
+    if (!timestamp) return 'Just now';
+    if (timestamp instanceof Date) {
+      return formatDistanceToNow(timestamp, { addSuffix: true });
+    }
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+      return formatDistanceToNow(timestamp.toDate(), { addSuffix: true });
+    }
+    // Fallback for string or number timestamps
+    return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+  }
+
   return (
     <AppLayout title="Spin History">
       <div className="mb-8 text-center">
@@ -115,7 +127,7 @@ export default function SpinHistoryPage() {
                             <Badge variant="outline" className="capitalize">{spin.spinType}</Badge>
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                            {formatDistanceToNow(spin.timestamp.toDate(), { addSuffix: true })}
+                            {getFormattedDate(spin.timestamp)}
                         </TableCell>
                     </TableRow>
                 ))}
@@ -127,3 +139,4 @@ export default function SpinHistoryPage() {
     </AppLayout>
   );
 }
+
