@@ -69,6 +69,7 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
   const numPrizes = prizes.length;
   const segmentAngle = 360 / numPrizes;
 
+  // This creates a more dramatic spin: starts fast, spins, then slows down nicely
   const rotation = isSpinning && prizeIndex !== null
     ? 360 * 5 + (360 - (prizeIndex * segmentAngle)) - (segmentAngle / 2) + (Math.random() * (segmentAngle * 0.8) - (segmentAngle * 0.4))
     : 0;
@@ -76,7 +77,7 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
   const size = 384; // md:w-96, md:h-96
   const center = size / 2;
   const radius = size / 2 - 10;
-  const thickness = 120; // Increased from 70 to 120 to make segments fatter
+  const thickness = 120;
   const gap = 2; // Gap in degrees
 
   return (
@@ -104,10 +105,11 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
 
       {/* Wheel */}
       <div
-        className={cn(
-          'relative h-full w-full rounded-full transition-transform duration-[5000ms] ease-out'
-        )}
-        style={{ transform: `rotate(${rotation}deg)` }}
+        className="relative h-full w-full rounded-full"
+        style={{
+            transform: `rotate(${rotation}deg)`,
+            transition: 'transform 5000ms cubic-bezier(.1, .6, .2, 1)' // Custom, more dynamic timing function
+        }}
       >
         <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
           <defs>

@@ -37,7 +37,7 @@ export interface AdView {
     id: string;
     userId: string;
     adId: string;
-    timestamp: FieldValue;
+    timestamp: Timestamp;
 }
 
 export interface StickerPack {

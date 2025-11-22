@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import AppLayout from '@/components/layout/app-layout';
 import {
   Card,
@@ -14,9 +14,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Coins, Crown, Gamepad2, Play, Trophy, Video } from 'lucide-react';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import type { UserProfile } from '@/lib/data';
-import { doc } from 'firebase/firestore';
+import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import type { UserProfile, AdView, SpinHistory } from '@/lib/data';
+import { doc, collection, query, where, Timestamp, writeBatch, increment } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -29,8 +29,14 @@ interface Challenge {
   icon: React.ElementType;
   difficulty: 'Easy' | 'Moderate' | 'Hard';
   isVipOnly: boolean;
-  progress: number;
   target: number;
+  getProgress: (data: ChallengeData) => number;
+}
+
+interface ChallengeData {
+  adViewsToday: AdView[];
+  spinsToday: SpinHistory[];
+  // Add other data points as needed, e.g., gamesPlayed
 }
 
 const allChallenges: Challenge[] = [
@@ -42,8 +48,8 @@ const allChallenges: Challenge[] = [
     icon: Play,
     difficulty: 'Easy',
     isVipOnly: false,
-    progress: 1,
     target: 1,
+    getProgress: () => 1, // Always completed on load
   },
   {
     id: 'watch-3-ads',
@@ -53,41 +59,43 @@ const allChallenges: Challenge[] = [
     icon: Video,
     difficulty: 'Easy',
     isVipOnly: false,
-    progress: 1,
     target: 3,
+    getProgress: (data) => data.adViewsToday.length,
   },
   {
-    id: 'play-5-games',
-    title: 'Game Explorer',
-    description: 'Play 5 different games.',
-    reward: 500,
+    id: 'spin-5-times',
+    title: 'Spin Master',
+    description: 'Spin the wheel 5 times.',
+    reward: 300,
     icon: Gamepad2,
     difficulty: 'Moderate',
     isVipOnly: false,
-    progress: 3,
     target: 5,
+    getProgress: (data) => data.spinsToday.length,
   },
   {
     id: 'win-1000-coins',
     title: 'Coin Collector',
-    description: 'Win a total of 1,000 coins from spins or games.',
+    description: 'Win a total of 1,000 coins from spins.',
     reward: 750,
     icon: Coins,
     difficulty: 'Moderate',
     isVipOnly: false,
-    progress: 450,
     target: 1000,
+    getProgress: (data) => data.spinsToday
+        .filter(s => s.prizeWon.type === 'coins')
+        .reduce((sum, s) => sum + (s.prizeWon.value as number), 0),
   },
   {
-    id: 'vip-play-10-games',
-    title: 'VIP Game Master',
-    description: 'Play 10 different games.',
+    id: 'vip-spin-10-times',
+    title: 'VIP Spinner',
+    description: 'Spin the wheel 10 times.',
     reward: 2500,
     icon: Trophy,
     difficulty: 'Hard',
     isVipOnly: true,
-    progress: 4,
     target: 10,
+    getProgress: (data) => data.spinsToday.length,
   },
   {
     id: 'vip-win-jackpot',
@@ -97,28 +105,28 @@ const allChallenges: Challenge[] = [
     icon: Crown,
     difficulty: 'Hard',
     isVipOnly: true,
-    progress: 0,
     target: 1,
+    getProgress: (data) => data.spinsToday.filter(s => (s.prizeWon.probability < 5)).length,
   },
 ];
 
-function ChallengeCard({ challenge, isVip }: { challenge: Challenge, isVip: boolean }) {
-  const { toast } = useToast();
-  const [isClaimed, setIsClaimed] = useState(false);
-  
-  const isCompleted = challenge.progress >= challenge.target;
+function ChallengeCard({
+  challenge,
+  isVip,
+  progress,
+  isClaimed,
+  onClaim,
+}: {
+  challenge: Challenge;
+  isVip: boolean;
+  progress: number;
+  isClaimed: boolean;
+  onClaim: (challengeId: string, reward: number) => void;
+}) {
+  const isCompleted = progress >= challenge.target;
   const canClaim = isCompleted && !isClaimed;
   const isLocked = challenge.isVipOnly && !isVip;
-  const progressPercent = (challenge.progress / challenge.target) * 100;
-  
-  const handleClaim = () => {
-     // In a real app, this would be a Firestore transaction
-     setIsClaimed(true);
-     toast({
-        title: "Reward Claimed!",
-        description: `You earned ${challenge.reward} coins for completing "${challenge.title}".`
-     })
-  }
+  const progressPercent = Math.min((progress / challenge.target) * 100, 100);
 
   return (
     <Card className={cn("flex flex-col", isLocked && "bg-secondary/30 opacity-60")}>
@@ -141,7 +149,7 @@ function ChallengeCard({ challenge, isVip }: { challenge: Challenge, isVip: bool
       <CardContent className="flex-1 space-y-2">
         <Progress value={progressPercent} className="h-3" />
         <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{challenge.progress.toLocaleString()} / {challenge.target.toLocaleString()}</span>
+            <span>{Math.min(progress, challenge.target).toLocaleString()} / {challenge.target.toLocaleString()}</span>
             <span>{challenge.difficulty}</span>
         </div>
       </CardContent>
@@ -149,7 +157,7 @@ function ChallengeCard({ challenge, isVip }: { challenge: Challenge, isVip: bool
         {isLocked ? (
              <Button disabled variant="outline" size="sm">Upgrade to VIP to Unlock</Button>
         ) : (
-            <Button onClick={handleClaim} disabled={!canClaim} size="sm">
+            <Button onClick={() => onClaim(challenge.id, challenge.reward)} disabled={!canClaim} size="sm">
             {isClaimed ? 'Claimed' : (isCompleted ? 'Claim Reward' : 'In Progress')}
             </Button>
         )}
@@ -164,14 +172,67 @@ function ChallengeCard({ challenge, isVip }: { challenge: Challenge, isVip: bool
 
 export default function ChallengesPage() {
   const { user, firestore } = useFirebase();
+  const { toast } = useToast();
+  const [claimedChallenges, setClaimedChallenges] = useState<string[]>([]);
+
+  // Memoize start of today
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []); // Should only compute once per mount unless date changes drastically, safe for client
+
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, 'users', user.uid) : null, 
     [user, firestore]
   );
-  const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
-  const isVip = userProfile?.isVip ?? false;
+  const adViewsQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, `users/${user.uid}/adViews`), where('timestamp', '>=', today)) : null,
+    [user, firestore, today]
+  );
+  const { data: adViewsToday, isLoading: adViewsLoading } = useCollection<AdView>(adViewsQuery);
+
+  const spinsQuery = useMemoFirebase(() => 
+    user ? query(collection(firestore, `users/${user.uid}/spinHistory`), where('timestamp', '>=', today)) : null,
+    [user, firestore, today]
+  );
+  const { data: spinsToday, isLoading: spinsLoading } = useCollection<SpinHistory>(spinsQuery);
   
+  const isLoading = profileLoading || adViewsLoading || spinsLoading;
+  const isVip = userProfile?.isVip ?? false;
+
+  const challengeData: ChallengeData = {
+    adViewsToday: adViewsToday ?? [],
+    spinsToday: spinsToday ?? [],
+  };
+
+  const handleClaimReward = async (challengeId: string, reward: number) => {
+    if (!user || !firestore) return;
+    
+    try {
+        const batch = writeBatch(firestore);
+        const userRef = doc(firestore, 'users', user.uid);
+        batch.update(userRef, { coins: increment(reward) });
+        
+        await batch.commit();
+
+        setClaimedChallenges(prev => [...prev, challengeId]);
+        toast({
+            title: "Reward Claimed!",
+            description: `You earned ${reward} coins.`,
+        });
+    } catch (error) {
+        console.error("Error claiming challenge reward:", error);
+        toast({
+            variant: 'destructive',
+            title: "Claim Failed",
+            description: "Could not claim your reward. Please try again.",
+        });
+    }
+  }
+
   if (isLoading) {
     return (
         <AppLayout title="Daily Challenges">
@@ -197,7 +258,14 @@ export default function ChallengesPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {allChallenges.map((challenge) => (
-          <ChallengeCard key={challenge.id} challenge={challenge} isVip={isVip} />
+          <ChallengeCard 
+            key={challenge.id} 
+            challenge={challenge} 
+            isVip={isVip} 
+            progress={challenge.getProgress(challengeData)}
+            isClaimed={claimedChallenges.includes(challenge.id)}
+            onClaim={handleClaimReward}
+            />
         ))}
       </div>
     </AppLayout>
