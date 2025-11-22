@@ -49,11 +49,12 @@ export interface StickerPack {
   imageHint: string;
 }
 
-export interface CoinPack {
+export interface InAppPurchase {
     id: string;
+    type: 'coins' | 'spins';
     name: string;
     description: string;
-    coins: number;
+    amount: number;
     price: number;
     imageUrl: string;
     imageHint: string;

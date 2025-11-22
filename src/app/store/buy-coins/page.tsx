@@ -2,21 +2,21 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import type { CoinPack, UserProfile } from '@/lib/data';
+import type { InAppPurchase, UserProfile } from '@/lib/data';
 import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import CoinPackCard from '@/components/app/coin-pack-card';
+import PurchasePackCard from '@/components/app/purchase-pack-card';
 
 export default function BuyCoinsPage() {
   const { firestore, user } = useFirebase();
 
   const coinPacksQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'coinPacks') : null),
+    () => (firestore ? query(collection(firestore, 'inAppPurchases'), where('type', '==', 'coins')) : null),
     [firestore]
   );
   const { data: coinPacks, isLoading: coinPacksLoading } =
-    useCollection<CoinPack>(coinPacksQuery);
+    useCollection<InAppPurchase>(coinPacksQuery);
 
   const userProfileRef = useMemoFirebase(
     () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
@@ -41,7 +41,7 @@ export default function BuyCoinsPage() {
               <Skeleton key={i} className="h-64 rounded-lg" />
             ))
           : coinPacks?.sort((a, b) => a.price - b.price).map((pack) => (
-              <CoinPackCard
+              <PurchasePackCard
                 key={pack.id}
                 pack={pack}
               />

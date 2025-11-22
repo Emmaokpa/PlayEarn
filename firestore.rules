@@ -11,7 +11,7 @@
  * - /games/{gameId}: Game definitions, publicly readable, writeable by admins only.
  * - /rewards/{rewardId}: Reward definitions, publicly readable, writeable by admins only.
  * - /stickerPacks/{stickerPackId}: Sticker packs, publicly readable, writeable by admins only.
- * - /coinPacks/{coinPackId}: Coin packs, publicly readable, writeable by admins only.
+ * - /inAppPurchases/{purchaseId}: All IAPs (coins, spins), publicly readable, writeable by admins only.
  * - /affiliateOffers/{offerId}: Affiliate offers, publicly readable, writeable by admins only.
  * - All user subcollections (/users/{userId}/**): Accessible only to the owning user.
  *
@@ -133,11 +133,11 @@ service cloud.firestore {
     }
     
     /**
-     * @description Rules for coin packs.
-     * @path /coinPacks/{coinPackId}
+     * @description Rules for all in-app purchases (coins, spins, etc).
+     * @path /inAppPurchases/{purchaseId}
      * @principle Publicly readable, but only admins can create/update.
      */
-    match /coinPacks/{coinPackId} {
+    match /inAppPurchases/{purchaseId} {
         allow get, list: if true;
         allow create, update, delete: if isAdmin();
     }
@@ -153,3 +153,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

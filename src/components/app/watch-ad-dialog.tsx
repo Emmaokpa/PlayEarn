@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -11,25 +12,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { Film, CheckCircle, PartyPopper } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useFirebase, addDocumentNonBlocking } from '@/firebase';
-import { doc, increment, serverTimestamp, writeBatch, collection } from 'firebase/firestore';
+import { Film, CheckCircle } from 'lucide-react';
 
 export default function WatchAdDialog({
   open,
   onOpenChange,
-  reward,
+  onAdComplete,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  reward: number;
+  onAdComplete: () => void;
 }) {
   const [countdown, setCountdown] = useState(15);
   const [isComplete, setIsComplete] = useState(false);
-  const { toast } = useToast();
-  const { firestore, user } = useFirebase();
-
+  
   useEffect(() => {
     if (open) {
       setIsComplete(false);
@@ -48,45 +44,9 @@ export default function WatchAdDialog({
     }
   }, [open]);
 
-  const handleClaim = async () => {
-    if (!user || !firestore) return;
-
-    try {
-      const batch = writeBatch(firestore);
-
-      // 1. Update user's coin balance
-      const userRef = doc(firestore, 'users', user.uid);
-      batch.update(userRef, { coins: increment(reward) });
-
-      // 2. Create a new AdView document
-      const adViewRef = doc(collection(firestore, `users/${user.uid}/adViews`));
-      batch.set(adViewRef, {
-        userId: user.uid,
-        adId: `ad_${Date.now()}`, // Simple unique ID for the ad
-        timestamp: serverTimestamp(),
-      });
-
-      // Commit both operations atomically
-      await batch.commit();
-
-      toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <PartyPopper className="h-5 w-5 text-accent" />
-            <span className="font-bold">Reward Claimed!</span>
-          </div>
-        ),
-        description: `You've earned ${reward} coins.`,
-      });
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to claim ad reward:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to claim reward. Please try again.',
-      });
-    }
+  const handleClaim = () => {
+    onAdComplete();
+    onOpenChange(false);
   };
 
   return (
@@ -119,10 +79,12 @@ export default function WatchAdDialog({
             disabled={!isComplete}
             variant={isComplete ? 'default' : 'secondary'}
           >
-            {isComplete ? `Claim ${reward} Coins` : 'Claiming...'}
+            {isComplete ? 'Claim Your Spin!' : 'Claiming...'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    

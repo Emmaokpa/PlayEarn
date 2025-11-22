@@ -78,36 +78,67 @@ const affiliateOffersSeed = [
   }
 ];
 
-const coinPacksSeed = [
+const inAppPurchasesSeed = [
+    // Coin Packs
     {
         id: 'coin-pack-1',
+        type: 'coins',
         name: 'Starter Pack',
         description: 'A little boost to get you started.',
-        coins: 10000,
+        amount: 10000,
         price: 1.99,
     },
     {
         id: 'coin-pack-2',
+        type: 'coins',
         name: 'Player Pack',
         description: 'A solid amount of coins for the average player.',
-        coins: 55000,
+        amount: 55000,
         price: 9.99,
     },
     {
         id: 'coin-pack-3',
+        type: 'coins',
         name: 'Pro Gamer Pack',
         description: 'For the serious player who wants it all.',
-        coins: 120000,
+        amount: 120000,
         price: 19.99,
     },
      {
         id: 'coin-pack-4',
+        type: 'coins',
         name: 'Whale Pack',
         description: 'The ultimate pack for the ultimate player.',
-        coins: 1000000,
+        amount: 1000000,
         price: 99.99,
     },
+    // Spin Packs
+    {
+        id: 'spin-pack-1',
+        type: 'spins',
+        name: 'Spin Starter',
+        description: 'A few spins to try your luck.',
+        amount: 5,
+        price: 0.99,
+    },
+    {
+        id: 'spin-pack-2',
+        type: 'spins',
+        name: 'Spin Enthusiast',
+        description: 'Best value for more chances to win big.',
+        amount: 15,
+        price: 1.99,
+    },
+    {
+        id: 'spin-pack-3',
+        type: 'spins',
+        name: 'Spin Maniac',
+        description: 'For the truly dedicated spinner.',
+        amount: 50,
+        price: 4.99,
+    },
 ];
+
 
 export async function seedDatabase() {
   const { firestore } = initializeFirebase();
@@ -143,19 +174,19 @@ export async function seedDatabase() {
     }
     console.log('Sticker packs added to batch.');
     
-    // Seed Coin Packs
-    const coinPacksCollection = collection(firestore, 'coinPacks');
-    console.log('Seeding coin packs...');
-    for (const pack of coinPacksSeed) {
+    // Seed In-App Purchases (Coins & Spins)
+    const iapCollection = collection(firestore, 'inAppPurchases');
+    console.log('Seeding in-app purchases...');
+    for (const pack of inAppPurchasesSeed) {
         const { imageUrl, imageHint } = getImage('reward-3'); // Using a generic image for now
-        const packRef = doc(coinPacksCollection, pack.id);
+        const packRef = doc(iapCollection, pack.id);
         batch.set(packRef, {
             ...pack,
             imageUrl,
             imageHint,
         });
     }
-    console.log('Coin packs added to batch.');
+    console.log('In-app purchases added to batch.');
 
     // Seed Affiliate Offers
     const affiliateOffersCollection = collection(firestore, 'affiliateOffers');
@@ -179,3 +210,5 @@ export async function seedDatabase() {
     return { success: false, message: 'Error seeding database.' };
   }
 }
+
+    

@@ -1,13 +1,14 @@
+
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
 import SpinWheel from '@/components/app/spin-wheel';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, collection, writeBatch, Timestamp } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, collection, writeBatch, Timestamp, increment } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { useState, useEffect } from 'react';
-import { Gift, History } from 'lucide-react';
+import { Gift, History, Loader2, Video, ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -19,6 +20,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import WatchAdDialog from '@/components/app/watch-ad-dialog';
+import Link from 'next/link';
+
+const AD_SPIN_LIMIT = 3;
 
 // Define prizes directly in the component for now
 const prizes = [
@@ -49,6 +54,7 @@ export default function SpinPage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [prizeIndex, setPrizeIndex] = useState<number | null>(null);
   const [result, setResult] = useState<typeof prizes[number] | null>(null);
+  const [isAdDialogOpen, setIsAdDialogOpen] = useState(false);
 
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, 'users', user.uid) : null,
@@ -60,23 +66,21 @@ export default function SpinPage() {
     user ? doc(firestore, `users/${user.uid}/spinData`, 'spin_status') : null,
     [user, firestore]
   );
-  const { data: spinData, isLoading: isSpinDataLoading } = useDoc<UserSpinData>(spinDataRef);
+  const { data: spinData, isLoading: isSpinDataLoading } = useDoc<UserSpinData>(spinDataRef, {
+    // Ensure we have a default state on first load if the document doesn't exist
+    initialData: {
+      id: user?.uid,
+      freeSpinsRemaining: 0,
+      adSpinsUsedToday: 0,
+      purchasedSpinsRemaining: 0,
+      lastSpinTimestamp: null,
+      lastResetDate: '',
+    },
+  });
 
-  const [spinsAvailable, setSpinsAvailable] = useState(0);
-
-  useEffect(() => {
-    if (!spinData || isSpinDataLoading) return;
-
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (spinData.lastResetDate !== todayStr) {
-      // It's a new day, we need to reset the daily spins.
-      // We do this inside the spin transaction to ensure atomicity.
-      setSpinsAvailable(1 + (spinData.purchasedSpinsRemaining || 0));
-    } else {
-      setSpinsAvailable(spinData.freeSpinsRemaining + (spinData.purchasedSpinsRemaining || 0));
-    }
-  }, [spinData, isSpinDataLoading]);
-
+  // Derived state for available spins
+  const totalSpins = (spinData?.freeSpinsRemaining ?? 0) + (spinData?.purchasedSpinsRemaining ?? 0);
+  const canWatchAd = (spinData?.adSpinsUsedToday ?? 0) < AD_SPIN_LIMIT;
 
   const getPrize = () => {
     const random = Math.random() * 100;
@@ -92,7 +96,7 @@ export default function SpinPage() {
   };
 
   const handleSpin = async () => {
-    if (!firestore || !user || isSpinning || spinsAvailable <= 0) return;
+    if (!firestore || !user || isSpinning || totalSpins <= 0) return;
 
     setIsSpinning(true);
 
@@ -100,56 +104,61 @@ export default function SpinPage() {
     setPrizeIndex(winningIndex);
 
     try {
-      await runTransaction(firestore, async (transaction) => {
+      const spinType = await runTransaction(firestore, async (transaction) => {
         const userSpinDocRef = doc(firestore, `users/${user.uid}/spinData`, 'spin_status');
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const spinHistoryRef = doc(collection(firestore, `users/${user.uid}/spinHistory`));
-
-        let currentSpinData = await transaction.get(userSpinDocRef);
-        let spinDataToWrite: UserSpinData;
-
+        const userSpinDoc = await transaction.get(userSpinDocRef);
+        
         const todayStr = new Date().toISOString().split('T')[0];
+        let spinDataToWrite: UserSpinData;
+        let usedSpinType: 'free' | 'purchased';
 
-        if (!currentSpinData.exists() || currentSpinData.data().lastResetDate !== todayStr) {
-          // New day or first spin ever
+        if (!userSpinDoc.exists() || userSpinDoc.data().lastResetDate !== todayStr) {
+          // New day or first spin ever: Reset daily counters, grant 1 free spin
           spinDataToWrite = {
             id: user.uid,
-            freeSpinsRemaining: 0, // Will be 0 after this spin
+            freeSpinsRemaining: 1, // Start with 1 free spin
             adSpinsUsedToday: 0,
-            purchasedSpinsRemaining: currentSpinData.exists() ? currentSpinData.data().purchasedSpinsRemaining : 0,
+            purchasedSpinsRemaining: userSpinDoc.exists() ? userSpinDoc.data().purchasedSpinsRemaining : 0,
             lastSpinTimestamp: serverTimestamp() as Timestamp,
             lastResetDate: todayStr,
           };
         } else {
-          // Same day, just decrementing spins
-          const data = currentSpinData.data() as UserSpinData;
-          spinDataToWrite = { ...data }; // copy
-          if (data.freeSpinsRemaining > 0) {
-            spinDataToWrite.freeSpinsRemaining -= 1;
-          } else if (data.purchasedSpinsRemaining > 0) {
-            spinDataToWrite.purchasedSpinsRemaining -= 1;
-          } else {
-            throw new Error("No spins available.");
-          }
-          spinDataToWrite.lastSpinTimestamp = serverTimestamp() as Timestamp;
+          spinDataToWrite = userSpinDoc.data() as UserSpinData;
         }
+
+        // Determine which spin to use and decrement
+        if (spinDataToWrite.freeSpinsRemaining > 0) {
+          spinDataToWrite.freeSpinsRemaining -= 1;
+          usedSpinType = 'free';
+        } else if (spinDataToWrite.purchasedSpinsRemaining > 0) {
+          spinDataToWrite.purchasedSpinsRemaining -= 1;
+          usedSpinType = 'purchased';
+        } else {
+          throw new Error("No spins available.");
+        }
+        
+        spinDataToWrite.lastSpinTimestamp = serverTimestamp() as Timestamp;
 
         // Apply prize
         if (prize.type === 'coins') {
-          transaction.update(userDocRef, { coins: (userProfile?.coins ?? 0) + prize.value });
+          const userDocRef = doc(firestore, 'users', user.uid);
+          transaction.update(userDocRef, { coins: increment(prize.value) });
         }
         // Other prize types (stickers, entries) would be handled here
 
         // Record spin history
+        const spinHistoryRef = doc(collection(firestore, `users/${user.uid}/spinHistory`));
         transaction.set(spinHistoryRef, {
           userId: user.uid,
           prizeWon: prize,
-          spinType: 'free', // For now, all are free
+          spinType: usedSpinType,
           timestamp: serverTimestamp(),
         });
         
         // Commit spin data changes
-        transaction.set(userSpinDocRef, spinDataToWrite);
+        transaction.set(userSpinDocRef, spinDataToWrite, { merge: true });
+
+        return usedSpinType;
       });
 
       // Show result after transaction is successful and animation is over
@@ -169,12 +178,45 @@ export default function SpinPage() {
       setPrizeIndex(null);
     }
   };
+  
+  const handleAdComplete = async () => {
+    if (!firestore || !user) return;
+    
+    // Use a transaction to safely update the ad spin count
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const userSpinDocRef = doc(firestore, `users/${user.uid}/spinData`, 'spin_status');
+            const userSpinDoc = await transaction.get(userSpinDocRef);
+
+            if (!userSpinDoc.exists() || (userSpinDoc.data().adSpinsUsedToday ?? 0) >= AD_SPIN_LIMIT) {
+                throw new Error("Ad spin limit reached.");
+            }
+
+            transaction.update(userSpinDocRef, { 
+                purchasedSpinsRemaining: increment(1), // Granting a "purchased" spin for simplicity
+                adSpinsUsedToday: increment(1)
+            });
+        });
+        toast({
+            title: "Spin Awarded!",
+            description: "You've earned an extra spin. Good luck!",
+        });
+    } catch (error) {
+        console.error("Failed to grant ad spin:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not grant your spin. Please try again.",
+        });
+    }
+  }
+
 
   const isLoading = isProfileLoading || isSpinDataLoading;
 
   return (
     <AppLayout title="Spin to Win">
-      <div className="flex flex-col items-center gap-8 text-center">
+      <div className="flex flex-col items-center gap-6 text-center">
         <div>
           <h2 className="font-headline text-3xl font-bold">Daily Spin Wheel</h2>
           <p className="mt-2 text-muted-foreground">
@@ -195,15 +237,29 @@ export default function SpinPage() {
               size="lg"
               className="px-12 py-8 text-2xl font-bold"
               onClick={handleSpin}
-              disabled={isSpinning || spinsAvailable <= 0}
+              disabled={isSpinning || totalSpins <= 0}
             >
-              {isSpinning ? 'Spinning...' : 'SPIN'}
+              {isSpinning ? <Loader2 className="animate-spin h-8 w-8" /> : 'SPIN'}
             </Button>
             <p className="font-bold text-primary">
-              {spinsAvailable} {spinsAvailable === 1 ? 'spin' : 'spins'} left
+              {totalSpins} {totalSpins === 1 ? 'spin' : 'spins'} left
             </p>
           </div>
         )}
+
+        <div className="w-full max-w-sm space-y-3 rounded-lg border bg-card p-4 text-card-foreground">
+            <h3 className="font-semibold text-center">Get More Spins!</h3>
+            <Button variant="outline" className="w-full" disabled={isSpinning || !canWatchAd} onClick={() => setIsAdDialogOpen(true)}>
+                <Video className="mr-2 h-4 w-4" />
+                Watch Ad for a Spin ({AD_SPIN_LIMIT - (spinData?.adSpinsUsedToday ?? 0)} left)
+            </Button>
+            <Button asChild variant="outline" className="w-full" disabled={isSpinning}>
+                <Link href="/store/buy-spins">
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Buy Spin Packs
+                </Link>
+            </Button>
+        </div>
 
         <div className="flex gap-4">
           <Button variant="outline">
@@ -233,7 +289,15 @@ export default function SpinPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
+        <WatchAdDialog
+            open={isAdDialogOpen}
+            onOpenChange={setIsAdDialogOpen}
+            onAdComplete={handleAdComplete}
+        />
       </div>
     </AppLayout>
   );
 }
+
+    
