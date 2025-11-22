@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -21,6 +22,7 @@ import {
   Handshake,
   Award,
   Star,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -43,6 +45,7 @@ const sidebarNavItems = [
     { href: '/spin', label: 'Spin to Win', icon: Star },
     { href: '/leaderboard', label: 'Leaderboard', icon: Award },
     { href: '/earn', label: 'Earn', icon: Trophy },
+    { href: '/challenges', label: 'Challenges', icon: Sparkles },
     { href: '/earn/affiliate', label: 'Affiliate', icon: Handshake },
     { href: '/redeem', label: 'Redeem', icon: Gift },
     { href: '/store', label: 'Store', icon: ShoppingCart },
@@ -103,9 +106,9 @@ function SidebarNav({
     <nav className="grid items-start gap-2 text-sm font-medium">
       {items.map((item) => {
          const isActive =
-         item.href === '/dashboard' || item.href === '/earn' || item.href === '/leaderboard' || item.href === '/spin'
+         item.href === '/dashboard' || item.href === '/earn' || item.href === '/leaderboard' || item.href === '/spin' || item.href === '/challenges'
            ? pathname === item.href
-           : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/earn' && item.href !== '/leaderboard' && item.href !== '/spin';
+           : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/earn' && item.href !== '/leaderboard' && item.href !== '/spin' && item.href !== '/challenges';
         return (
           <NavLink
             key={item.href}
