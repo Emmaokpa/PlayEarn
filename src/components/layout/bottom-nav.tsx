@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -23,6 +22,7 @@ import {
   Award,
   Star,
   Sparkles,
+  Wand2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -36,13 +36,14 @@ const bottomNavItems = [
   { href: '/dashboard', label: 'Explore', icon: Home },
   { href: '/games', label: 'Games', icon: Gamepad2 },
   { href: '/spin', label: 'Spin', icon: Star },
-  { href: '/earn', label: 'Earn', icon: Trophy },
+  { href: '/create', label: 'Create', icon: Wand2 },
 ];
 
 const sidebarNavItems = [
     { href: '/dashboard', label: 'Explore', icon: LayoutGrid },
     { href: '/games', label: 'Games', icon: Gamepad2 },
     { href: '/spin', label: 'Spin to Win', icon: Star },
+    { href: '/create', label: 'AI Create', icon: Wand2 },
     { href: '/leaderboard', label: 'Leaderboard', icon: Award },
     { href: '/earn', label: 'Earn', icon: Trophy },
     { href: '/challenges', label: 'Challenges', icon: Sparkles },
@@ -106,9 +107,9 @@ function SidebarNav({
     <nav className="grid items-start gap-2 text-sm font-medium">
       {items.map((item) => {
          const isActive =
-         item.href === '/dashboard' || item.href === '/earn' || item.href === '/leaderboard' || item.href === '/spin' || item.href === '/challenges'
+         item.href === '/dashboard' || item.href === '/earn' || item.href === '/leaderboard' || item.href === '/spin' || item.href === '/challenges' || item.href === '/create'
            ? pathname === item.href
-           : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/earn' && item.href !== '/leaderboard' && item.href !== '/spin' && item.href !== '/challenges';
+           : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/earn' && item.href !== '/leaderboard' && item.href !== '/spin' && item.href !== '/challenges' && item.href !== '/create';
         return (
           <NavLink
             key={item.href}
@@ -157,9 +158,9 @@ export default function BottomNav() {
             </SheetTrigger>
             {bottomNavItems.map((item) => {
               const isActive =
-                ['/dashboard', '/leaderboard', '/store', '/spin'].includes(item.href)
+                ['/dashboard', '/leaderboard', '/store', '/spin', '/create'].includes(item.href)
                   ? pathname === item.href
-                  : pathname.startsWith(item.href) && !['/dashboard', '/leaderboard', '/store', '/spin'].includes(item.href);
+                  : pathname.startsWith(item.href) && !['/dashboard', '/leaderboard', '/store', '/spin', '/create'].includes(item.href);
               return (
                  <NavLink
                     key={item.href}
