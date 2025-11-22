@@ -1,5 +1,4 @@
-
-import { Game } from './data';
+import type { Game } from './data';
 
 // A static list of games. This removes the dependency on the problematic JSON file.
 const allGames: Game[] = [
