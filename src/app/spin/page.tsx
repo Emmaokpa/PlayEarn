@@ -6,7 +6,7 @@ import SpinWheel from '@/components/app/spin-wheel';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, collection, Timestamp, increment } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/data';
+import type { UserProfile, SpinPrize } from '@/lib/data';
 import { useState } from 'react';
 import { Gift, History, Loader2, Video, ShoppingCart, Star, Coins } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,11 +23,12 @@ import {
 import WatchAdDialog from '@/components/app/watch-ad-dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import PrizeListDialog from '@/components/app/prize-list-dialog';
 
 const AD_SPIN_LIMIT = 3;
 
 // Define prizes directly in the component
-const prizes = [
+const prizes: SpinPrize[] = [
   { id: 'prize-50', text: '50', type: 'coins', value: 50, probability: 35 },
   { id: 'prize-100', text: '100', type: 'coins', value: 100, probability: 25 },
   { id: 'prize-sticker-common', text: 'Sticker', type: 'sticker', value: 'common', probability: 15 },
@@ -54,8 +55,9 @@ export default function SpinPage() {
   const { toast } = useToast();
   const [isSpinning, setIsSpinning] = useState(false);
   const [prizeIndex, setPrizeIndex] = useState<number | null>(null);
-  const [result, setResult] = useState<typeof prizes[number] | null>(null);
+  const [result, setResult] = useState<SpinPrize | null>(null);
   const [isAdDialogOpen, setIsAdDialogOpen] = useState(false);
+  const [isPrizeListOpen, setIsPrizeListOpen] = useState(false);
 
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, 'users', user.uid) : null,
@@ -314,7 +316,7 @@ export default function SpinPage() {
         </div>
 
         <div className="flex gap-4">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setIsPrizeListOpen(true)}>
             <Gift className="mr-2 h-4 w-4" />
             Prize List
           </Button>
@@ -345,6 +347,12 @@ export default function SpinPage() {
             open={isAdDialogOpen}
             onOpenChange={setIsAdDialogOpen}
             onAdComplete={handleAdComplete}
+        />
+
+        <PrizeListDialog
+            open={isPrizeListOpen}
+            onOpenChange={setIsPrizeListOpen}
+            prizes={prizes}
         />
       </div>
     </AppLayout>
