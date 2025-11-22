@@ -105,7 +105,7 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
       {/* Wheel */}
       <div
         className={cn(
-          'relative h-full w-full rounded-full transition-transform duration-[8000ms] ease-out'
+          'relative h-full w-full rounded-full transition-transform duration-[5000ms] ease-out'
         )}
         style={{ transform: `rotate(${rotation}deg)` }}
       >
@@ -158,4 +158,3 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
 };
 
 export default SpinWheel;
-

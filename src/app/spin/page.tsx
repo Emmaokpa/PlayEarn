@@ -180,7 +180,7 @@ export default function SpinPage() {
       setTimeout(() => {
         setResult(prize);
         setIsSpinning(false);
-      }, 8000); // Wait for wheel animation to finish
+      }, 5000); // Wait for wheel animation to finish
 
     } catch (error) {
       console.error("Spin transaction failed: ", error);
