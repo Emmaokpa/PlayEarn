@@ -1,5 +1,5 @@
 
-import { FieldValue } from 'firebase/firestore';
+import { FieldValue, Timestamp } from 'firebase/firestore';
 
 export interface Game {
   id: string;
@@ -77,4 +77,19 @@ export interface UserAffiliate {
     completedAt: FieldValue;
 }
 
+export interface SpinPrize {
+    id: string;
+    text: string;
+    type: 'coins' | 'sticker' | 'entry' | 'gift_card';
+    value: number | string;
+    probability: number;
+}
+
+export interface SpinHistory {
+    id: string;
+    userId: string;
+    prizeWon: SpinPrize;
+    spinType: 'free' | 'ad' | 'purchased';
+    timestamp: Timestamp;
+}
     

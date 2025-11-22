@@ -144,7 +144,7 @@ export default function SpinPage() {
         const userDocRef = doc(firestore, 'users', user.uid);
         switch (prize.type) {
           case 'coins':
-            transaction.update(userDocRef, { coins: increment(prize.value) });
+            transaction.update(userDocRef, { coins: increment(prize.value as number) });
             break;
           case 'sticker':
              // For now, we just log it. A future step could add it to a user's sticker collection.
@@ -231,7 +231,7 @@ export default function SpinPage() {
     switch(result.type) {
       case 'coins':
         icon = <Coins className="h-16 w-16 text-primary" />;
-        title = `${result.value.toLocaleString()} Coins`;
+        title = `${(result.value as number).toLocaleString()} Coins`;
         description = "Added to your balance!";
         break;
       case 'sticker':
@@ -318,9 +318,11 @@ export default function SpinPage() {
             <Gift className="mr-2 h-4 w-4" />
             Prize List
           </Button>
-          <Button variant="outline">
-            <History className="mr-2 h-4 w-4" />
-            My History
+           <Button asChild variant="outline">
+             <Link href="/spin/history">
+              <History className="mr-2 h-4 w-4" />
+              My History
+             </Link>
           </Button>
         </div>
 
@@ -348,5 +350,3 @@ export default function SpinPage() {
     </AppLayout>
   );
 }
-
-    
