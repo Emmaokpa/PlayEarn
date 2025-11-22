@@ -16,7 +16,6 @@ import {
   Menu as MenuIcon,
   Trophy,
   ShoppingCart,
-  BarChart,
   Home,
   Shield,
   Handshake,
@@ -33,7 +32,7 @@ import type { UserProfile } from '@/lib/data';
 const bottomNavItems = [
   { href: '/dashboard', label: 'Explore', icon: Home },
   { href: '/games', label: 'Games', icon: Gamepad2 },
-  { href: '/predictor', label: 'Predict', icon: BarChart },
+  { href: '/earn', label: 'Earn', icon: Trophy },
   { href: '/store', label: 'Store', icon: ShoppingCart },
 ];
 
@@ -45,7 +44,6 @@ const sidebarNavItems = [
     { href: '/earn/affiliate', label: 'Affiliate', icon: Handshake },
     { href: '/redeem', label: 'Redeem', icon: Gift },
     { href: '/store', label: 'Store', icon: ShoppingCart },
-    { href: '/predictor', label: 'Predictor', icon: BarChart },
     { href: '/profile', label: 'Profile', icon: User },
 ];
 
@@ -154,9 +152,9 @@ export default function BottomNav() {
             </SheetTrigger>
             {bottomNavItems.map((item) => {
               const isActive =
-                ['/dashboard', '/leaderboard', '/store', '/predictor'].includes(item.href)
+                ['/dashboard', '/leaderboard', '/store'].includes(item.href)
                   ? pathname === item.href
-                  : pathname.startsWith(item.href) && !['/dashboard', '/leaderboard', '/store', '/predictor'].includes(item.href);
+                  : pathname.startsWith(item.href) && !['/dashboard', '/leaderboard', '/store'].includes(item.href);
               return (
                  <NavLink
                     key={item.href}

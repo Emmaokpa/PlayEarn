@@ -6,13 +6,5 @@ import {z} from 'zod';
  * By separating schemas from the flow definitions, we avoid Next.js "use server" build errors.
  */
 
-export const GamePredictorInputSchema = z.object({
-  description: z.string().describe('A description of the casino game or betting scenario.'),
-});
-export type GamePredictorInput = z.infer<typeof GamePredictorInputSchema>;
-
-export const GamePredictorOutputSchema = z.object({
-  prediction: z.string().describe("The AI's analysis, prediction, or advice for the betting scenario."),
-});
-export type GamePredictorOutput = z.infer<typeof GamePredictorOutputSchema>;
-
+// Schemas for the old game predictor will be removed.
+// New schemas for the AI Story Generator will be added here later.
