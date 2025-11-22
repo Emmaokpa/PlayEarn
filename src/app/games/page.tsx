@@ -3,20 +3,12 @@
 
 import AppLayout from '@/components/layout/app-layout';
 import type { Game } from '@/lib/data';
-import { getAllGames } from '@/lib/games';
+import { useGames } from '@/lib/games';
 import GameCard from '@/components/app/game-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useEffect, useState } from 'react';
 
 export default function GamesPage() {
-  const [games, setGames] = useState<Game[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const allGames = getAllGames();
-    setGames(allGames);
-    setIsLoading(false);
-  }, []);
+  const { data: games, isLoading } = useGames();
 
   return (
     <AppLayout title="All Games">
@@ -31,8 +23,10 @@ export default function GamesPage() {
           ? Array.from({ length: 10 }).map((_, i) => (
               <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
             ))
-          : games.map((game) => <GameCard key={game.id} game={game} />)}
+          : games?.map((game) => <GameCard key={game.id} game={game} />)}
       </div>
     </AppLayout>
   );
 }
+
+    

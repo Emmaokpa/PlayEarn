@@ -8,7 +8,7 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel';
 import type { Game } from '@/lib/data';
-import { getAllGames } from '@/lib/games';
+import { useGames } from '@/lib/games';
 import GameCard from '@/components/app/game-card';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -22,15 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
   const { firestore, user } = useFirebase();
-  
-  const [games, setGames] = useState<Game[]>([]);
-  const [gamesLoading, setGamesLoading] = useState(true);
-
-  useEffect(() => {
-    const allGames = getAllGames();
-    setGames(allGames);
-    setGamesLoading(false);
-  }, []);
+  const { data: games, isLoading: gamesLoading } = useGames();
 
   const exclusiveGames = games?.slice(0, 2) ?? [];
   const freeGames = games?.slice(2, 4) ?? [];
@@ -138,3 +130,5 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+    
