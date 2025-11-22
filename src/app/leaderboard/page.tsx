@@ -1,3 +1,4 @@
+
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
@@ -95,10 +96,10 @@ export default function LeaderboardPage() {
                             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <p className="font-bold flex items-center gap-2">
+                            <div className="font-bold flex items-center gap-2">
                                 {user.name}
                                 {user.isVip && <Badge className="bg-primary text-primary-foreground"><Crown className="h-3 w-3 mr-1"/>VIP</Badge>}
-                            </p>
+                            </div>
                             <p className="text-sm text-muted-foreground">@{user.username}</p>
                         </div>
                         </div>
