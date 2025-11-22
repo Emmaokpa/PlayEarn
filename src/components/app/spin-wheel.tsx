@@ -1,3 +1,4 @@
+
 'use client';
 
 import { cn } from '@/lib/utils';
@@ -8,7 +9,10 @@ interface Prize {
   id: string;
   text: string;
   type: string;
+  value: number | string;
+  probability: number;
 }
+
 
 interface SpinWheelProps {
   prizes: Prize[];
@@ -16,100 +20,142 @@ interface SpinWheelProps {
   isSpinning: boolean;
 }
 
-// Pre-defined color sequence for the wheel segments
 const segmentColors = [
-  '#4B0082', // Indigo
   '#8A2BE2', // BlueViolet
   '#4169E1', // RoyalBlue
   '#6495ED', // CornflowerBlue
   '#9370DB', // MediumPurple
   '#BA55D3', // MediumOrchid
+  '#4B0082', // Indigo
   '#DA70D6', // Orchid
-  '#DDA0DD', // Plum
   '#DB7093', // PaleVioletRed
-  '#FF7F50', // Coral
-  '#FFD700', // Gold
-  '#ADFF2F', // GreenYellow
 ];
 
+const getArcPath = (
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+  thickness: number
+) => {
+  const start = polarToCartesian(cx, cy, radius, endAngle);
+  const end = polarToCartesian(cx, cy, radius, startAngle);
+  const innerStart = polarToCartesian(cx, cy, radius - thickness, endAngle);
+  const innerEnd = polarToCartesian(cx, cy, radius - thickness, startAngle);
+
+  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+
+  const d = [
+    'M', start.x, start.y,
+    'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y,
+    'L', innerEnd.x, innerEnd.y,
+    'A', radius - thickness, radius - thickness, 0, largeArcFlag, 1, innerStart.x, innerStart.y,
+    'Z'
+  ].join(' ');
+
+  return d;
+};
+
+const polarToCartesian = (cx: number, cy: number, radius: number, angleInDegrees: number) => {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  return {
+    x: cx + radius * Math.cos(angleInRadians),
+    y: cy + radius * Math.sin(angleInRadians),
+  };
+};
 
 const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning }) => {
   const numPrizes = prizes.length;
   const segmentAngle = 360 / numPrizes;
 
-  // Calculate the rotation needed to land on the prize
-  // Base rotation (at least 5 full spins) + prize-specific angle + small random offset
   const rotation = isSpinning && prizeIndex !== null
     ? 360 * 5 + (360 - (prizeIndex * segmentAngle)) - (segmentAngle / 2) + (Math.random() * (segmentAngle * 0.8) - (segmentAngle * 0.4))
     : 0;
+  
+  const size = 384; // md:w-96, md:h-96
+  const center = size / 2;
+  const radius = size / 2 - 10;
+  const thickness = 70;
+  const gap = 2; // Gap in degrees
 
   return (
-    <div className="relative flex h-80 w-80 items-center justify-center rounded-full border-8 border-primary shadow-2xl md:h-96 md:w-96">
+    <div className="relative flex h-80 w-80 items-center justify-center md:h-96 md:w-96">
       {/* Pointer */}
-      <div className="absolute -top-4 z-10 h-10 w-10">
-        <div 
-          className="h-0 w-0 border-x-8 border-b-[16px] border-x-transparent border-b-accent"
-          style={{ transform: 'translateX(-50%)', left: '50%' }}
-        />
+      <div 
+        className="absolute top-0 z-20" 
+        style={{ left: '50%', transform: 'translateX(-50%)' }}
+      >
+        <svg width="32" height="48" viewBox="0 0 32 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0L31.3923 24L0.607696 24L16 0Z" fill="url(#paint0_linear_pointer)"/>
+          <path d="M16 48L31.3923 24H0.607696L16 48Z" fill="url(#paint1_linear_pointer)" fillOpacity="0.4"/>
+          <defs>
+            <linearGradient id="paint0_linear_pointer" x1="16" y1="0" x2="16" y2="24" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#FEF4D4"/>
+              <stop offset="1" stopColor="#FDE089"/>
+            </linearGradient>
+            <linearGradient id="paint1_linear_pointer" x1="16" y1="48" x2="16" y2="24" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#FDE089" stopOpacity="0"/>
+              <stop offset="1" stopColor="#FDE089"/>
+            </linearGradient>
+          </defs>
+        </svg>
       </div>
 
       {/* Wheel */}
       <div
         className={cn(
-          'relative h-full w-full rounded-full transition-transform duration-[8000ms] ease-in-out',
+          'relative h-full w-full rounded-full transition-transform duration-[8000ms] ease-out'
         )}
         style={{ transform: `rotate(${rotation}deg)` }}
       >
-        {prizes.map((prize, index) => {
-          const angle = index * segmentAngle;
-          const color = segmentColors[index % segmentColors.length];
+        <svg viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+          <defs>
+            <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#FDE089" />
+              <stop offset="100%" stopColor="#D4A43A" />
+            </linearGradient>
+          </defs>
+          {prizes.map((prize, index) => {
+            const startAngle = index * segmentAngle + gap;
+            const endAngle = (index + 1) * segmentAngle - gap;
+            
+            const isJackpot = prize.text === 'JACKPOT';
+            const color = isJackpot ? 'url(#gold-gradient)' : segmentColors[index % segmentColors.length];
 
-          return (
-            <div
-              key={prize.id}
-              className="absolute left-0 top-0 h-full w-full"
-              style={{ transform: `rotate(${angle}deg)` }}
-            >
-              <div
-                className="absolute left-1/2 top-0 h-1/2 w-1/2 origin-bottom-left"
-                style={{
-                  clipPath: `polygon(0 0, 100% 0, 100% 100%)`, // Creates a triangle
-                  transform: `rotate(${segmentAngle}deg)`,
-                  backgroundColor: color,
-                  border: '1px solid rgba(255,255,255,0.1)'
-                }}
-              />
-              <div
-                className="absolute left-1/2 top-0 h-1/2 w-1/2 origin-bottom-left flex items-center justify-center"
-                style={{
-                  clipPath: `polygon(0 0, 100% 0, 0 100%)`, // Creates a triangle
-                   backgroundColor: color,
-                   border: '1px solid rgba(255,255,255,0.1)'
-                }}
-              >
-                 <div
-                    className="flex transform items-center justify-center text-center font-bold text-white"
-                    style={{
-                      transform: `translateY(50%) rotate(${segmentAngle / 2}deg) translateY(-20px)`,
-                       width: '80px'
-                    }}
-                  >
-                   <span className="truncate">{prize.text}</span>
-                   {prize.type === 'coins' && <Coins className="ml-1 h-4 w-4" />}
-                   {prize.type === 'sticker' && <Star className="ml-1 h-4 w-4" />}
-                  </div>
-              </div>
-            </div>
-          );
-        })}
+            const textAngle = startAngle + segmentAngle / 2;
+            const textPosition = polarToCartesian(center, center, radius - thickness / 2, textAngle);
+
+            return (
+              <g key={prize.id}>
+                <path d={getArcPath(center, center, radius, startAngle, endAngle, thickness)} fill={color} />
+                <text
+                  x={textPosition.x}
+                  y={textPosition.y}
+                  dy=".3em"
+                  textAnchor="middle"
+                  fill={isJackpot ? "#422B09" : "white"}
+                  fontSize="16"
+                  fontWeight="bold"
+                  transform={`rotate(${textAngle}, ${textPosition.x}, ${textPosition.y}) rotate(90, ${textPosition.x}, ${textPosition.y})`}
+                >
+                  {prize.text}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
       </div>
-      
+
        {/* Center Circle */}
-      <div className="absolute flex h-20 w-20 items-center justify-center rounded-full border-4 border-accent bg-background">
-        <span className="font-bold text-primary">SPIN</span>
+      <div className="absolute z-10 flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-b from-[#FDE089] to-[#D4A43A] shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+        <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-gradient-to-b from-[#FDE089] to-[#D4A43A]">
+           <span className="text-4xl font-black text-[#6A460A] drop-shadow-sm">SPIN</span>
+        </div>
       </div>
     </div>
   );
 };
 
 export default SpinWheel;
+
