@@ -1,14 +1,16 @@
+
 'use client';
 
 import {useState} from 'react';
 import {z} from 'zod';
 import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
+import { generateStory } from '@/ai/flows/story-generator';
 import {
-  generateStory,
   StoryGeneratorInputSchema,
   StoryGeneratorOutput,
 } from '@/ai/schemas';
+
 
 import AppLayout from '@/components/layout/app-layout';
 import {Button} from '@/components/ui/button';
