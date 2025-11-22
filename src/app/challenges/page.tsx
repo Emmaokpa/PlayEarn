@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { Coins, Crown, Gamepad2, Play, Trophy, Video } from 'lucide-react';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import type { UserProfile, AdView, SpinHistory } from '@/lib/data';
-import { doc, collection, query, where, Timestamp, writeBatch, increment, setDoc, getDoc } from 'firebase/firestore';
+import { doc, collection, query, where, writeBatch, increment, getDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -183,7 +183,7 @@ export default function ChallengesPage() {
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
-
+  
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const userProfileRef = useMemoFirebase(() => 
@@ -203,6 +203,9 @@ export default function ChallengesPage() {
         const docSnap = await getDoc(dailyChallengeStateRef);
         if (docSnap.exists()) {
             setClaimedChallenges(docSnap.data().claimed ?? []);
+        } else {
+            // New day, reset the claimed challenges
+            setClaimedChallenges([]);
         }
     };
     fetchClaimedStatus();
@@ -241,9 +244,9 @@ export default function ChallengesPage() {
         batch.update(userRef, { coins: increment(reward) });
         
         // Update the claimed challenges for the day
-        const claimedRef = doc(firestore, `users/${user.uid}/dailyChallenges`, todayStr);
+        if (!dailyChallengeStateRef) throw new Error("Daily challenge state ref not found");
         const newClaimed = [...claimedChallenges, challengeId];
-        batch.set(claimedRef, { claimed: newClaimed }, { merge: true });
+        batch.set(dailyChallengeStateRef, { claimed: newClaimed }, { merge: true });
 
         await batch.commit();
 
