@@ -1,4 +1,3 @@
-
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
@@ -98,7 +97,8 @@ export default function PredictorPage() {
   );
   const { data: userProfile, isLoading } = useDoc<UserProfile>(userProfileRef);
 
-  const isVip = userProfile?.isVip ?? false;
+  // Temporarily disabling VIP check to show the feature
+  const isVip = true;
 
   const renderContent = () => {
     if(isLoading) {
@@ -146,7 +146,7 @@ export default function PredictorPage() {
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold font-headline">Game Predictor</h2>
         <p className="text-muted-foreground mt-2">
-          Get AI-powered predictions for your favorite games. (VIP Only)
+          Get AI-powered predictions for your favorite games.
         </p>
       </div>
       {renderContent()}

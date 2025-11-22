@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -34,7 +33,7 @@ import type { UserProfile } from '@/lib/data';
 const bottomNavItems = [
   { href: '/dashboard', label: 'Explore', icon: Home },
   { href: '/games', label: 'Games', icon: Gamepad2 },
-  { href: '/leaderboard', label: 'Top', icon: Award },
+  { href: '/predictor', label: 'Predict', icon: BarChart },
   { href: '/store', label: 'Store', icon: ShoppingCart },
 ];
 
@@ -155,9 +154,9 @@ export default function BottomNav() {
             </SheetTrigger>
             {bottomNavItems.map((item) => {
               const isActive =
-                item.href === '/dashboard' || item.href === '/leaderboard' || item.href === '/store'
+                ['/dashboard', '/leaderboard', '/store', '/predictor'].includes(item.href)
                   ? pathname === item.href
-                  : pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/leaderboard' && item.href !== '/store';
+                  : pathname.startsWith(item.href) && !['/dashboard', '/leaderboard', '/store', '/predictor'].includes(item.href);
               return (
                  <NavLink
                     key={item.href}
