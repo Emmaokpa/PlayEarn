@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AppLayout from '@/components/layout/app-layout';
 import {
   Card,
@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { Coins, Crown, Gamepad2, Play, Trophy, Video } from 'lucide-react';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import type { UserProfile, AdView, SpinHistory } from '@/lib/data';
-import { doc, collection, query, where, Timestamp, writeBatch, increment } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, writeBatch, increment, setDoc, getDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +36,6 @@ interface Challenge {
 interface ChallengeData {
   adViewsToday: AdView[];
   spinsToday: SpinHistory[];
-  // Add other data points as needed, e.g., gamesPlayed
 }
 
 const allChallenges: Challenge[] = [
@@ -116,12 +115,14 @@ function ChallengeCard({
   progress,
   isClaimed,
   onClaim,
+  isClaiming,
 }: {
   challenge: Challenge;
   isVip: boolean;
   progress: number;
   isClaimed: boolean;
   onClaim: (challengeId: string, reward: number) => void;
+  isClaiming: boolean;
 }) {
   const isCompleted = progress >= challenge.target;
   const canClaim = isCompleted && !isClaimed;
@@ -157,8 +158,8 @@ function ChallengeCard({
         {isLocked ? (
              <Button disabled variant="outline" size="sm">Upgrade to VIP to Unlock</Button>
         ) : (
-            <Button onClick={() => onClaim(challenge.id, challenge.reward)} disabled={!canClaim} size="sm">
-            {isClaimed ? 'Claimed' : (isCompleted ? 'Claim Reward' : 'In Progress')}
+            <Button onClick={() => onClaim(challenge.id, challenge.reward)} disabled={!canClaim || isClaiming} size="sm">
+            {isClaimed ? 'Claimed' : (isCompleted ? (isClaiming ? 'Claiming...' : 'Claim Reward') : 'In Progress')}
             </Button>
         )}
          <div className="mt-2 flex items-center justify-center gap-1 text-sm font-bold text-primary">
@@ -174,19 +175,39 @@ export default function ChallengesPage() {
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
   const [claimedChallenges, setClaimedChallenges] = useState<string[]>([]);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   // Memoize start of today
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
-  }, []); // Should only compute once per mount unless date changes drastically, safe for client
+  }, []);
+
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, 'users', user.uid) : null, 
     [user, firestore]
   );
   const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+  
+  const dailyChallengeStateRef = useMemoFirebase(() =>
+    user ? doc(firestore, `users/${user.uid}/dailyChallenges`, todayStr) : null,
+    [user, firestore, todayStr]
+  );
+
+  useEffect(() => {
+    if (!dailyChallengeStateRef) return;
+    const fetchClaimedStatus = async () => {
+        const docSnap = await getDoc(dailyChallengeStateRef);
+        if (docSnap.exists()) {
+            setClaimedChallenges(docSnap.data().claimed ?? []);
+        }
+    };
+    fetchClaimedStatus();
+  }, [dailyChallengeStateRef]);
+
 
   const adViewsQuery = useMemoFirebase(() => 
     user ? query(collection(firestore, `users/${user.uid}/adViews`), where('timestamp', '>=', today)) : null,
@@ -209,16 +230,24 @@ export default function ChallengesPage() {
   };
 
   const handleClaimReward = async (challengeId: string, reward: number) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || isClaiming) return;
+    setIsClaiming(true);
     
     try {
         const batch = writeBatch(firestore);
+        
+        // Update user's coin balance
         const userRef = doc(firestore, 'users', user.uid);
         batch.update(userRef, { coins: increment(reward) });
         
+        // Update the claimed challenges for the day
+        const claimedRef = doc(firestore, `users/${user.uid}/dailyChallenges`, todayStr);
+        const newClaimed = [...claimedChallenges, challengeId];
+        batch.set(claimedRef, { claimed: newClaimed }, { merge: true });
+
         await batch.commit();
 
-        setClaimedChallenges(prev => [...prev, challengeId]);
+        setClaimedChallenges(newClaimed);
         toast({
             title: "Reward Claimed!",
             description: `You earned ${reward} coins.`,
@@ -230,6 +259,8 @@ export default function ChallengesPage() {
             title: "Claim Failed",
             description: "Could not claim your reward. Please try again.",
         });
+    } finally {
+        setIsClaiming(false);
     }
   }
 
@@ -265,6 +296,7 @@ export default function ChallengesPage() {
             progress={challenge.getProgress(challengeData)}
             isClaimed={claimedChallenges.includes(challenge.id)}
             onClaim={handleClaimReward}
+            isClaiming={isClaiming}
             />
         ))}
       </div>
