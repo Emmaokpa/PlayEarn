@@ -30,6 +30,7 @@ import { useState } from 'react';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const bottomNavItems = [
@@ -171,11 +172,13 @@ export default function BottomNav() {
             })}
           </div>
         </nav>
-        <SheetContent side="left" className="w-64 p-4">
+        <SheetContent side="left" className="flex w-64 flex-col p-4">
           <SheetHeader className="mb-4 text-left">
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
-          <SidebarNav isAdmin={isAdmin} closeSidebar={() => setIsSidebarOpen(false)} />
+          <ScrollArea className="flex-1">
+            <SidebarNav isAdmin={isAdmin} closeSidebar={() => setIsSidebarOpen(false)} />
+          </ScrollArea>
         </SheetContent>
       </Sheet>
     </>
