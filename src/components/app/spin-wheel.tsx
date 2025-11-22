@@ -76,7 +76,7 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
   const size = 384; // md:w-96, md:h-96
   const center = size / 2;
   const radius = size / 2 - 10;
-  const thickness = 70;
+  const thickness = 120; // Increased from 70 to 120 to make segments fatter
   const gap = 2; // Gap in degrees
 
   return (
@@ -148,8 +148,8 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
       </div>
 
        {/* Center Circle */}
-      <div className="absolute z-10 flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-b from-[#FDE089] to-[#D4A43A] shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-        <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-gradient-to-b from-[#FDE089] to-[#D4A43A]">
+       <div className="absolute z-10 flex h-[130px] w-[130px] items-center justify-center rounded-full bg-gradient-to-b from-[#FDE089] to-[#D4A43A] shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+        <div className="flex h-[118px] w-[118px] items-center justify-center rounded-full bg-gradient-to-b from-[#FDE089] to-[#D4A43A]">
            <span className="text-4xl font-black text-[#6A460A] drop-shadow-sm">SPIN</span>
         </div>
       </div>
