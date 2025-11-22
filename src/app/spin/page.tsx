@@ -5,10 +5,10 @@ import AppLayout from '@/components/layout/app-layout';
 import SpinWheel from '@/components/app/spin-wheel';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, collection, writeBatch, Timestamp, increment } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, collection, Timestamp, increment } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
-import { useState, useEffect } from 'react';
-import { Gift, History, Loader2, Video, ShoppingCart } from 'lucide-react';
+import { useState } from 'react';
+import { Gift, History, Loader2, Video, ShoppingCart, Star, Coins } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -22,10 +22,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import WatchAdDialog from '@/components/app/watch-ad-dialog';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const AD_SPIN_LIMIT = 3;
 
-// Define prizes directly in the component for now
+// Define prizes directly in the component
 const prizes = [
   { id: 'prize-50', text: '50', type: 'coins', value: 50, probability: 35 },
   { id: 'prize-100', text: '100', type: 'coins', value: 100, probability: 25 },
@@ -34,7 +35,7 @@ const prizes = [
   { id: 'prize-sticker-rare', text: 'Rare Sticker', type: 'sticker', value: 'rare', probability: 6 },
   { id: 'prize-entry-1', text: '$1 Entry', type: 'entry', value: 1, probability: 4 },
   { id: 'prize-500', text: '500', type: 'coins', value: 500, probability: 2.5 },
-  { id: 'prize-gift-5', text: '$5', type: 'gift_card', value: 5, probability: 0.4 },
+  { id: 'prize-gift-5', text: '$5 Card', type: 'gift_card', value: 5, probability: 0.4 },
   { id: 'prize-jackpot', text: 'JACKPOT', type: 'gift_card', value: 25, probability: 0.1 },
 ];
 
@@ -104,7 +105,7 @@ export default function SpinPage() {
     setPrizeIndex(winningIndex);
 
     try {
-      const spinType = await runTransaction(firestore, async (transaction) => {
+      await runTransaction(firestore, async (transaction) => {
         const userSpinDocRef = doc(firestore, `users/${user.uid}/spinData`, 'spin_status');
         const userSpinDoc = await transaction.get(userSpinDocRef);
         
@@ -139,12 +140,26 @@ export default function SpinPage() {
         
         spinDataToWrite.lastSpinTimestamp = serverTimestamp() as Timestamp;
 
-        // Apply prize
-        if (prize.type === 'coins') {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          transaction.update(userDocRef, { coins: increment(prize.value) });
+        // Apply prize based on type
+        const userDocRef = doc(firestore, 'users', user.uid);
+        switch (prize.type) {
+          case 'coins':
+            transaction.update(userDocRef, { coins: increment(prize.value) });
+            break;
+          case 'sticker':
+             // For now, we just log it. A future step could add it to a user's sticker collection.
+            console.log(`User ${user.uid} won a ${prize.value} sticker.`);
+            break;
+          case 'entry':
+            // Logic to add a gift card entry would go here.
+            console.log(`User ${user.uid} won an entry for a $${prize.value} gift card.`);
+            break;
+          case 'gift_card':
+             // High-value prize logic. Could flag for manual verification.
+            console.log(`User ${user.uid} won a $${prize.value} gift card!`);
+            break;
         }
-        // Other prize types (stickers, entries) would be handled here
+
 
         // Record spin history
         const spinHistoryRef = doc(collection(firestore, `users/${user.uid}/spinHistory`));
@@ -157,8 +172,6 @@ export default function SpinPage() {
         
         // Commit spin data changes
         transaction.set(userSpinDocRef, spinDataToWrite, { merge: true });
-
-        return usedSpinType;
       });
 
       // Show result after transaction is successful and animation is over
@@ -209,6 +222,45 @@ export default function SpinPage() {
             description: "Could not grant your spin. Please try again.",
         });
     }
+  }
+
+  const renderPrizeContent = () => {
+    if (!result) return null;
+
+    let icon, title, description;
+    switch(result.type) {
+      case 'coins':
+        icon = <Coins className="h-16 w-16 text-primary" />;
+        title = `${result.value.toLocaleString()} Coins`;
+        description = "Added to your balance!";
+        break;
+      case 'sticker':
+        icon = <Star className="h-16 w-16 text-accent" />;
+        title = `A ${result.value} Sticker!`;
+        description = "Added to your collection.";
+        break;
+
+      case 'entry':
+        icon = <Gift className="h-16 w-16 text-primary" />;
+        title = `$${result.value} Gift Card Entry`;
+        description = "You're in the draw! Good luck.";
+        break;
+      case 'gift_card':
+         icon = <Gift className="h-16 w-16 text-yellow-400" />;
+         title = result.text === 'JACKPOT' ? "JACKPOT!" : `$${result.value} Gift Card!`;
+         description = "Congratulations on the big win!";
+         break;
+       default:
+        return null;
+    }
+    
+    return (
+        <div className="my-4 flex flex-col items-center justify-center space-y-2 rounded-lg bg-secondary p-8 text-secondary-foreground">
+            {icon}
+            <p className={cn("text-4xl font-bold", result.type === 'gift_card' ? 'text-yellow-400' : 'text-primary')}>{title}</p>
+            <p className="text-lg">{description}</p>
+        </div>
+    )
   }
 
 
@@ -280,10 +332,7 @@ export default function SpinPage() {
                 You've won:
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="my-4 flex flex-col items-center justify-center space-y-2 rounded-lg bg-secondary p-8 text-secondary-foreground">
-              <p className="text-5xl font-bold text-primary">{result?.text}</p>
-              <p className="text-lg">{result?.type === 'coins' ? 'Coins' : ''}</p>
-            </div>
+            {renderPrizeContent()}
             <AlertDialogFooter>
               <AlertDialogAction onClick={() => setResult(null)}>Awesome!</AlertDialogAction>
             </AlertDialogFooter>
