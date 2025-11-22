@@ -203,14 +203,19 @@ export default function SpinPage() {
             const userSpinDocRef = doc(firestore, `users/${user.uid}/spinData`, 'spin_status');
             const userSpinDoc = await transaction.get(userSpinDocRef);
 
-            if (!userSpinDoc.exists() || (userSpinDoc.data().adSpinsUsedToday ?? 0) >= AD_SPIN_LIMIT) {
-                throw new Error("Ad spin limit reached.");
+            if (userSpinDoc.exists() && (userSpinDoc.data().adSpinsUsedToday ?? 0) >= AD_SPIN_LIMIT) {
+                 toast({
+                    variant: "destructive",
+                    title: "Ad Limit Reached",
+                    description: "You have already watched all your available ads for today.",
+                });
+                return; // Stop the transaction
             }
 
-            transaction.update(userSpinDocRef, { 
+            transaction.set(userSpinDocRef, { 
                 purchasedSpinsRemaining: increment(1), // Granting a "purchased" spin for simplicity
                 adSpinsUsedToday: increment(1)
-            });
+            }, { merge: true });
         });
         toast({
             title: "Spin Awarded!",
