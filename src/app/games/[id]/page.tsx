@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import type { Game } from '@/lib/data';
 import { getGameById } from '@/lib/games';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,12 +20,13 @@ export default function GamePage({ params }: { params: { id: string } }) {
   
   const [game, setGame] = useState<Game | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const { id } = params;
 
   useEffect(() => {
-    const foundGame = getGameById(params.id);
+    const foundGame = getGameById(id);
     setGame(foundGame);
     setIsLoading(false);
-  }, [params.id]);
+  }, [id]);
 
 
   const handleSaveProgress = async () => {
@@ -33,10 +34,17 @@ export default function GamePage({ params }: { params: { id: string } }) {
     const gameProgressRef = doc(firestore, `users/${user.uid}/gameProgress`, game.id);
     
     // In a real game, you'd get the progress from the iframe via postMessage
-    const progressData = { progress: Math.random() * 100, lastUpdated: new Date().toISOString() };
+    const progressData = { 
+        id: game.id,
+        userId: user.uid,
+        gameId: game.id,
+        progressData: JSON.stringify({ score: Math.floor(Math.random() * 10000) }),
+        lastUpdated: new Date().toISOString() 
+    };
 
     try {
-        await updateDoc(gameProgressRef, progressData, { merge: true });
+        // Use setDoc with merge:true to create or update the document
+        await setDoc(gameProgressRef, progressData, { merge: true });
         toast({
             title: "Progress Saved!",
             description: `Your progress for ${game.name} has been saved.`,
