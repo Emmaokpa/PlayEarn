@@ -30,33 +30,6 @@ const affiliateOffersSeed = [
     },
 ];
 
-const stickerPacksSeed = [
-    {
-        id: 'sticker-1',
-        name: 'Cool Cats',
-        description: 'A pack of cool and funny cat stickers.',
-        price: 500,
-    },
-    {
-        id: 'sticker-2',
-        name: 'Meme Lords',
-        description: 'A collection of the most popular meme reactions.',
-        price: 750,
-    },
-    {
-        id: 'sticker-3',
-        name: 'Pixel Power',
-        description: 'Retro pixel art characters and items.',
-        price: 600,
-    },
-    {
-        id: 'sticker-4',
-        name: 'Galaxy Explorers',
-        description: 'Vibrant space and galaxy-themed stickers.',
-        price: 800,
-    },
-];
-
 export async function seedDatabase(firestore: Firestore) {
   try {
     const batch = writeBatch(firestore);
@@ -74,21 +47,6 @@ export async function seedDatabase(firestore: Firestore) {
         });
     }
     console.log('Affiliate offers added to batch.');
-
-    // Seed Sticker Packs
-    const stickersCollection = collection(firestore, 'stickerPacks');
-    console.log('Seeding sticker packs...');
-    for (const pack of stickerPacksSeed) {
-        const { imageUrl, imageHint } = getImage(pack.id);
-        const packRef = doc(stickersCollection, pack.id);
-        batch.set(packRef, {
-            ...pack,
-            imageUrl,
-            imageHint,
-        });
-    }
-    console.log('Sticker packs added to batch.');
-
 
     await batch.commit();
     console.log('Database seeded successfully!');
