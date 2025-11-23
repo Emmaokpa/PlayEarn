@@ -80,7 +80,20 @@ function AddGameForm() {
         <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Game Name</FormLabel> <FormControl> <Input placeholder="e.g. Asphalt Racing" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
         <FormField control={form.control} name="category" render={({ field }) => ( <FormItem> <FormLabel>Category</FormLabel> <FormControl> <Input placeholder="e.g. Racing" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
         <FormField control={form.control} name="iframeUrl" render={({ field }) => ( <FormItem> <FormLabel>Iframe URL</FormLabel> <FormControl> <Input placeholder="https://example.com/game-embed" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-        <FormField control={form.control} name="imageHint" render={({ field }) => ( <FormItem> <FormLabel>Image AI Hint</FormLabel> <FormControl> <Input placeholder="e.g. racing car" {...field} /> </FormControl> <FormDescription>This hint will be used for AI image generation.</FormDescription> <FormMessage /> </FormItem> )} />
+        <FormField
+          control={form.control}
+          name="imageHint"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Image AI Hint</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. racing car" {...field} />
+              </FormControl>
+              <FormDescription>This hint will be used for AI image generation.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Game...' : 'Add Game'} </Button>
       </form>
     </Form>
@@ -114,7 +127,20 @@ function AddAffiliateOfferForm() {
         <FormField control={form.control} name="description" render={({ field }) => ( <FormItem> <FormLabel>Description</FormLabel> <FormControl> <Input placeholder="Sign up for this awesome service and get..." {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
         <FormField control={form.control} name="link" render={({ field }) => ( <FormItem> <FormLabel>Affiliate Link</FormLabel> <FormControl> <Input placeholder="https://example.com/aff_id=123" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
         <FormField control={form.control} name="rewardCoins" render={({ field }) => ( <FormItem> <FormLabel>Coin Reward</FormLabel> <FormControl> <Input type="number" placeholder="1000" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-        <FormField control={form.control} name="imageHint" render={({ field }) => ( <FormItem> <FormLabel>Image AI Hint</FormLabel> <FormControl> <Input placeholder="e.g. casino chips" {...field} /> </FormControl> <FormDescription>This hint will be used for AI image generation.</FormDescription> <FormMessage /> </FormItem> )} />
+        <FormField
+          control={form.control}
+          name="imageHint"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Image AI Hint</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. casino chips" {...field} />
+              </FormControl>
+              <FormDescription>This hint will be used for AI image generation.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Offer...' : 'Add Offer'} </Button>
       </form>
     </Form>
@@ -147,7 +173,20 @@ function AddStickerPackForm() {
         <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Pack Name</FormLabel> <FormControl> <Input placeholder="e.g. Cool Cats" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
         <FormField control={form.control} name="description" render={({ field }) => ( <FormItem> <FormLabel>Description</FormLabel> <FormControl> <Input placeholder="A collection of cool cat stickers." {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
         <FormField control={form.control} name="price" render={({ field }) => ( <FormItem> <FormLabel>Price (in Coins)</FormLabel> <FormControl> <Input type="number" placeholder="500" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-        <FormField control={form.control} name="imageHint" render={({ field }) => ( <FormItem> <FormLabel>Image AI Hint</FormLabel> <FormControl> <Input placeholder="e.g. funny cat" {...field} /> </FormControl> <FormDescription>This hint will be used for AI image generation.</FormDescription> <FormMessage /> </FormItem> )} />
+        <FormField
+          control={form.control}
+          name="imageHint"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Image AI Hint</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. funny cat" {...field} />
+              </FormControl>
+              <FormDescription>This hint will be used for AI image generation.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Pack...' : 'Add Sticker Pack'} </Button>
       </form>
     </Form>
@@ -247,5 +286,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
