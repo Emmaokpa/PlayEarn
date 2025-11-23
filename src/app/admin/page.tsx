@@ -23,12 +23,24 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import type { UserProfile } from '@/lib/data';
-import { doc, addDoc, collection } from 'firebase/firestore';
+import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import type { Game, UserProfile } from '@/lib/data';
+import { doc, addDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
@@ -51,13 +63,23 @@ const stickerPackFormSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Price cannot be negative.' }),
 });
 
-
-function AddGameForm() {
+function AddGameForm({
+  selectedGame,
+  onClearSelection,
+}: {
+  selectedGame: Game | null;
+  onClearSelection: () => void;
+}) {
   const { firestore } = useFirebase();
   const { toast } = useToast();
   const form = useForm<z.infer<typeof gameFormSchema>>({
     resolver: zodResolver(gameFormSchema),
-    defaultValues: { name: '', category: '', iframeUrl: '', imageUrl: '' },
+    defaultValues: selectedGame || { name: '', category: '', iframeUrl: '', imageUrl: '' },
+  });
+
+  // Watch for changes in selectedGame to update the form
+  useState(() => {
+    form.reset(selectedGame || { name: '', category: '', iframeUrl: '', imageUrl: '' });
   });
 
   async function onSubmit(values: z.infer<typeof gameFormSchema>) {
@@ -65,20 +87,32 @@ function AddGameForm() {
     try {
       const imageUrl = values.imageUrl || `https://picsum.photos/seed/${values.name}/400/300`;
       const imageHint = values.name.split(' ').slice(0, 2).join(' ');
-      await addDoc(collection(firestore, 'games'), { ...values, imageUrl, imageHint });
-      toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
-      form.reset();
+      
+      if (selectedGame) {
+        // Update existing game
+        const gameRef = doc(firestore, 'games', selectedGame.id);
+        await setDoc(gameRef, { ...values, imageUrl, imageHint }, { merge: true });
+        toast({ title: 'Game Updated!', description: `"${values.name}" has been updated.` });
+      } else {
+        // Add new game
+        await addDoc(collection(firestore, 'games'), { ...values, imageUrl, imageHint });
+        toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
+      }
+      form.reset({ name: '', category: '', iframeUrl: '', imageUrl: '' });
+      onClearSelection();
     } catch (error) {
-      console.error('Error adding game: ', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not add the game.' });
+      console.error('Error saving game: ', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not save the game.' });
     }
   }
-
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Add New Game</CardTitle>
-        <CardDescription>Fill out the form to add a new game to the app.</CardDescription>
+        <CardTitle>{selectedGame ? 'Edit Game' : 'Add New Game'}</CardTitle>
+        <CardDescription>
+          {selectedGame ? `Editing "${selectedGame.name}"` : 'Fill out the form to add a new game to the app.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -138,12 +172,83 @@ function AddGameForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Game...' : 'Add Game'} </Button>
+             <div className="flex gap-2">
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? 'Saving...' : (selectedGame ? 'Update Game' : 'Add Game')}
+                </Button>
+                {selectedGame && (
+                  <Button variant="outline" onClick={onClearSelection}>
+                    Cancel Edit
+                  </Button>
+                )}
+              </div>
           </form>
         </Form>
       </CardContent>
     </Card>
   );
+}
+
+function GameList({ onEdit, onDelete, games, isLoading }: { onEdit: (game: Game) => void; onDelete: (gameId: string) => void; games: Game[] | null, isLoading: boolean }) {
+  if (isLoading) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Manage Games</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
+  
+  return (
+    <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><List /> Manage Games</CardTitle>
+            <CardDescription>View, edit, or delete existing games.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <ul className="space-y-2">
+                {games?.map((game) => (
+                    <li key={game.id} className="flex items-center justify-between rounded-md border p-3">
+                        <span className="font-semibold truncate pr-2">{game.name}</span>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="icon" onClick={() => onEdit(game)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    This will permanently delete the game "{game.name}". This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => onDelete(game.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    </li>
+                ))}
+                {games?.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No games found. Add one using the form.</p>}
+            </ul>
+        </CardContent>
+    </Card>
+  )
 }
 
 function AddAffiliateOfferForm() {
@@ -327,14 +432,41 @@ function AddStickerPackForm() {
 
 
 function AdminDashboard() {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+
+    const gamesQuery = useMemoFirebase(
+        () => (firestore ? collection(firestore, 'games') : null),
+        [firestore]
+    );
+    const { data: games, isLoading: gamesLoading } = useCollection<Game>(gamesQuery);
+
+    const handleEditGame = (game: Game) => {
+        setSelectedGame(game);
+    };
+
+    const handleDeleteGame = async (gameId: string) => {
+        if (!firestore) return;
+        const gameRef = doc(firestore, 'games', gameId);
+        try {
+            await deleteDoc(gameRef);
+            toast({ title: 'Game Deleted', description: 'The game has been removed.' });
+        } catch (error) {
+            console.error('Error deleting game:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the game.' });
+        }
+    };
+    
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
         <div className="space-y-8">
-            <AddGameForm />
+            <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
             <AddStickerPackForm />
         </div>
         <div className="space-y-8">
-             <AddAffiliateOfferForm />
+            <GameList games={games} isLoading={gamesLoading} onEdit={handleEditGame} onDelete={handleDeleteGame} />
+            <AddAffiliateOfferForm />
         </div>
     </div>
   );
@@ -387,3 +519,5 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
+
+    
