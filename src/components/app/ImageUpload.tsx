@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { CldUploadWidget } from 'next-cloudinary';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploadProps {
   onUpload: (url: string) => void;
@@ -12,21 +13,32 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUploadProps) {
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
+  const { toast } = useToast();
 
   const handleSuccess = (result: any) => {
     if (result.event === 'success' && result.info?.secure_url) {
       const url = result.info.secure_url;
-      console.log('Uploaded image URL:', url);
       setImageUrl(url);
       onUpload(url);
     }
   };
+
+  const handleError = (error: any) => {
+    console.error('Upload widget error:', error);
+    toast({
+      variant: 'destructive',
+      title: 'Upload Failed',
+      description: 'There was a problem with the image uploader. Please try again.',
+    });
+  };
+
 
   return (
     <div>
       <CldUploadWidget
         uploadPreset="qa4yjgs4"
         onSuccess={handleSuccess}
+        onError={handleError}
       >
         {({ open }) => {
           return (
