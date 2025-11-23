@@ -8,7 +8,7 @@ import { collection, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import StickerPackCard from '@/components/app/sticker-pack-card';
 import { Button } from '@/components/ui/button';
-import { Coins } from 'lucide-react';
+import { Coins, Star } from 'lucide-react';
 import Link from 'next/link';
 import {
   Card,
@@ -47,22 +47,40 @@ export default function StorePage() {
           </p>
         </div>
         
-        <Card className="bg-primary/10">
-            <CardHeader className="text-center">
-                <CardTitle>Need More Coins?</CardTitle>
-                <CardDescription>
-                    Don't wait to earn, get a coin pack and unlock rewards instantly!
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-                 <Button asChild size="lg">
-                    <Link href="/store/buy-coins">
-                        <Coins className="mr-2 h-5 w-5" />
-                        Buy Coins
-                    </Link>
-                </Button>
-            </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="bg-primary/10">
+                <CardHeader className="text-center">
+                    <CardTitle>Need More Coins?</CardTitle>
+                    <CardDescription>
+                        Don't wait to earn, get a coin pack and unlock rewards instantly!
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                    <Button asChild size="lg">
+                        <Link href="/store/buy-coins">
+                            <Coins className="mr-2 h-5 w-5" />
+                            Buy Coins
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+            <Card className="bg-accent/10">
+                <CardHeader className="text-center">
+                    <CardTitle>Want More Spins?</CardTitle>
+                    <CardDescription>
+                        Get more chances on the prize wheel and win big rewards!
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                    <Button asChild size="lg" variant="default" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                        <Link href="/store/buy-spins">
+                            <Star className="mr-2 h-5 w-5" />
+                            Buy Spins
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
 
         <div>
             <h3 className="mb-4 text-center text-2xl font-bold font-headline">Sticker Packs</h3>
@@ -84,5 +102,3 @@ export default function StorePage() {
     </AppLayout>
   );
 }
-
-    
