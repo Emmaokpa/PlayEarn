@@ -12,11 +12,11 @@ import { useGameById } from '@/lib/games';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
-export default function GamePage({ params }: { params: { id: string } }) {
+export default function GamePage({ params: { id } }: { params: { id: string } }) {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
 
-  const { data: game, isLoading } = useGameById(params.id);
+  const { data: game, isLoading } = useGameById(id);
 
   const handleSaveProgress = async () => {
     if (!firestore || !user || !game) return;
@@ -93,5 +93,3 @@ export default function GamePage({ params }: { params: { id: string } }) {
     </AppLayout>
   );
 }
-
-    
