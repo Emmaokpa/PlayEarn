@@ -7,46 +7,6 @@ function getImage(id: string) {
   return image || { imageUrl: 'https://picsum.photos/seed/placeholder/400/300', imageHint: 'placeholder' };
 }
 
-const gamesSeed = [
-    { id: 'game-1', name: 'Asphalt Racing', category: 'Racing', iframeUrl: 'https://www.playgama.com/embed/asphalt-racing-car-game' },
-    { id: 'game-2', name: 'Jungle Adventure', category: 'Adventure', iframeUrl: 'https://www.playgama.com/embed/jungle-adventure' },
-    { id: 'game-3', name: 'Space Shooter', category: 'Arcade', iframeUrl: 'https://www.playgama.com/embed/space-shooter' },
-    { id: 'game-4', name: 'Puzzle Blocks', category: 'Puzzle', iframeUrl: 'https://www.playgama.com/embed/puzzle-blocks' },
-    { id: 'game-5', name: 'Fantasy RPG', category: 'RPG', iframeUrl: 'https://www.playgama.com/embed/tiny-rpg' },
-    { id: 'game-6', name: 'Chess Classic', category: 'Strategy', iframeUrl: 'https://www.playgama.com/embed/chess-classic' },
-]
-
-const rewardsSeed = [
-  {
-    id: 'reward-1',
-    name: '$5 Gift Card',
-    description: 'A gift card for a popular online store.',
-    coins: 50000,
-    isVipOnly: true,
-  },
-  {
-    id: 'reward-2',
-    name: '20% Off Coupon',
-    description: 'A discount coupon for your next purchase.',
-    coins: 1000,
-    isVipOnly: false,
-  },
-  {
-    id: 'reward-3',
-    name: 'Epic Loot Box',
-    description: 'Exclusive in-game item pack for your favorite game.',
-    coins: 2500,
-    isVipOnly: false,
-  },
-  {
-    id: 'reward-4',
-    name: '1-Month Premium',
-    description: 'A premium subscription for a month on our platform.',
-    coins: 10000,
-    isVipOnly: false,
-  },
-];
-
 const stickerPacksSeed = [
     {
         id: 'sticker-1',
@@ -149,34 +109,6 @@ const inAppPurchasesSeed = [
 export async function seedDatabase(firestore: Firestore) {
   try {
     const batch = writeBatch(firestore);
-
-    // Seed Games
-    const gamesCollection = collection(firestore, 'games');
-    console.log('Seeding games...');
-    for (const game of gamesSeed) {
-        const { imageUrl, imageHint } = getImage(game.id);
-        const gameRef = doc(gamesCollection, game.id);
-        batch.set(gameRef, {
-            ...game,
-            imageUrl,
-            imageHint,
-        });
-    }
-    console.log('Games added to batch.');
-
-    // Seed Rewards
-    const rewardsCollection = collection(firestore, 'rewards');
-    console.log('Seeding rewards...');
-    for (const reward of rewardsSeed) {
-      const { imageUrl, imageHint } = getImage(reward.id);
-      const rewardRef = doc(rewardsCollection, reward.id);
-      batch.set(rewardRef, {
-        ...reward,
-        imageUrl,
-        imageHint,
-      });
-    }
-    console.log('Rewards added to batch.');
 
      // Seed Sticker Packs
     const stickerPacksCollection = collection(firestore, 'stickerPacks');
