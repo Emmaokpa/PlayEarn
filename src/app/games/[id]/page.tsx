@@ -12,10 +12,9 @@ import { useGameById } from '@/lib/games';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
-export default function GamePage({ params }: { params: { id: string } }) {
+export default function GamePage({ params: { id } }: { params: { id: string } }) {
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
-  const { id } = params;
 
   const { data: game, isLoading } = useGameById(id);
 
@@ -93,5 +92,3 @@ export default function GamePage({ params }: { params: { id: string } }) {
     </AppLayout>
   );
 }
-
-    
