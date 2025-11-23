@@ -17,6 +17,8 @@ export default function GameCard({ game }: { game: Game }) {
               className="object-cover transition-transform duration-300 group-hover:scale-110"
               sizes="(max-width: 768px) 50vw, 25vw"
               data-ai-hint={game.imageHint}
+              referrerPolicy="no-referrer"
+              unoptimized
             />
              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           </div>

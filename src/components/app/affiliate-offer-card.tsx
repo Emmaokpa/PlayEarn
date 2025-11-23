@@ -91,6 +91,8 @@ export default function AffiliateOfferCard({
             className="rounded-t-lg object-cover"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             data-ai-hint={offer.imageHint}
+            referrerPolicy="no-referrer"
+            unoptimized
           />
         </div>
       </CardHeader>
@@ -125,5 +127,3 @@ export default function AffiliateOfferCard({
     </Card>
   );
 }
-
-    
