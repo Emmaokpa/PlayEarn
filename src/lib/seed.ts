@@ -6,6 +6,37 @@ function getImage(id: string) {
   return image || { imageUrl: 'https://picsum.photos/seed/placeholder/400/300', imageHint: 'placeholder' };
 }
 
+const rewardsSeed = [
+    {
+        id: 'reward-1',
+        name: '$5 Gift Card',
+        description: 'A gift card for your favorite online store.',
+        coins: 5000,
+        isVipOnly: false,
+    },
+    {
+        id: 'reward-2',
+        name: '$10 Gift Card',
+        description: 'Double the value, double the fun!',
+        coins: 10000,
+        isVipOnly: false,
+    },
+    {
+        id: 'reward-3',
+        name: 'Exclusive In-Game Item Pack',
+        description: 'Get a treasure chest of exclusive items for your favorite game.',
+        coins: 7500,
+        isVipOnly: true,
+    },
+    {
+        id: 'reward-4',
+        name: '$25 VIP Gift Card',
+        description: 'A special reward for our most loyal players.',
+        coins: 20000,
+        isVipOnly: true,
+    },
+];
+
 const inAppPurchasesSeed = [
     // Spin Packs
     {
@@ -39,6 +70,20 @@ export async function seedDatabase(firestore: Firestore) {
   try {
     const batch = writeBatch(firestore);
 
+    // Seed Rewards
+    const rewardsCollection = collection(firestore, 'rewards');
+    console.log('Seeding rewards...');
+    for (const reward of rewardsSeed) {
+        const { imageUrl, imageHint } = getImage(reward.id);
+        const rewardRef = doc(rewardsCollection, reward.id);
+        batch.set(rewardRef, {
+            ...reward,
+            imageUrl,
+            imageHint,
+        });
+    }
+    console.log('Rewards added to batch.');
+
     // Seed In-App Purchases (Spins only)
     const iapCollection = collection(firestore, 'inAppPurchases');
     console.log('Seeding spin packs...');
@@ -56,8 +101,8 @@ export async function seedDatabase(firestore: Firestore) {
     console.log('Spin packs added to batch.');
 
     await batch.commit();
-    console.log('Database seeded successfully with spin packs!');
-    return { success: true, message: 'Database seeded successfully with spin packs!' };
+    console.log('Database seeded successfully with rewards and spin packs!');
+    return { success: true, message: 'Database seeded successfully with rewards and spin packs!' };
   } catch (error) {
     console.error('Error seeding database:', error);
     return { success: false, message: 'Error seeding database.' };

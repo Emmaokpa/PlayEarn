@@ -81,7 +81,6 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
               fill
               className="rounded-t-lg object-cover"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              data-ai-hint={pack.imageHint}
               referrerPolicy="no-referrer"
               unoptimized
             />
