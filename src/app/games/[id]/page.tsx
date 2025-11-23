@@ -1,6 +1,6 @@
-
 'use client';
 
+import { use } from 'react';
 import { notFound } from 'next/navigation';
 import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,8 @@ import { useGameById } from '@/lib/games';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
-export default function GamePage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { firestore, user } = useFirebase();
   const { toast } = useToast();
 
