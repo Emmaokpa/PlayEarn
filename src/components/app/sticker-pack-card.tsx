@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { StickerPack } from '@/lib/data';

@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Reward } from '@/lib/data';
@@ -114,3 +115,5 @@ export default function RewardCard({
     </Card>
   );
 }
+
+    

@@ -50,6 +50,7 @@ export default function AffiliateOfferCard({
       // 2. Mark the offer as completed for this user
       const completedOfferRef = doc(firestore, `users/${user.uid}/affiliateSignups`, offer.id);
       batch.set(completedOfferRef, {
+          id: completedOfferRef.id,
           userId: user.uid,
           offerId: offer.id,
           completedAt: serverTimestamp(),
