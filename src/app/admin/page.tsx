@@ -86,7 +86,6 @@ function AddGameForm({
   async function onSubmit(values: z.infer<typeof gameFormSchema>) {
     if (!firestore) return;
     try {
-      // Use the provided image URL and generate a hint from the name
       const imageHint = values.name.split(' ').slice(0, 2).join(' ');
       
       if (selectedGame) {
@@ -96,7 +95,12 @@ function AddGameForm({
         toast({ title: 'Game Updated!', description: `"${values.name}" has been updated.` });
       } else {
         // Add new game
-        await addDoc(collection(firestore, 'games'), { ...values, imageHint });
+        const newGameRef = doc(collection(firestore, 'games'));
+        await setDoc(newGameRef, { 
+            ...values,
+            id: newGameRef.id,
+            imageHint 
+        });
         toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
       }
       form.reset({ name: '', category: '', iframeUrl: '', imageUrl: '' });
@@ -260,7 +264,12 @@ function AddAffiliateOfferForm() {
   async function onSubmit(values: z.infer<typeof affiliateFormSchema>) {
     if (!firestore) return;
     try {
-      await addDoc(collection(firestore, 'affiliateOffers'), { ...values, imageUrl: `https://picsum.photos/seed/${values.title}/400/300` });
+      const newOfferRef = doc(collection(firestore, 'affiliateOffers'));
+      await setDoc(newOfferRef, { 
+        ...values,
+        id: newOfferRef.id,
+        imageUrl: `https://picsum.photos/seed/${values.title}/400/300` 
+      });
       toast({ title: 'Affiliate Offer Added!', description: `The "${values.title}" offer is now live.` });
       form.reset();
     } catch (error) {
@@ -277,7 +286,7 @@ function AddAffiliateOfferForm() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                 control={form.control}
                 name="title"
@@ -363,7 +372,12 @@ function AddStickerPackForm() {
   async function onSubmit(values: z.infer<typeof stickerPackFormSchema>) {
     if (!firestore) return;
     try {
-      await addDoc(collection(firestore, 'stickerPacks'), { ...values, imageUrl: `https://picsum.photos/seed/${values.name}/300/300` });
+      const newPackRef = doc(collection(firestore, 'stickerPacks'));
+      await setDoc(newPackRef, { 
+        ...values,
+        id: newPackRef.id,
+        imageUrl: `https://picsum.photos/seed/${values.name}/300/300` 
+      });
       toast({ title: 'Sticker Pack Added!', description: `The "${values.name}" pack is now available in the store.` });
       form.reset();
     } catch (error) {
@@ -380,7 +394,7 @@ function AddStickerPackForm() {
         </CardHeader>
         <CardContent>
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                 control={form.control}
                 name="name"
@@ -518,5 +532,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
