@@ -31,6 +31,7 @@ export interface UserProfile {
   isVip: boolean;
   isAdmin: boolean;
   registrationDate: string;
+  gamePlaysToday?: number;
 }
 
 export interface AdView {
@@ -92,4 +93,3 @@ export interface SpinHistory {
     spinType: 'free' | 'ad' | 'purchased';
     timestamp: Timestamp;
 }
-    

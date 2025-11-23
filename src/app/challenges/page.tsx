@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { Coins, Crown, Gamepad2, Play, Trophy, Video } from 'lucide-react';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import type { UserProfile, AdView, SpinHistory } from '@/lib/data';
-import { doc, collection, query, where, writeBatch, increment, getDoc } from 'firebase/firestore';
+import { doc, collection, query, where, writeBatch, increment, getDoc, setDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +36,7 @@ interface Challenge {
 interface ChallengeData {
   adViewsToday: AdView[];
   spinsToday: SpinHistory[];
+  gamePlaysToday: number;
 }
 
 const allChallenges: Challenge[] = [
@@ -62,6 +63,17 @@ const allChallenges: Challenge[] = [
     getProgress: (data) => data.adViewsToday.length,
   },
   {
+    id: 'play-10-games',
+    title: 'Game Starter',
+    description: 'Play 10 game sessions.',
+    reward: 100,
+    icon: Gamepad2,
+    difficulty: 'Easy',
+    isVipOnly: false,
+    target: 10,
+    getProgress: (data) => data.gamePlaysToday,
+  },
+  {
     id: 'spin-5-times',
     title: 'Spin Master',
     description: 'Spin the wheel 5 times.',
@@ -71,6 +83,17 @@ const allChallenges: Challenge[] = [
     isVipOnly: false,
     target: 5,
     getProgress: (data) => data.spinsToday.length,
+  },
+  {
+    id: 'play-30-games',
+    title: 'Game Enthusiast',
+    description: 'Play 30 game sessions.',
+    reward: 200,
+    icon: Gamepad2,
+    difficulty: 'Moderate',
+    isVipOnly: false,
+    target: 30,
+    getProgress: (data) => data.gamePlaysToday,
   },
   {
     id: 'win-1000-coins',
@@ -84,6 +107,17 @@ const allChallenges: Challenge[] = [
     getProgress: (data) => data.spinsToday
         .filter(s => s.prizeWon.type === 'coins')
         .reduce((sum, s) => sum + (s.prizeWon.value as number), 0),
+  },
+  {
+    id: 'play-50-games',
+    title: 'Game Legend',
+    description: 'Play 50 game sessions in one day.',
+    reward: 300,
+    icon: Trophy,
+    difficulty: 'Hard',
+    isVipOnly: false,
+    target: 50,
+    getProgress: (data) => data.gamePlaysToday,
   },
   {
     id: 'vip-spin-10-times',
@@ -203,13 +237,21 @@ export default function ChallengesPage() {
         const docSnap = await getDoc(dailyChallengeStateRef);
         if (docSnap.exists()) {
             setClaimedChallenges(docSnap.data().claimed ?? []);
+            // Also check if we need to reset gamePlaysToday
+            if (docSnap.data().lastResetDate !== todayStr && user) {
+                await setDoc(doc(firestore, `users/${user.uid}`), { gamePlaysToday: 0 }, { merge: true });
+            }
+
         } else {
-            // New day, reset the claimed challenges
+            // New day, reset the claimed challenges and gameplays
             setClaimedChallenges([]);
+            if (user) {
+                await setDoc(doc(firestore, `users/${user.uid}`), { gamePlaysToday: 0 }, { merge: true });
+            }
         }
     };
     fetchClaimedStatus();
-  }, [dailyChallengeStateRef]);
+  }, [dailyChallengeStateRef, todayStr, user, firestore]);
 
 
   const adViewsQuery = useMemoFirebase(() => 
@@ -230,6 +272,7 @@ export default function ChallengesPage() {
   const challengeData: ChallengeData = {
     adViewsToday: adViewsToday ?? [],
     spinsToday: spinsToday ?? [],
+    gamePlaysToday: userProfile?.gamePlaysToday ?? 0,
   };
 
   const handleClaimReward = async (challengeId: string, reward: number) => {
@@ -239,14 +282,12 @@ export default function ChallengesPage() {
     try {
         const batch = writeBatch(firestore);
         
-        // Update user's coin balance
         const userRef = doc(firestore, 'users', user.uid);
         batch.update(userRef, { coins: increment(reward) });
         
-        // Update the claimed challenges for the day
         if (!dailyChallengeStateRef) throw new Error("Daily challenge state ref not found");
         const newClaimed = [...claimedChallenges, challengeId];
-        batch.set(dailyChallengeStateRef, { claimed: newClaimed }, { merge: true });
+        batch.set(dailyChallengeStateRef, { claimed: newClaimed, lastResetDate: todayStr }, { merge: true });
 
         await batch.commit();
 
@@ -275,7 +316,7 @@ export default function ChallengesPage() {
                 <Skeleton className="h-5 w-80 mx-auto mt-2" />
             </div>
              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-60" />)}
+                {Array.from({ length: 9 }).map((_, i) => <Skeleton key={i} className="h-60" />)}
             </div>
         </AppLayout>
     )
