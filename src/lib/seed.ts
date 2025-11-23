@@ -210,5 +210,3 @@ export async function seedDatabase() {
     return { success: false, message: 'Error seeding database.' };
   }
 }
-
-    
