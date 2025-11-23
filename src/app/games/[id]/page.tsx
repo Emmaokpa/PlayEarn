@@ -1,3 +1,4 @@
+
 'use client';
 
 import { use } from 'react';
@@ -72,7 +73,7 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
   return (
     <AppLayout title={game.name}>
       <div className="space-y-4">
-        <Card className="aspect-[16/9] w-full overflow-hidden bg-black">
+        <Card className="aspect-video w-full overflow-hidden bg-black shadow-lg">
           <iframe
             src={game.iframeUrl}
             title={game.name}
@@ -85,7 +86,7 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
           <p className="text-sm text-muted-foreground">
             Now playing: {game.name}
           </p>
-          <Button onClick={handleSaveProgress}>
+          <Button onClick={handleSaveProgress} size="lg">
             <Save className="mr-2 h-4 w-4" />
             Save Progress
           </Button>

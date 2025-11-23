@@ -1,3 +1,4 @@
+
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
@@ -17,7 +18,7 @@ export default function GamesPage() {
           Choose from our collection of exciting games.
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 10 }).map((_, i) => (
               <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
