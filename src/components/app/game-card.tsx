@@ -15,7 +15,7 @@ export default function GameCard({ game }: { game: Game }) {
               alt={game.name}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-110"
-              sizes="(max-width: 768px) 50vw, 25vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               data-ai-hint={game.imageHint}
               referrerPolicy="no-referrer"
               unoptimized
