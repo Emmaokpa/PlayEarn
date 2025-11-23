@@ -29,7 +29,7 @@ import { doc, addDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert, Trash2, Edit, List } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +46,9 @@ const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
   category: z.string().min(2, { message: 'Category is required.' }),
   iframeUrl: z.string().url({ message: 'Please enter a valid iframe URL.' }),
+  imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }),
 });
+
 
 const affiliateFormSchema = z.object({
   title: z.string().min(2, { message: 'Offer title is required.' }),
@@ -73,31 +75,31 @@ function AddGameForm({
   const { toast } = useToast();
   const form = useForm<z.infer<typeof gameFormSchema>>({
     resolver: zodResolver(gameFormSchema),
-    defaultValues: selectedGame || { name: '', category: '', iframeUrl: '' },
+    defaultValues: { name: '', category: '', iframeUrl: '', imageUrl: '' },
   });
 
   // Watch for changes in selectedGame to update the form
-  useState(() => {
-    form.reset(selectedGame || { name: '', category: '', iframeUrl: '' });
-  });
+  useEffect(() => {
+    form.reset(selectedGame || { name: '', category: '', iframeUrl: '', imageUrl: '' });
+  }, [selectedGame, form]);
 
   async function onSubmit(values: z.infer<typeof gameFormSchema>) {
     if (!firestore) return;
     try {
-      const imageUrl = `https://picsum.photos/seed/${values.name}/400/300`;
+      // Use the provided image URL and generate a hint from the name
       const imageHint = values.name.split(' ').slice(0, 2).join(' ');
       
       if (selectedGame) {
         // Update existing game
         const gameRef = doc(firestore, 'games', selectedGame.id);
-        await setDoc(gameRef, { ...values, imageUrl, imageHint }, { merge: true });
+        await setDoc(gameRef, { ...values, imageHint }, { merge: true });
         toast({ title: 'Game Updated!', description: `"${values.name}" has been updated.` });
       } else {
         // Add new game
-        await addDoc(collection(firestore, 'games'), { ...values, imageUrl, imageHint });
+        await addDoc(collection(firestore, 'games'), { ...values, imageHint });
         toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
       }
-      form.reset({ name: '', category: '', iframeUrl: '' });
+      form.reset({ name: '', category: '', iframeUrl: '', imageUrl: '' });
       onClearSelection();
     } catch (error) {
       console.error('Error saving game: ', error);
@@ -115,7 +117,7 @@ function AddGameForm({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -155,7 +157,20 @@ function AddGameForm({
                 </FormItem>
               )}
             />
-             <div className="flex gap-2">
+             <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://imgur.com/your-image.png" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <div className="flex gap-2 pt-4">
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? 'Saving...' : (selectedGame ? 'Update Game' : 'Add Game')}
                 </Button>
@@ -427,6 +442,7 @@ function AdminDashboard() {
 
     const handleEditGame = (game: Game) => {
         setSelectedGame(game);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDeleteGame = async (gameId: string) => {
@@ -502,3 +518,5 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
+
+    
