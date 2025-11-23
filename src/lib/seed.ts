@@ -1,14 +1,21 @@
 
-'use server';
-
 import { initializeFirebase } from '@/firebase';
-import { collection, writeBatch, doc } from 'firebase/firestore';
+import { collection, writeBatch, doc, Firestore } from 'firebase/firestore';
 import { PlaceHolderImages } from './placeholder-images';
 
 function getImage(id: string) {
   const image = PlaceHolderImages.find((img) => img.id === id);
   return image || { imageUrl: 'https://picsum.photos/seed/placeholder/400/300', imageHint: 'placeholder' };
 }
+
+const gamesSeed = [
+    { id: 'game-1', name: 'Asphalt Racing', category: 'Racing', iframeUrl: 'https://www.playgama.com/embed/asphalt-racing-car-game' },
+    { id: 'game-2', name: 'Jungle Adventure', category: 'Adventure', iframeUrl: 'https://www.playgama.com/embed/jungle-adventure' },
+    { id: 'game-3', name: 'Space Shooter', category: 'Arcade', iframeUrl: 'https://www.playgama.com/embed/space-shooter' },
+    { id: 'game-4', name: 'Puzzle Blocks', category: 'Puzzle', iframeUrl: 'https://www.playgama.com/embed/puzzle-blocks' },
+    { id: 'game-5', name: 'Fantasy RPG', category: 'RPG', iframeUrl: 'https://www.playgama.com/embed/tiny-rpg' },
+    { id: 'game-6', name: 'Chess Classic', category: 'Strategy', iframeUrl: 'https://www.playgama.com/embed/chess-classic' },
+]
 
 const rewardsSeed = [
   {
@@ -140,11 +147,22 @@ const inAppPurchasesSeed = [
 ];
 
 
-export async function seedDatabase() {
-  const { firestore } = initializeFirebase();
-
+export async function seedDatabase(firestore: Firestore) {
   try {
     const batch = writeBatch(firestore);
+
+    // Seed Games
+    const gamesCollection = collection(firestore, 'games');
+    console.log('Seeding games...');
+    for (const game of gamesSeed) {
+        const { imageUrl, imageHint } = getImage(game.id);
+        const gameRef = doc(gamesCollection, game.id);
+        batch.set(gameRef, {
+            ...game,
+            imageUrl,
+            imageHint,
+        });
+    }
 
     // Seed Rewards
     const rewardsCollection = collection(firestore, 'rewards');

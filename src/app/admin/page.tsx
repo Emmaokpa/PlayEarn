@@ -459,8 +459,12 @@ function AdminDashboard() {
     };
 
     const onSeedDatabase = async () => {
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Firestore not available.' });
+            return;
+        }
         setIsSeeding(true);
-        const result = await seedDatabase();
+        const result = await seedDatabase(firestore);
         if (result.success) {
             toast({ title: 'Database Seeded', description: 'Your database has been populated with initial data.' });
         } else {
