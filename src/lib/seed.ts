@@ -7,77 +7,7 @@ function getImage(id: string) {
   return image || { imageUrl: 'https://picsum.photos/seed/placeholder/400/300', imageHint: 'placeholder' };
 }
 
-const stickerPacksSeed = [
-    {
-        id: 'sticker-1',
-        name: 'Cool Cats',
-        description: 'A collection of cute and funny cat stickers.',
-        price: 500,
-    },
-    {
-        id: 'sticker-2',
-        name: 'Meme Lords',
-        description: 'The most popular memes, now as stickers.',
-        price: 750,
-    },
-    {
-        id: 'sticker-3',
-        name: 'Pixel Power',
-        description: '8-bit video game characters and items.',
-        price: 400,
-    },
-    {
-        id: 'sticker-4',
-        name: 'Galaxy Explorers',
-        description: 'Explore the cosmos with these space stickers.',
-        price: 600,
-    },
-];
-
-const affiliateOffersSeed = [
-  {
-    id: 'bc-game',
-    title: 'BC.Game Sign Up',
-    description: 'Sign up for BC.Game, a leading crypto casino, and get a huge bonus!',
-    link: 'https://bc.game/i-heydz3ou-n/',
-    rewardCoins: 5000,
-  }
-];
-
 const inAppPurchasesSeed = [
-    // Coin Packs
-    {
-        id: 'coin-pack-1',
-        type: 'coins',
-        name: 'Starter Pack',
-        description: 'A little boost to get you started.',
-        amount: 10000,
-        price: 1.99,
-    },
-    {
-        id: 'coin-pack-2',
-        type: 'coins',
-        name: 'Player Pack',
-        description: 'A solid amount of coins for the average player.',
-        amount: 55000,
-        price: 9.99,
-    },
-    {
-        id: 'coin-pack-3',
-        type: 'coins',
-        name: 'Pro Gamer Pack',
-        description: 'For the serious player who wants it all.',
-        amount: 120000,
-        price: 19.99,
-    },
-     {
-        id: 'coin-pack-4',
-        type: 'coins',
-        name: 'Whale Pack',
-        description: 'The ultimate pack for the ultimate player.',
-        amount: 1000000,
-        price: 99.99,
-    },
     // Spin Packs
     {
         id: 'spin-pack-1',
@@ -110,51 +40,25 @@ export async function seedDatabase(firestore: Firestore) {
   try {
     const batch = writeBatch(firestore);
 
-     // Seed Sticker Packs
-    const stickerPacksCollection = collection(firestore, 'stickerPacks');
-    console.log('Seeding sticker packs...');
-    for (const pack of stickerPacksSeed) {
-      const { imageUrl, imageHint } = getImage(pack.id);
-      const packRef = doc(stickerPacksCollection, pack.id);
-      batch.set(packRef, {
-        ...pack,
-        imageUrl,
-        imageHint,
-      });
-    }
-    console.log('Sticker packs added to batch.');
-    
-    // Seed In-App Purchases (Coins & Spins)
+    // Seed In-App Purchases (Spins only)
     const iapCollection = collection(firestore, 'inAppPurchases');
-    console.log('Seeding in-app purchases...');
+    console.log('Seeding spin packs...');
     for (const pack of inAppPurchasesSeed) {
-        const { imageUrl, imageHint } = getImage('reward-3'); // Using a generic image for now
-        const packRef = doc(iapCollection, pack.id);
-        batch.set(packRef, {
-            ...pack,
-            imageUrl,
-            imageHint,
-        });
+        if (pack.type === 'spins') {
+            const { imageUrl, imageHint } = getImage('reward-3'); // Using a generic image for now
+            const packRef = doc(iapCollection, pack.id);
+            batch.set(packRef, {
+                ...pack,
+                imageUrl,
+                imageHint,
+            });
+        }
     }
-    console.log('In-app purchases added to batch.');
-
-    // Seed Affiliate Offers
-    const affiliateOffersCollection = collection(firestore, 'affiliateOffers');
-    console.log('Seeding affiliate offers...');
-    for (const offer of affiliateOffersSeed) {
-        const { imageUrl, imageHint } = getImage('reward-1');
-        const offerRef = doc(affiliateOffersCollection, offer.id);
-        batch.set(offerRef, {
-            ...offer,
-            imageUrl,
-            imageHint,
-        });
-    }
-    console.log('Affiliate offers added to batch.');
+    console.log('Spin packs added to batch.');
 
     await batch.commit();
-    console.log('Database seeded successfully!');
-    return { success: true, message: 'Database seeded successfully!' };
+    console.log('Database seeded successfully with spin packs!');
+    return { success: true, message: 'Database seeded successfully with spin packs!' };
   } catch (error) {
     console.error('Error seeding database:', error);
     return { success: false, message: 'Error seeding database.' };
