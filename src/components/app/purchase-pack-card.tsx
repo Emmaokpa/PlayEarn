@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Coins, Gem, Star } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { doc, increment, writeBatch } from 'firebase/firestore';
+import Image from 'next/image';
 
 interface PurchasePackCardProps {
   pack: InAppPurchase;
@@ -71,23 +72,42 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:border-primary">
-      <CardHeader>
-        <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-lg">
-                <Gem className="h-8 w-8 text-primary" />
+       {pack.imageUrl ? (
+         <CardHeader className="p-0">
+           <div className="relative aspect-video">
+             <Image
+              src={pack.imageUrl}
+              alt={pack.name}
+              fill
+              className="rounded-t-lg object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              data-ai-hint={pack.imageHint}
+              referrerPolicy="no-referrer"
+              unoptimized
+            />
+           </div>
+         </CardHeader>
+      ) : (
+        <CardHeader>
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                    <Gem className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                    <CardTitle className="text-2xl">{pack.name}</CardTitle>
+                    <CardDescription className="mt-1">{pack.description}</CardDescription>
+                </div>
             </div>
-            <div>
-                <CardTitle className="text-2xl">{pack.name}</CardTitle>
-                <CardDescription className="mt-1">{pack.description}</CardDescription>
-            </div>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col items-center justify-center text-center">
+        </CardHeader>
+      )}
+
+      <CardContent className="flex-1 flex flex-col items-center justify-center text-center p-6">
          <div className="flex items-baseline gap-2 text-5xl font-bold text-primary">
             {getIcon()}
             <span>{pack.amount.toLocaleString()}</span>
          </div>
          <p className="text-muted-foreground">{pack.type}</p>
+         {!pack.imageUrl && <CardDescription className="mt-2">{pack.description}</CardDescription>}
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
         <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold">
@@ -97,5 +117,3 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     </Card>
   );
 }
-
-    
