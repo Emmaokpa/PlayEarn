@@ -1,7 +1,6 @@
 import type { Game } from '@/lib/data';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function GameCard({ game }: { game: Game }) {
@@ -20,13 +19,6 @@ export default function GameCard({ game }: { game: Game }) {
               referrerPolicy="no-referrer"
               unoptimized
             />
-             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          </div>
-          <div className="p-3 absolute bottom-0 left-0 right-0">
-            <h3 className="font-bold truncate text-white">{game.name}</h3>
-            <Badge variant="secondary" className="mt-1 text-xs">
-              {game.category}
-            </Badge>
           </div>
         </CardContent>
       </Card>
