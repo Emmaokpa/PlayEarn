@@ -34,7 +34,7 @@ const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
   category: z.string().min(2, { message: 'Category is required.' }),
   iframeUrl: z.string().url({ message: 'Please enter a valid iframe URL.' }),
-  imageHint: z.string().min(2, { message: 'Image hint is required.' }),
+  imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }),
 });
 
 const affiliateFormSchema = z.object({
@@ -57,13 +57,13 @@ function AddGameForm() {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof gameFormSchema>>({
     resolver: zodResolver(gameFormSchema),
-    defaultValues: { name: '', category: '', iframeUrl: '', imageHint: '' },
+    defaultValues: { name: '', category: '', iframeUrl: '', imageUrl: '' },
   });
 
   async function onSubmit(values: z.infer<typeof gameFormSchema>) {
     if (!firestore) return;
     try {
-      await addDoc(collection(firestore, 'games'), { ...values, imageUrl: `https://picsum.photos/seed/${values.name}/400/533` });
+      await addDoc(collection(firestore, 'games'), { ...values, imageHint: '' });
       toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
       form.reset();
     } catch (error) {
@@ -122,14 +122,13 @@ function AddGameForm() {
             />
             <FormField
               control={form.control}
-              name="imageHint"
+              name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image AI Hint</FormLabel>
+                  <FormLabel>Image URL</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. racing car" {...field} />
+                    <Input placeholder="https://example.com/game-image.png" {...field} />
                   </FormControl>
-                  <FormDescription>Used for AI image generation.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -224,18 +223,18 @@ function AddAffiliateOfferForm() {
                 )}
                 />
                 <FormField
-                control={form.control}
-                name="imageHint"
-                render={({ field }) => (
+                  control={form.control}
+                  name="imageHint"
+                  render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Image AI Hint</FormLabel>
-                    <FormControl>
+                      <FormLabel>Image AI Hint</FormLabel>
+                      <FormControl>
                         <Input placeholder="e.g. casino chips" {...field} />
-                    </FormControl>
-                    <FormDescription>Used for AI image generation.</FormDescription>
-                    <FormMessage />
+                      </FormControl>
+                      <FormDescription>Used for AI image generation.</FormDescription>
+                      <FormMessage />
                     </FormItem>
-                )}
+                  )}
                 />
                 <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Offer...' : 'Add Offer'} </Button>
             </form>
@@ -383,5 +382,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
