@@ -46,7 +46,6 @@ const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
   category: z.string().min(2, { message: 'Category is required.' }),
   iframeUrl: z.string().url({ message: 'Please enter a valid iframe URL.' }),
-  imageUrl: z.string().url({ message: 'Please enter a valid URL.' }).or(z.literal('')).optional(),
 });
 
 const affiliateFormSchema = z.object({
@@ -74,18 +73,18 @@ function AddGameForm({
   const { toast } = useToast();
   const form = useForm<z.infer<typeof gameFormSchema>>({
     resolver: zodResolver(gameFormSchema),
-    defaultValues: selectedGame || { name: '', category: '', iframeUrl: '', imageUrl: '' },
+    defaultValues: selectedGame || { name: '', category: '', iframeUrl: '' },
   });
 
   // Watch for changes in selectedGame to update the form
   useState(() => {
-    form.reset(selectedGame || { name: '', category: '', iframeUrl: '', imageUrl: '' });
+    form.reset(selectedGame || { name: '', category: '', iframeUrl: '' });
   });
 
   async function onSubmit(values: z.infer<typeof gameFormSchema>) {
     if (!firestore) return;
     try {
-      const imageUrl = values.imageUrl || `https://picsum.photos/seed/${values.name}/400/300`;
+      const imageUrl = `https://picsum.photos/seed/${values.name}/400/300`;
       const imageHint = values.name.split(' ').slice(0, 2).join(' ');
       
       if (selectedGame) {
@@ -98,7 +97,7 @@ function AddGameForm({
         await addDoc(collection(firestore, 'games'), { ...values, imageUrl, imageHint });
         toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
       }
-      form.reset({ name: '', category: '', iframeUrl: '', imageUrl: '' });
+      form.reset({ name: '', category: '', iframeUrl: '' });
       onClearSelection();
     } catch (error) {
       console.error('Error saving game: ', error);
@@ -152,22 +151,6 @@ function AddGameForm({
                   <FormControl>
                     <Input placeholder="https://example.com/game-embed" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/game-image.png" {...field} />
-                  </FormControl>
-                   <FormDescription>
-                    If left blank, a placeholder image will be generated.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -519,5 +502,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
