@@ -25,7 +25,7 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
   return (
     <div>
       <CldUploadWidget
-        uploadPreset="[PASTE_YOUR_PRESET_NAME_HERE]"
+        uploadPreset="qa4yjgs4"
         onSuccess={handleSuccess}
       >
         {({ open }) => {
