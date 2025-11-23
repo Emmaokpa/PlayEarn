@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -79,13 +80,6 @@ export default function DashboardPage() {
                   referrerPolicy="no-referrer"
                   unoptimized
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-4 text-white md:p-6">
-                  <Badge variant="secondary" className="mb-2">
-                    {game.category}
-                  </Badge>
-                  <h3 className="text-2xl font-bold md:text-3xl">{game.name}</h3>
-                </div>
               </div>
             </CarouselItem>
           ))}
