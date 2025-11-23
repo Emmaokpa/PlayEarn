@@ -24,7 +24,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import type { Game, UserProfile } from '@/lib/data';
+import type { Game, UserProfile, Reward } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert, Trash2, Edit, List } from 'lucide-react';
@@ -42,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import ImageUpload from '@/components/app/ImageUpload';
+import { Switch } from '@/components/ui/switch';
 
 
 const gameFormSchema = z.object({
@@ -51,12 +52,19 @@ const gameFormSchema = z.object({
   imageUrl: z.string().url({ message: 'An image URL is required.' }).min(1, { message: 'Please upload an image.' }),
 });
 
+const rewardFormSchema = z.object({
+    name: z.string().min(2, { message: 'Reward name is required.' }),
+    description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
+    coins: z.coerce.number().min(1, { message: 'Cost must be at least 1 coin.' }),
+    isVipOnly: z.boolean().default(false),
+    imageUrl: z.string().url({ message: 'An image URL is required.' }).min(1, { message: 'Please upload an image.' }),
+});
 
 const affiliateFormSchema = z.object({
   title: z.string().min(2, { message: 'Offer title is required.' }),
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   link: z.string().url({ message: 'Please enter a valid affiliate URL.' }),
-  imageHint: z.string().min(2, { message: 'Image hint is required.' }),
+  imageUrl: z.string().url({ message: 'An image URL is required.' }).min(1, { message: 'Please upload an image.' }),
   rewardCoins: z.coerce.number().min(1, { message: 'Reward must be at least 1 coin.' }),
 });
 
@@ -64,6 +72,7 @@ const stickerPackFormSchema = z.object({
   name: z.string().min(2, { message: 'Pack name is required.' }),
   description: z.string().min(2, { message: 'Description is required.' }),
   price: z.coerce.number().min(0, { message: 'Price cannot be negative.' }),
+  imageUrl: z.string().url({ message: 'An image URL is required.' }).min(1, { message: 'Please upload an image.' }),
 });
 
 function AddGameForm({
@@ -90,12 +99,10 @@ function AddGameForm({
       const imageHint = values.name.split(' ').slice(0, 2).join(' ');
       
       if (selectedGame) {
-        // Update existing game
         const gameRef = doc(firestore, 'games', selectedGame.id);
         await setDoc(gameRef, { ...values, imageHint }, { merge: true });
         toast({ title: 'Game Updated!', description: `"${values.name}" has been updated.` });
       } else {
-        // Add new game
         const newGameRef = doc(collection(firestore, 'games'));
         await setDoc(newGameRef, { 
             ...values,
@@ -116,9 +123,6 @@ function AddGameForm({
     <Card>
       <CardHeader>
         <CardTitle>{selectedGame ? 'Edit Game' : 'Add New Game'}</CardTitle>
-        <CardDescription>
-          {selectedGame ? `Editing "${selectedGame.name}"` : 'Fill out the form to add a new game to the app.'}
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -174,9 +178,6 @@ function AddGameForm({
                       initialImageUrl={field.value}
                     />
                   </FormControl>
-                   <FormDescription>
-                    Upload an image for the game cover.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -202,16 +203,8 @@ function GameList({ onEdit, onDelete, games, isLoading }: { onEdit: (game: Game)
   if (isLoading) {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>Manage Games</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-            </CardContent>
+            <CardHeader><CardTitle>Manage Games</CardTitle></CardHeader>
+            <CardContent><div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div></CardContent>
         </Card>
     )
   }
@@ -220,7 +213,6 @@ function GameList({ onEdit, onDelete, games, isLoading }: { onEdit: (game: Game)
     <Card>
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><List /> Manage Games</CardTitle>
-            <CardDescription>View, edit, or delete existing games.</CardDescription>
         </CardHeader>
         <CardContent>
             <ul className="space-y-2">
@@ -228,21 +220,13 @@ function GameList({ onEdit, onDelete, games, isLoading }: { onEdit: (game: Game)
                     <li key={game.id} className="flex items-center justify-between rounded-md border p-3">
                         <span className="font-semibold truncate pr-2">{game.name}</span>
                         <div className="flex gap-2">
-                            <Button variant="outline" size="icon" onClick={() => onEdit(game)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
+                            <Button variant="outline" size="icon" onClick={() => onEdit(game)}><Edit className="h-4 w-4" /></Button>
                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
+                                <AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                                 <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                    This will permanently delete the game "{game.name}". This action cannot be undone.
-                                    </AlertDialogDescription>
+                                    <AlertDialogDescription>This will permanently delete "{game.name}".</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -253,11 +237,102 @@ function GameList({ onEdit, onDelete, games, isLoading }: { onEdit: (game: Game)
                         </div>
                     </li>
                 ))}
-                {games?.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No games found. Add one using the form.</p>}
+                {games?.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No games found.</p>}
             </ul>
         </CardContent>
     </Card>
   )
+}
+
+function AddRewardForm({ selectedReward, onClearSelection }: { selectedReward: Reward | null; onClearSelection: () => void; }) {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof rewardFormSchema>>({
+        resolver: zodResolver(rewardFormSchema),
+        defaultValues: { name: '', description: '', coins: 100, isVipOnly: false, imageUrl: '' },
+    });
+
+    useEffect(() => {
+        form.reset(selectedReward || { name: '', description: '', coins: 100, isVipOnly: false, imageUrl: '' });
+    }, [selectedReward, form]);
+
+    async function onSubmit(values: z.infer<typeof rewardFormSchema>) {
+        if (!firestore) return;
+        try {
+            const imageHint = values.name.split(' ').slice(0, 2).join(' ');
+            if (selectedReward) {
+                const rewardRef = doc(firestore, 'rewards', selectedReward.id);
+                await setDoc(rewardRef, { ...values, imageHint }, { merge: true });
+                toast({ title: 'Reward Updated!', description: `"${values.name}" has been updated.` });
+            } else {
+                const newRewardRef = doc(collection(firestore, 'rewards'));
+                await setDoc(newRewardRef, { ...values, id: newRewardRef.id, imageHint });
+                toast({ title: 'Reward Added!', description: `"${values.name}" is now available.` });
+            }
+            form.reset({ name: '', description: '', coins: 100, isVipOnly: false, imageUrl: '' });
+            onClearSelection();
+        } catch (error) {
+            console.error('Error saving reward: ', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not save the reward.' });
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>{selectedReward ? 'Edit Reward' : 'Add New Reward'}</CardTitle></CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Reward Name</FormLabel><FormControl><Input placeholder="e.g. $5 Gift Card" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="A gift card for your favorite store." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="coins" render={({ field }) => ( <FormItem><FormLabel>Cost (Coins)</FormLabel><FormControl><Input type="number" placeholder="5000" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Reward Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="isVipOnly" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>VIP Only</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem> )} />
+                        <div className="flex gap-2 pt-4">
+                            <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Saving...' : (selectedReward ? 'Update Reward' : 'Add Reward')}</Button>
+                            {selectedReward && (<Button variant="outline" onClick={onClearSelection}>Cancel Edit</Button>)}
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
+}
+
+function RewardList({ onEdit, onDelete, rewards, isLoading }: { onEdit: (reward: Reward) => void; onDelete: (rewardId: string) => void; rewards: Reward[] | null, isLoading: boolean }) {
+    if (isLoading) {
+      return (
+          <Card>
+              <CardHeader><CardTitle>Manage Rewards</CardTitle></CardHeader>
+              <CardContent><div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div></CardContent>
+          </Card>
+      )
+    }
+    return (
+        <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><List /> Manage Rewards</CardTitle></CardHeader>
+            <CardContent>
+                <ul className="space-y-2">
+                    {rewards?.map((reward) => (
+                        <li key={reward.id} className="flex items-center justify-between rounded-md border p-3">
+                            <span className="font-semibold truncate pr-2">{reward.name}</span>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="icon" onClick={() => onEdit(reward)}><Edit className="h-4 w-4" /></Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{reward.name}".</AlertDialogDescription></AlertDialogHeader>
+                                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(reward.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        </li>
+                    ))}
+                    {rewards?.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No rewards found.</p>}
+                </ul>
+            </CardContent>
+        </Card>
+    )
 }
 
 function AddAffiliateOfferForm() {
@@ -265,17 +340,18 @@ function AddAffiliateOfferForm() {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof affiliateFormSchema>>({
     resolver: zodResolver(affiliateFormSchema),
-    defaultValues: { title: '', description: '', link: '', imageHint: '', rewardCoins: 1000 },
+    defaultValues: { title: '', description: '', link: '', imageUrl: '', rewardCoins: 1000 },
   });
 
   async function onSubmit(values: z.infer<typeof affiliateFormSchema>) {
     if (!firestore) return;
     try {
+      const imageHint = values.title.split(' ').slice(0, 2).join(' ');
       const newOfferRef = doc(collection(firestore, 'affiliateOffers'));
       await setDoc(newOfferRef, { 
         ...values,
         id: newOfferRef.id,
-        imageUrl: `https://picsum.photos/seed/${values.title}/400/300` 
+        imageHint
       });
       toast({ title: 'Affiliate Offer Added!', description: `The "${values.title}" offer is now live.` });
       form.reset();
@@ -289,77 +365,15 @@ function AddAffiliateOfferForm() {
        <Card>
           <CardHeader>
             <CardTitle>Add New Affiliate Offer</CardTitle>
-            <CardDescription>Fill out the form to add a new offer for users.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Offer Title</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g. BC.Game Sign Up" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                        <Input placeholder="Sign up for this awesome service and get..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="link"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Affiliate Link</FormLabel>
-                    <FormControl>
-                        <Input placeholder="https://example.com/aff_id=123" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="rewardCoins"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Coin Reward</FormLabel>
-                    <FormControl>
-                        <Input type="number" placeholder="1000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                  control={form.control}
-                  name="imageHint"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image AI Hint</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. casino chips" {...field} />
-                      </FormControl>
-                      <FormDescription>Used for AI image generation.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="title" render={({ field }) => ( <FormItem><FormLabel>Offer Title</FormLabel><FormControl><Input placeholder="e.g. BC.Game Sign Up" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="Sign up for this awesome service and get..." {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="link" render={({ field }) => ( <FormItem><FormLabel>Affiliate Link</FormLabel><FormControl><Input placeholder="https://example.com/aff_id=123" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="rewardCoins" render={({ field }) => ( <FormItem><FormLabel>Coin Reward</FormLabel><FormControl><Input type="number" placeholder="1000" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Offer Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )}/>
                 <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Offer...' : 'Add Offer'} </Button>
             </form>
             </Form>
@@ -373,17 +387,18 @@ function AddStickerPackForm() {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof stickerPackFormSchema>>({
     resolver: zodResolver(stickerPackFormSchema),
-    defaultValues: { name: '', description: '', price: 100 },
+    defaultValues: { name: '', description: '', price: 100, imageUrl: '' },
   });
 
   async function onSubmit(values: z.infer<typeof stickerPackFormSchema>) {
     if (!firestore) return;
     try {
+      const imageHint = values.name.split(' ').slice(0, 2).join(' ');
       const newPackRef = doc(collection(firestore, 'stickerPacks'));
       await setDoc(newPackRef, { 
         ...values,
         id: newPackRef.id,
-        imageUrl: `https://picsum.photos/seed/${values.name}/300/300` 
+        imageHint
       });
       toast({ title: 'Sticker Pack Added!', description: `The "${values.name}" pack is now available in the store.` });
       form.reset();
@@ -395,52 +410,14 @@ function AddStickerPackForm() {
 
   return (
     <Card>
-        <CardHeader>
-        <CardTitle>Add New Sticker Pack</CardTitle>
-        <CardDescription>Add a new sticker pack to the store.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>Add New Sticker Pack</CardTitle></CardHeader>
         <CardContent>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Pack Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g. Cool Cats" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                        <Input placeholder="A collection of cool cat stickers." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Price (in Coins)</FormLabel>
-                    <FormControl>
-                        <Input type="number" placeholder="500" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
+                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Pack Name</FormLabel><FormControl><Input placeholder="e.g. Cool Cats" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="A collection of cool cat stickers." {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="price" render={({ field }) => ( <FormItem><FormLabel>Price (in Coins)</FormLabel><FormControl><Input type="number" placeholder="500" {...field} /></FormControl><FormMessage /></FormItem> )}/>
+                <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Pack Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )}/>
                 <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Pack...' : 'Add Sticker Pack'} </Button>
             </form>
             </Form>
@@ -454,39 +431,44 @@ function AdminDashboard() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+    const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
-    const gamesQuery = useMemoFirebase(
-        () => (firestore ? collection(firestore, 'games') : null),
-        [firestore]
-    );
+    const gamesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'games') : null), [firestore]);
     const { data: games, isLoading: gamesLoading } = useCollection<Game>(gamesQuery);
 
-    const handleEditGame = (game: Game) => {
-        setSelectedGame(game);
+    const rewardsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'rewards') : null), [firestore]);
+    const { data: rewards, isLoading: rewardsLoading } = useCollection<Reward>(rewardsQuery);
+
+    const handleEdit = <T extends { id: string }>(item: T, setSelected: (item: T) => void) => {
+        setSelected(item);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDeleteGame = async (gameId: string) => {
+    const handleDelete = async (collectionName: string, docId: string, docName: string) => {
         if (!firestore) return;
-        const gameRef = doc(firestore, 'games', gameId);
+        const docRef = doc(firestore, collectionName, docId);
         try {
-            await deleteDoc(gameRef);
-            toast({ title: 'Game Deleted', description: 'The game has been removed.' });
+            await deleteDoc(docRef);
+            toast({ title: `${docName} Deleted`, description: `The ${docName.toLowerCase()} has been removed.` });
         } catch (error) {
-            console.error('Error deleting game:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the game.' });
+            console.error(`Error deleting ${docName}:`, error);
+            toast({ variant: 'destructive', title: 'Error', description: `Could not delete the ${docName.toLowerCase()}.` });
         }
     };
     
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
-        <div className="space-y-8">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:items-start">
+        <div className="space-y-8 lg:col-span-1">
             <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
-            <AddStickerPackForm />
+            <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
         </div>
-        <div className="space-y-8">
-            <GameList games={games} isLoading={gamesLoading} onEdit={handleEditGame} onDelete={handleDeleteGame} />
-            <AddAffiliateOfferForm />
+        <div className="space-y-8 lg:col-span-1">
+            <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
+            <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
+        </div>
+        <div className="space-y-8 lg:col-span-1">
+             <AddAffiliateOfferForm />
+             <AddStickerPackForm />
         </div>
     </div>
   );
@@ -524,9 +506,6 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <p>You do not have permission to view this page.</p>
-            <p className="text-sm text-muted-foreground">
-              Please contact an administrator if you believe this is a mistake.
-            </p>
           </CardContent>
         </Card>
       </AppLayout>
@@ -539,3 +518,5 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
+
+    
