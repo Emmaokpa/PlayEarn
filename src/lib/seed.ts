@@ -6,103 +6,93 @@ function getImage(id: string) {
   return image || { imageUrl: 'https://picsum.photos/seed/placeholder/400/300', imageHint: 'placeholder' };
 }
 
-const rewardsSeed = [
+const affiliateOffersSeed = [
     {
-        id: 'reward-1',
-        name: '$5 Gift Card',
-        description: 'A gift card for your favorite online store.',
-        coins: 5000,
-        isVipOnly: false,
+        id: 'offer-1',
+        title: 'BC.Game Sign Up',
+        description: 'Sign up for this awesome service and get a huge bonus.',
+        link: 'https://bc.game',
+        rewardCoins: 10000,
     },
     {
-        id: 'reward-2',
-        name: '$10 Gift Card',
-        description: 'Double the value, double the fun!',
-        coins: 10000,
-        isVipOnly: false,
+        id: 'offer-2',
+        title: 'Stake.com Registration',
+        description: 'Join the leading crypto casino and claim your welcome offer.',
+        link: 'https://stake.com',
+        rewardCoins: 12000,
     },
     {
-        id: 'reward-3',
-        name: 'Exclusive In-Game Item Pack',
-        description: 'Get a treasure chest of exclusive items for your favorite game.',
-        coins: 7500,
-        isVipOnly: true,
-    },
-    {
-        id: 'reward-4',
-        name: '$25 VIP Gift Card',
-        description: 'A special reward for our most loyal players.',
-        coins: 20000,
-        isVipOnly: true,
+        id: 'offer-3',
+        title: 'Complete a Survey',
+        description: 'Share your opinion and earn coins for your time.',
+        link: '#',
+        rewardCoins: 500,
     },
 ];
 
-const inAppPurchasesSeed = [
-    // Spin Packs
+const stickerPacksSeed = [
     {
-        id: 'spin-pack-1',
-        type: 'spins',
-        name: 'Spin Starter',
-        description: 'A few spins to try your luck.',
-        amount: 5,
-        price: 0.99,
+        id: 'sticker-1',
+        name: 'Cool Cats',
+        description: 'A pack of cool and funny cat stickers.',
+        price: 500,
     },
     {
-        id: 'spin-pack-2',
-        type: 'spins',
-        name: 'Spin Enthusiast',
-        description: 'Best value for more chances to win big.',
-        amount: 15,
-        price: 1.99,
+        id: 'sticker-2',
+        name: 'Meme Lords',
+        description: 'A collection of the most popular meme reactions.',
+        price: 750,
     },
     {
-        id: 'spin-pack-3',
-        type: 'spins',
-        name: 'Spin Maniac',
-        description: 'For the truly dedicated spinner.',
-        amount: 50,
-        price: 4.99,
+        id: 'sticker-3',
+        name: 'Pixel Power',
+        description: 'Retro pixel art characters and items.',
+        price: 600,
+    },
+    {
+        id: 'sticker-4',
+        name: 'Galaxy Explorers',
+        description: 'Vibrant space and galaxy-themed stickers.',
+        price: 800,
     },
 ];
-
 
 export async function seedDatabase(firestore: Firestore) {
   try {
     const batch = writeBatch(firestore);
 
-    // Seed Rewards
-    const rewardsCollection = collection(firestore, 'rewards');
-    console.log('Seeding rewards...');
-    for (const reward of rewardsSeed) {
-        const { imageUrl, imageHint } = getImage(reward.id);
-        const rewardRef = doc(rewardsCollection, reward.id);
-        batch.set(rewardRef, {
-            ...reward,
+    // Seed Affiliate Offers
+    const offersCollection = collection(firestore, 'affiliateOffers');
+    console.log('Seeding affiliate offers...');
+    for (const offer of affiliateOffersSeed) {
+        const { imageUrl, imageHint } = getImage(offer.id);
+        const offerRef = doc(offersCollection, offer.id);
+        batch.set(offerRef, {
+            ...offer,
             imageUrl,
             imageHint,
         });
     }
-    console.log('Rewards added to batch.');
+    console.log('Affiliate offers added to batch.');
 
-    // Seed In-App Purchases (Spins only)
-    const iapCollection = collection(firestore, 'inAppPurchases');
-    console.log('Seeding spin packs...');
-    const { imageUrl, imageHint } = getImage('spin-pack-image');
-    for (const pack of inAppPurchasesSeed) {
-        if (pack.type === 'spins') {
-            const packRef = doc(iapCollection, pack.id);
-            batch.set(packRef, {
-                ...pack,
-                imageUrl,
-                imageHint,
-            });
-        }
+    // Seed Sticker Packs
+    const stickersCollection = collection(firestore, 'stickerPacks');
+    console.log('Seeding sticker packs...');
+    for (const pack of stickerPacksSeed) {
+        const { imageUrl, imageHint } = getImage(pack.id);
+        const packRef = doc(stickersCollection, pack.id);
+        batch.set(packRef, {
+            ...pack,
+            imageUrl,
+            imageHint,
+        });
     }
-    console.log('Spin packs added to batch.');
+    console.log('Sticker packs added to batch.');
+
 
     await batch.commit();
-    console.log('Database seeded successfully with rewards and spin packs!');
-    return { success: true, message: 'Database seeded successfully with rewards and spin packs!' };
+    console.log('Database seeded successfully!');
+    return { success: true, message: 'Database seeded successfully!' };
   } catch (error) {
     console.error('Error seeding database:', error);
     return { success: false, message: 'Error seeding database.' };

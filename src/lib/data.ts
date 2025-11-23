@@ -57,8 +57,8 @@ export interface InAppPurchase {
     description: string;
     amount: number;
     price: number;
-    imageUrl?: string;
-    imageHint?: string;
+    imageUrl: string;
+    imageHint: string;
 }
 
 export interface AffiliateOffer {

@@ -24,7 +24,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import type { Game, UserProfile, Reward } from '@/lib/data';
+import type { Game, UserProfile, Reward, InAppPurchase } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert, Trash2, Edit, List, Database } from 'lucide-react';
@@ -44,6 +44,7 @@ import {
 import ImageUpload from '@/components/app/ImageUpload';
 import { Switch } from '@/components/ui/switch';
 import { seedDatabase } from '@/lib/seed';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const gameFormSchema = z.object({
@@ -59,6 +60,15 @@ const rewardFormSchema = z.object({
     coins: z.coerce.number().min(1, { message: 'Cost must be at least 1 coin.' }),
     isVipOnly: z.boolean().default(false),
     imageUrl: z.string().url({ message: 'An image URL is required.' }).min(1, { message: 'Please upload an image.' }),
+});
+
+const iapFormSchema = z.object({
+  name: z.string().min(2, { message: "Pack name is required." }),
+  description: z.string().min(2, { message: "Description is required." }),
+  type: z.enum(["coins", "spins"], { required_error: "You must select a pack type." }),
+  amount: z.coerce.number().min(1, { message: "Amount must be at least 1." }),
+  price: z.coerce.number().min(0.01, { message: "Price must be greater than 0." }),
+  imageUrl: z.string().url({ message: "An image URL is required." }).min(1, { message: "Please upload an image." }),
 });
 
 const affiliateFormSchema = z.object({
@@ -336,103 +346,116 @@ function RewardList({ onEdit, onDelete, rewards, isLoading }: { onEdit: (reward:
     )
 }
 
-function AddAffiliateOfferForm() {
-  const { firestore } = useFirebase();
-  const { toast } = useToast();
-  const form = useForm<z.infer<typeof affiliateFormSchema>>({
-    resolver: zodResolver(affiliateFormSchema),
-    defaultValues: { title: '', description: '', link: '', imageUrl: '', rewardCoins: 1000 },
-  });
+function AddIAPForm({ selectedPack, onClearSelection }: { selectedPack: InAppPurchase | null; onClearSelection: () => void; }) {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof iapFormSchema>>({
+        resolver: zodResolver(iapFormSchema),
+        defaultValues: { name: '', description: '', amount: 1, price: 0.99, imageUrl: '' },
+    });
 
-  async function onSubmit(values: z.infer<typeof affiliateFormSchema>) {
-    if (!firestore) return;
-    try {
-      const imageHint = values.title.split(' ').slice(0, 2).join(' ');
-      const newOfferRef = doc(collection(firestore, 'affiliateOffers'));
-      await setDoc(newOfferRef, { 
-        ...values,
-        id: newOfferRef.id,
-        imageHint
-      });
-      toast({ title: 'Affiliate Offer Added!', description: `The "${values.title}" offer is now live.` });
-      form.reset();
-    } catch (error) {
-      console.error('Error adding offer: ', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not add the offer.' });
+    useEffect(() => {
+        form.reset(selectedPack || { name: '', description: '', amount: 1, price: 0.99, imageUrl: '' });
+    }, [selectedPack, form]);
+
+    async function onSubmit(values: z.infer<typeof iapFormSchema>) {
+        if (!firestore) return;
+        try {
+            const imageHint = values.name.split(' ').slice(0, 2).join(' ');
+            if (selectedPack) {
+                const packRef = doc(firestore, 'inAppPurchases', selectedPack.id);
+                await setDoc(packRef, { ...values, imageHint }, { merge: true });
+                toast({ title: 'Pack Updated!', description: `"${values.name}" has been updated.` });
+            } else {
+                const newPackRef = doc(collection(firestore, 'inAppPurchases'));
+                await setDoc(newPackRef, { ...values, id: newPackRef.id, imageHint });
+                toast({ title: 'Pack Added!', description: `"${values.name}" is now available in the store.` });
+            }
+            form.reset({ name: '', description: '', amount: 1, price: 0.99, imageUrl: '' });
+            onClearSelection();
+        } catch (error) {
+            console.error('Error saving pack: ', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not save the pack.' });
+        }
     }
-  }
 
     return (
-       <Card>
-          <CardHeader>
-            <CardTitle>Add New Affiliate Offer</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="title" render={({ field }) => ( <FormItem><FormLabel>Offer Title</FormLabel><FormControl><Input placeholder="e.g. BC.Game Sign Up" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="Sign up for this awesome service and get..." {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={form.control} name="link" render={({ field }) => ( <FormItem><FormLabel>Affiliate Link</FormLabel><FormControl><Input placeholder="https://example.com/aff_id=123" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={form.control} name="rewardCoins" render={({ field }) => ( <FormItem><FormLabel>Coin Reward</FormLabel><FormControl><Input type="number" placeholder="1000" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Offer Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )}/>
-                <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Offer...' : 'Add Offer'} </Button>
-            </form>
-            </Form>
-        </CardContent>
-    </Card>
-  );
+        <Card>
+            <CardHeader><CardTitle>{selectedPack ? 'Edit Purchase Pack' : 'Add New Purchase Pack'}</CardTitle></CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Pack Name</FormLabel><FormControl><Input placeholder="e.g. Starter Coin Pack" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="Get a head start with this pack." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="type" render={({ field }) => (
+                             <FormItem>
+                                <FormLabel>Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a pack type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="coins">Coins</SelectItem>
+                                        <SelectItem value="spins">Spins</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="amount" render={({ field }) => ( <FormItem><FormLabel>Amount</FormLabel><FormControl><Input type="number" placeholder="100" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="price" render={({ field }) => ( <FormItem><FormLabel>Price (USD)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0.99" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Pack Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )} />
+                        <div className="flex gap-2 pt-4">
+                            <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Saving...' : (selectedPack ? 'Update Pack' : 'Add Pack')}</Button>
+                            {selectedPack && (<Button variant="outline" onClick={onClearSelection}>Cancel Edit</Button>)}
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
 }
 
-function AddStickerPackForm() {
-  const { firestore } = useFirebase();
-  const { toast } = useToast();
-  const form = useForm<z.infer<typeof stickerPackFormSchema>>({
-    resolver: zodResolver(stickerPackFormSchema),
-    defaultValues: { name: '', description: '', price: 100, imageUrl: '' },
-  });
-
-  async function onSubmit(values: z.infer<typeof stickerPackFormSchema>) {
-    if (!firestore) return;
-    try {
-      const imageHint = values.name.split(' ').slice(0, 2).join(' ');
-      const newPackRef = doc(collection(firestore, 'stickerPacks'));
-      await setDoc(newPackRef, { 
-        ...values,
-        id: newPackRef.id,
-        imageHint
-      });
-      toast({ title: 'Sticker Pack Added!', description: `The "${values.name}" pack is now available in the store.` });
-      form.reset();
-    } catch (error) {
-      console.error('Error adding sticker pack: ', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not add the sticker pack.' });
+function IAPList({ onEdit, onDelete, packs, isLoading }: { onEdit: (pack: InAppPurchase) => void; onDelete: (packId: string) => void; packs: InAppPurchase[] | null, isLoading: boolean }) {
+    if (isLoading) {
+      return (
+          <Card>
+              <CardHeader><CardTitle>Manage Purchases</CardTitle></CardHeader>
+              <CardContent><div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div></CardContent>
+          </Card>
+      )
     }
-  }
-
-  return (
-    <Card>
-        <CardHeader><CardTitle>Add New Sticker Pack</CardTitle></CardHeader>
-        <CardContent>
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Pack Name</FormLabel><FormControl><Input placeholder="e.g. Cool Cats" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="A collection of cool cat stickers." {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={form.control} name="price" render={({ field }) => ( <FormItem><FormLabel>Price (in Coins)</FormLabel><FormControl><Input type="number" placeholder="500" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Pack Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )}/>
-                <Button type="submit" disabled={form.formState.isSubmitting}> {form.formState.isSubmitting ? 'Adding Pack...' : 'Add Sticker Pack'} </Button>
-            </form>
-            </Form>
-        </CardContent>
-    </Card>
-  );
+    return (
+        <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><List /> Manage In-App Purchases</CardTitle></CardHeader>
+            <CardContent>
+                <ul className="space-y-2">
+                    {packs?.map((pack) => (
+                        <li key={pack.id} className="flex items-center justify-between rounded-md border p-3">
+                            <span className="font-semibold truncate pr-2">{pack.name} ({pack.type})</span>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="icon" onClick={() => onEdit(pack)}><Edit className="h-4 w-4" /></Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{pack.name}".</AlertDialogDescription></AlertDialogHeader>
+                                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(pack.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        </li>
+                    ))}
+                    {packs?.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No purchase packs found.</p>}
+                </ul>
+            </CardContent>
+        </Card>
+    )
 }
-
 
 function AdminDashboard() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [selectedGame, setSelectedGame] = useState<Game | null>(null);
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+    const [selectedIap, setSelectedIap] = useState<InAppPurchase | null>(null);
     const [isSeeding, setIsSeeding] = useState(false);
 
     const gamesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'games') : null), [firestore]);
@@ -440,6 +463,9 @@ function AdminDashboard() {
 
     const rewardsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'rewards') : null), [firestore]);
     const { data: rewards, isLoading: rewardsLoading } = useCollection<Reward>(rewardsQuery);
+    
+    const iapsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'inAppPurchases') : null), [firestore]);
+    const { data: iaps, isLoading: iapsLoading } = useCollection<InAppPurchase>(iapsQuery);
 
     const handleEdit = <T extends { id: string }>(item: T, setSelected: (item: T) => void) => {
         setSelected(item);
@@ -486,20 +512,18 @@ function AdminDashboard() {
                         {isSeeding ? 'Seeding...' : 'Seed Database'}
                     </Button>
                     <p className="text-sm text-muted-foreground mt-2">
-                        Populate your database with initial games, rewards, etc.
+                        Populate your database with initial sticker packs & affiliate offers.
                     </p>
                 </CardContent>
             </Card>
             <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
             <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
+            <AddIAPForm selectedPack={selectedIap} onClearSelection={() => setSelectedIap(null)} />
         </div>
-        <div className="space-y-8 lg:col-span-1">
+        <div className="space-y-8 lg:col-span-2">
             <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
             <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
-        </div>
-        <div className="space-y-8 lg:col-span-1">
-             <AddAffiliateOfferForm />
-             <AddStickerPackForm />
+            <IAPList packs={iaps} isLoading={iapsLoading} onEdit={(pack) => handleEdit(pack, setSelectedIap)} onDelete={(id) => handleDelete('inAppPurchases', id, 'In-App Purchase')} />
         </div>
     </div>
   );
@@ -549,5 +573,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
