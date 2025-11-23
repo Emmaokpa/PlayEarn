@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -68,7 +67,7 @@ export default function DashboardPage() {
         <CarouselContent>
           {games.map((game, index) => (
             <CarouselItem key={game.id}>
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl">
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl md:aspect-video">
                 <Image
                   src={game.imageUrl}
                   alt={game.name}
@@ -81,11 +80,11 @@ export default function DashboardPage() {
                   unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-4 text-white">
-                  <h3 className="text-2xl font-bold">{game.name}</h3>
-                  <Badge variant="secondary" className="mt-2">
+                <div className="absolute bottom-0 left-0 p-4 text-white md:p-6">
+                  <Badge variant="secondary" className="mb-2">
                     {game.category}
                   </Badge>
+                  <h3 className="text-2xl font-bold md:text-3xl">{game.name}</h3>
                 </div>
               </div>
             </CarouselItem>
