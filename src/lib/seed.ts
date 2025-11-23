@@ -1,5 +1,4 @@
 
-import { initializeFirebase } from '@/firebase';
 import { collection, writeBatch, doc, Firestore } from 'firebase/firestore';
 import { PlaceHolderImages } from './placeholder-images';
 
@@ -163,6 +162,7 @@ export async function seedDatabase(firestore: Firestore) {
             imageHint,
         });
     }
+    console.log('Games added to batch.');
 
     // Seed Rewards
     const rewardsCollection = collection(firestore, 'rewards');
@@ -210,7 +210,7 @@ export async function seedDatabase(firestore: Firestore) {
     const affiliateOffersCollection = collection(firestore, 'affiliateOffers');
     console.log('Seeding affiliate offers...');
     for (const offer of affiliateOffersSeed) {
-        const { imageUrl, imageHint } = getImage(offer.id) || getImage('reward-1');
+        const { imageUrl, imageHint } = getImage('reward-1');
         const offerRef = doc(affiliateOffersCollection, offer.id);
         batch.set(offerRef, {
             ...offer,
