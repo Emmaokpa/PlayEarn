@@ -2,7 +2,7 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, usePathname } from 'next/navigation';
 import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Award, Smartphone, Loader2 } from 'lucide-react';
@@ -13,8 +13,9 @@ import { useGameById } from '@/lib/games';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from '@/lib/utils';
 
-const PLAY_TIME_SECONDS = 240; // 4 minutes
+const PLAY_TIME_SECONDS = 300; // 5 minutes
 const REWARD_AMOUNT = 50;
 
 export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
@@ -98,39 +99,39 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <AppLayout title={game.name}>
-      <div className="space-y-4">
-        <Alert className="md:hidden bg-secondary border-secondary-foreground/20">
-          <Smartphone className="h-4 w-4" />
-          <AlertTitle>For a better experience</AlertTitle>
-          <AlertDescription>
-            Rotate your device to landscape mode.
-          </AlertDescription>
-        </Alert>
+        <div className="h-full w-full flex flex-col space-y-4">
+            <Alert className="md:hidden bg-secondary border-secondary-foreground/20 landscape:hidden">
+            <Smartphone className="h-4 w-4" />
+            <AlertTitle>For a better experience</AlertTitle>
+            <AlertDescription>
+                Rotate your device to landscape mode.
+            </AlertDescription>
+            </Alert>
 
-        <Card className="aspect-video w-full overflow-hidden bg-black shadow-lg">
-          <iframe
-            src={game.iframeUrl}
-            title={game.name}
-            className="h-full w-full border-0"
-            allow="fullscreen; gamepad; autoplay;"
-            sandbox="allow-scripts allow-same-origin"
-          />
-        </Card>
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Now playing: {game.name}
-          </p>
-          <Button onClick={handleClaimReward} size="lg" disabled={!canClaim || isClaiming}>
-            {isClaiming ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Award className="mr-2 h-4 w-4" />
-            )}
-            {canClaim
-              ? `Claim ${REWARD_AMOUNT} Coins`
-              : `Claim in ${minutes}:${seconds.toString().padStart(2, '0')}`}
-          </Button>
-        </div>
+            <Card className="w-full overflow-hidden bg-black shadow-lg flex-1 min-h-0 landscape:fixed landscape:inset-0 landscape:z-[100] landscape:rounded-none landscape:border-0">
+            <iframe
+                src={game.iframeUrl}
+                title={game.name}
+                className="h-full w-full border-0"
+                allow="fullscreen; gamepad; autoplay;"
+                sandbox="allow-scripts allow-same-origin"
+            />
+            </Card>
+            <div className="flex items-center justify-between landscape:hidden">
+            <p className="text-sm text-muted-foreground">
+                Now playing: {game.name}
+            </p>
+            <Button onClick={handleClaimReward} size="lg" disabled={!canClaim || isClaiming}>
+                {isClaiming ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                <Award className="mr-2 h-4 w-4" />
+                )}
+                {canClaim
+                ? `Claim ${REWARD_AMOUNT} Coins`
+                : `Claim in ${minutes}:${seconds.toString().padStart(2, '0')}`}
+            </Button>
+            </div>
       </div>
     </AppLayout>
   );

@@ -9,8 +9,10 @@ import { useUser, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import { cn } from '@/lib/utils';
+
 
 export default function AppLayout({
   children,
@@ -22,6 +24,9 @@ export default function AppLayout({
   const { user, isUserLoading } = useUser();
   const { firestore } = useFirebase();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isGamePage = pathname.includes('/games/');
 
   useEffect(() => {
     // If auth state is resolved and there's no user, redirect to login
@@ -66,8 +71,8 @@ export default function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6">
+    <div className={cn("flex min-h-screen w-full flex-col bg-background text-foreground", isGamePage && "landscape:overflow-hidden")}>
+      <header className={cn("sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6", isGamePage && "landscape:hidden")}>
         <h1 className="truncate pr-4 text-xl font-bold font-headline">
           {title}
         </h1>
@@ -88,8 +93,10 @@ export default function AppLayout({
           </Avatar>
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
-      <BottomNav />
+      <main className={cn("flex-1 overflow-y-auto p-4 sm:p-6", isGamePage && "flex flex-col")}>{children}</main>
+      <div className={cn(isGamePage && "landscape:hidden")}>
+         <BottomNav />
+      </div>
     </div>
   );
 }
