@@ -27,7 +27,7 @@ import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase'
 import type { Game, UserProfile, Reward } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert, Trash2, Edit, List } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List, Database } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, use } from 'react';
 import {
@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import ImageUpload from '@/components/app/ImageUpload';
 import { Switch } from '@/components/ui/switch';
+import { seedDatabase } from '@/lib/seed';
 
 
 const gameFormSchema = z.object({
@@ -432,6 +433,7 @@ function AdminDashboard() {
     const { toast } = useToast();
     const [selectedGame, setSelectedGame] = useState<Game | null>(null);
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+    const [isSeeding, setIsSeeding] = useState(false);
 
     const gamesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'games') : null), [firestore]);
     const { data: games, isLoading: gamesLoading } = useCollection<Game>(gamesQuery);
@@ -455,10 +457,35 @@ function AdminDashboard() {
             toast({ variant: 'destructive', title: 'Error', description: `Could not delete the ${docName.toLowerCase()}.` });
         }
     };
+
+    const onSeedDatabase = async () => {
+        setIsSeeding(true);
+        const result = await seedDatabase();
+        if (result.success) {
+            toast({ title: 'Database Seeded', description: 'Your database has been populated with initial data.' });
+        } else {
+            toast({ variant: 'destructive', title: 'Seeding Failed', description: result.message });
+        }
+        setIsSeeding(false);
+    }
     
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:items-start">
         <div className="space-y-8 lg:col-span-1">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Database Tools</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Button onClick={onSeedDatabase} disabled={isSeeding}>
+                        <Database className="mr-2 h-4 w-4" />
+                        {isSeeding ? 'Seeding...' : 'Seed Database'}
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-2">
+                        Populate your database with initial games, rewards, etc.
+                    </p>
+                </CardContent>
+            </Card>
             <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
             <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
         </div>

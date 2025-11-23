@@ -7,7 +7,7 @@ import { PlaceHolderImages } from './placeholder-images';
 
 function getImage(id: string) {
   const image = PlaceHolderImages.find((img) => img.id === id);
-  return image || { imageUrl: '', imageHint: 'placeholder' };
+  return image || { imageUrl: 'https://picsum.photos/seed/placeholder/400/300', imageHint: 'placeholder' };
 }
 
 const rewardsSeed = [
