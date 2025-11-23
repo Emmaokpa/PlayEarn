@@ -1,4 +1,3 @@
-
 import { collection, writeBatch, doc, Firestore } from 'firebase/firestore';
 import { PlaceHolderImages } from './placeholder-images';
 
@@ -43,9 +42,9 @@ export async function seedDatabase(firestore: Firestore) {
     // Seed In-App Purchases (Spins only)
     const iapCollection = collection(firestore, 'inAppPurchases');
     console.log('Seeding spin packs...');
+    const { imageUrl, imageHint } = getImage('spin-pack-image');
     for (const pack of inAppPurchasesSeed) {
         if (pack.type === 'spins') {
-            const { imageUrl, imageHint } = getImage('reward-3'); // Using a generic image for now
             const packRef = doc(iapCollection, pack.id);
             batch.set(packRef, {
                 ...pack,
