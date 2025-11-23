@@ -46,6 +46,7 @@ const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
   category: z.string().min(2, { message: 'Category is required.' }),
   iframeUrl: z.string().url({ message: 'Please enter a valid iframe URL.' }),
+  imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }),
 });
 
 
@@ -74,23 +75,22 @@ function AddGameForm({
   const { toast } = useToast();
   const form = useForm<z.infer<typeof gameFormSchema>>({
     resolver: zodResolver(gameFormSchema),
-    defaultValues: { name: '', category: '', iframeUrl: '' },
+    defaultValues: { name: '', category: '', iframeUrl: '', imageUrl: '' },
   });
 
   useEffect(() => {
-    form.reset(selectedGame || { name: '', category: '', iframeUrl: '' });
+    form.reset(selectedGame || { name: '', category: '', iframeUrl: '', imageUrl: '' });
   }, [selectedGame, form]);
 
   async function onSubmit(values: z.infer<typeof gameFormSchema>) {
     if (!firestore) return;
     try {
-      const imageHint = values.name.split(' ').slice(0, 2).join(' ');
-      const imageUrl = `https://picsum.photos/seed/${imageHint}/400/300`;
+       const imageHint = values.name.split(' ').slice(0, 2).join(' ');
 
       if (selectedGame) {
         // Update existing game
         const gameRef = doc(firestore, 'games', selectedGame.id);
-        await setDoc(gameRef, { ...values, imageUrl, imageHint }, { merge: true });
+        await setDoc(gameRef, { ...values, imageHint }, { merge: true });
         toast({ title: 'Game Updated!', description: `"${values.name}" has been updated.` });
       } else {
         // Add new game
@@ -98,12 +98,11 @@ function AddGameForm({
         await setDoc(newGameRef, { 
             ...values,
             id: newGameRef.id,
-            imageUrl,
-            imageHint 
+            imageHint, 
         });
         toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
       }
-      form.reset({ name: '', category: '', iframeUrl: ''});
+      form.reset({ name: '', category: '', iframeUrl: '', imageUrl: '' });
       onClearSelection();
     } catch (error) {
       console.error('Error saving game: ', error);
@@ -157,6 +156,22 @@ function AddGameForm({
                   <FormControl>
                     <Input placeholder="https://example.com/game-embed" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://i.imgur.com/image.png" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Right-click an image online and "Copy Image Address".
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -519,5 +534,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
