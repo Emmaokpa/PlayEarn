@@ -34,7 +34,7 @@ const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
   category: z.string().min(2, { message: 'Category is required.' }),
   iframeUrl: z.string().url({ message: 'Please enter a valid iframe URL.' }),
-  imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }),
+  imageUrl: z.string().url({ message: 'Please enter a valid URL.' }).or(z.literal('')).optional(),
 });
 
 const affiliateFormSchema = z.object({
@@ -63,7 +63,9 @@ function AddGameForm() {
   async function onSubmit(values: z.infer<typeof gameFormSchema>) {
     if (!firestore) return;
     try {
-      await addDoc(collection(firestore, 'games'), { ...values, imageHint: '' });
+      const imageUrl = values.imageUrl || `https://picsum.photos/seed/${values.name}/400/300`;
+      const imageHint = values.name.split(' ').slice(0, 2).join(' ');
+      await addDoc(collection(firestore, 'games'), { ...values, imageUrl, imageHint });
       toast({ title: 'Game Added!', description: `"${values.name}" is now available to play.` });
       form.reset();
     } catch (error) {
@@ -125,10 +127,13 @@ function AddGameForm() {
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
+                  <FormLabel>Image URL (Optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="https://example.com/game-image.png" {...field} />
                   </FormControl>
+                   <FormDescription>
+                    If left blank, a placeholder image will be generated.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
