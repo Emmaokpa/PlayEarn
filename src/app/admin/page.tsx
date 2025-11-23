@@ -41,12 +41,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import ImageUpload from '@/components/app/ImageUpload';
+
 
 const gameFormSchema = z.object({
   name: z.string().min(2, { message: 'Game name is required.' }),
   category: z.string().min(2, { message: 'Category is required.' }),
   iframeUrl: z.string().url({ message: 'Please enter a valid iframe URL.' }),
-  imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }),
+  imageUrl: z.string().url({ message: 'An image URL is required.' }).min(1, { message: 'Please upload an image.' }),
 });
 
 
@@ -165,12 +167,15 @@ function AddGameForm({
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
+                  <FormLabel>Game Image</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://i.imgur.com/your-image.png" {...field} />
+                    <ImageUpload 
+                      onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })}
+                      initialImageUrl={field.value}
+                    />
                   </FormControl>
                    <FormDescription>
-                    Use a direct link to the image (e.g., from Imgur, ending in .png or .jpg).
+                    Upload an image for the game cover.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -534,5 +539,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
