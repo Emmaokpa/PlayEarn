@@ -23,10 +23,10 @@ interface PrizeListDialogProps {
 }
 
 function getRarity(probability: number) {
-    if (probability < 0.5) return { label: 'Legendary', color: 'bg-yellow-500' };
-    if (probability < 5) return { label: 'Epic', color: 'bg-purple-600' };
-    if (probability < 15) return { label: 'Rare', color: 'bg-blue-600' };
-    return { label: 'Common', color: 'bg-gray-500' };
+    if (probability < 0.5) return { label: 'Legendary', color: 'bg-yellow-500 text-yellow-foreground', className: 'animate-pulse' };
+    if (probability < 5) return { label: 'Epic', color: 'bg-purple-600 text-purple-foreground' };
+    if (probability < 15) return { label: 'Rare', color: 'bg-blue-600 text-blue-foreground' };
+    return { label: 'Common', color: 'bg-gray-500 text-gray-foreground' };
 }
 
 function getPrizeDisplay(prize: SpinPrize) {
@@ -74,12 +74,12 @@ export default function PrizeListDialog({ open, onOpenChange, prizes }: PrizeLis
                     const rarity = getRarity(prize.probability);
                     const { icon, text } = getPrizeDisplay(prize);
                     return (
-                        <li key={prize.id} className="flex items-center justify-between rounded-lg bg-secondary p-3">
+                        <li key={prize.id} className={cn("flex items-center justify-between rounded-lg bg-secondary p-3", prize.text === 'JACKPOT' && "border-2 border-yellow-400/50")}>
                             <div className="flex items-center gap-3">
                                 {icon}
-                                <span className="font-semibold">{text}</span>
+                                <span className={cn("font-semibold", prize.text === 'JACKPOT' && 'text-yellow-400')}>{text}</span>
                             </div>
-                             <Badge className={cn("text-white", rarity.color)}>{rarity.label}</Badge>
+                             <Badge className={cn(rarity.color, rarity.className)}>{rarity.label}</Badge>
                         </li>
                     )
                 })}

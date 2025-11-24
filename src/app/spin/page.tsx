@@ -30,7 +30,7 @@ import { useWindowSize } from '@react-hook/window-size';
 
 const AD_SPIN_LIMIT = 3;
 
-// Define prizes directly in the component
+// Define prizes directly in the component, now with a proper Jackpot
 const prizes: SpinPrize[] = [
   { id: 'prize-50', text: '50', type: 'coins', value: 50, probability: 35 },
   { id: 'prize-100', text: '100', type: 'coins', value: 100, probability: 25 },
@@ -42,6 +42,7 @@ const prizes: SpinPrize[] = [
   { id: 'prize-gift-5', text: '$5 Card', type: 'gift_card', value: 5, probability: 0.4 },
   { id: 'prize-jackpot', text: 'JACKPOT', type: 'gift_card', value: 25, probability: 0.1 },
 ];
+
 
 // UserSpinData definition from your plan
 interface UserSpinData {
@@ -277,7 +278,7 @@ export default function SpinPage() {
     return (
         <div className="my-4 flex flex-col items-center justify-center space-y-2 rounded-lg bg-secondary p-8 text-secondary-foreground">
             {icon}
-            <p className={cn("text-4xl font-bold", result.type === 'gift_card' ? 'text-yellow-400' : 'text-primary')}>{title}</p>
+            <p className={cn("text-4xl font-bold", result.text === 'JACKPOT' ? 'text-yellow-400' : 'text-primary')}>{title}</p>
             <p className="text-lg">{description}</p>
         </div>
     )
