@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, collection, Timestamp, increment } from 'firebase/firestore';
 import type { UserProfile, SpinPrize } from '@/lib/data';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Gift, History, Loader2, Video, ShoppingCart, Star, Coins } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,9 @@ import WatchAdDialog from '@/components/app/watch-ad-dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import PrizeListDialog from '@/components/app/prize-list-dialog';
+import Confetti from 'react-confetti';
+import { useWindowSize } from '@react-hook/window-size';
+
 
 const AD_SPIN_LIMIT = 3;
 
@@ -58,6 +61,8 @@ export default function SpinPage() {
   const [result, setResult] = useState<SpinPrize | null>(null);
   const [isAdDialogOpen, setIsAdDialogOpen] = useState(false);
   const [isPrizeListOpen, setIsPrizeListOpen] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const { width, height } = useWindowSize();
 
   const userProfileRef = useMemoFirebase(() =>
     user ? doc(firestore, 'users', user.uid) : null,
@@ -80,6 +85,14 @@ export default function SpinPage() {
       lastResetDate: '',
     },
   });
+
+  useEffect(() => {
+    if (result) {
+        setShowConfetti(true);
+        const timer = setTimeout(() => setShowConfetti(false), 8000); // Confetti for 8 seconds
+        return () => clearTimeout(timer);
+    }
+  }, [result]);
 
   // Derived state for available spins
   const totalSpins = (spinData?.freeSpinsRemaining ?? 0) + (spinData?.purchasedSpinsRemaining ?? 0);
@@ -275,6 +288,7 @@ export default function SpinPage() {
 
   return (
     <AppLayout title="Spin to Win">
+      {showConfetti && <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />}
       <div className="flex flex-col items-center gap-6 text-center">
         <div>
           <h2 className="font-headline text-3xl font-bold">Daily Spin Wheel</h2>

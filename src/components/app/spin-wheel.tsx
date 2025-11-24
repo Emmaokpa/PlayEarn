@@ -117,13 +117,19 @@ const SpinWheel: React.FC<SpinWheelProps> = ({ prizes, prizeIndex, isSpinning })
               <stop offset="0%" stopColor="#FDE089" />
               <stop offset="100%" stopColor="#D4A43A" />
             </linearGradient>
+             {segmentColors.map((color, index) => (
+              <linearGradient key={index} id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{stopColor: color, stopOpacity: 1}} />
+                <stop offset="100%" style={{stopColor: segmentColors[(index + 1) % segmentColors.length], stopOpacity: 0.7}} />
+              </linearGradient>
+            ))}
           </defs>
           {prizes.map((prize, index) => {
             const startAngle = index * segmentAngle + gap;
             const endAngle = (index + 1) * segmentAngle - gap;
             
             const isJackpot = prize.text === 'JACKPOT';
-            const color = isJackpot ? 'url(#gold-gradient)' : segmentColors[index % segmentColors.length];
+            const color = isJackpot ? 'url(#gold-gradient)' : `url(#grad-${index % segmentColors.length})`;
 
             const textAngle = startAngle + segmentAngle / 2;
             const textPosition = polarToCartesian(center, center, radius - thickness / 2, textAngle);
