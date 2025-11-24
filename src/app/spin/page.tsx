@@ -357,8 +357,14 @@ export default function SpinPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             {renderPrizeContent()}
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={() => setResult(null)}>Awesome!</AlertDialogAction>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+                <Button asChild>
+                    <Link href="/store/buy-spins">
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        Buy More Spins for Bigger Prizes!
+                    </Link>
+                </Button>
+                <AlertDialogAction onClick={() => setResult(null)} variant="outline">Awesome!</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
