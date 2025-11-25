@@ -74,7 +74,7 @@ export default function RewardCard({
         batch.set(fulfillmentRef, {
             id: fulfillmentRef.id,
             userId: user.uid,
-            userEmail: user.email,
+            userEmail: user.email, // This was the missing field
             rewardId: reward.id,
             rewardDetails: { name: reward.name, coins: reward.coins },
             status: 'pending',
