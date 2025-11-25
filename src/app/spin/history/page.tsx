@@ -48,7 +48,7 @@ function PrizeDisplay({ prize }: { prize: SpinPrize }) {
   return (
     <div className="flex items-center gap-2">
       {icon}
-      <span className="font-semibold">{text}</span>
+      <span className={cn("font-semibold", prize.text === 'JACKPOT' && "text-yellow-400")}>{text}</span>
     </div>
   );
 }
@@ -139,4 +139,3 @@ export default function SpinHistoryPage() {
     </AppLayout>
   );
 }
-

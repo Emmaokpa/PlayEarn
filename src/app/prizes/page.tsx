@@ -4,14 +4,16 @@
 import AppLayout from '@/components/layout/app-layout';
 import type { UserPrize, SpinPrize } from '@/lib/data';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, orderBy, query, limit } from 'firebase/firestore';
+import { collection, orderBy, query, limit, doc, updateDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { Coins, Gift, Star, Ticket, Package } from 'lucide-react';
+import { Gift, Star, Ticket, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 
 function PrizeIcon({ prize, className }: { prize: SpinPrize, className?: string }) {
@@ -28,6 +30,8 @@ function PrizeIcon({ prize, className }: { prize: SpinPrize, className?: string 
 }
 
 function PrizeCard({ userPrize }: { userPrize: UserPrize }) {
+    const { firestore, user } = useFirebase();
+    const { toast } = useToast();
     
     const getFormattedDate = (timestamp: any) => {
         if (!timestamp) return 'Just now';
@@ -44,6 +48,22 @@ function PrizeCard({ userPrize }: { userPrize: UserPrize }) {
         : userPrize.prize.type === 'entry'
         ? `$${userPrize.prize.value} Draw Entry`
         : 'Prize';
+    
+    const handleClaim = async () => {
+        if (!firestore || !user || userPrize.status === 'claimed') return;
+
+        const prizeRef = doc(firestore, `users/${user.uid}/prizes`, userPrize.id);
+        try {
+            await updateDoc(prizeRef, { status: 'claimed' });
+            toast({
+                title: 'Prize Claimed!',
+                description: `Your "${prizeText}" has been marked as claimed. We will process it shortly.`,
+            });
+        } catch (error) {
+            console.error("Error claiming prize: ", error);
+            toast({ variant: 'destructive', title: 'Claim Failed', description: 'Could not claim your prize. Please try again.'});
+        }
+    }
     
     return (
         <Card className={cn("flex flex-col", userPrize.status === 'claimed' && 'opacity-60')}>
@@ -62,7 +82,7 @@ function PrizeCard({ userPrize }: { userPrize: UserPrize }) {
                  <Badge variant={userPrize.status === 'claimed' ? 'secondary' : 'default'} className="capitalize">
                     {userPrize.status}
                 </Badge>
-                <Button disabled={userPrize.status === 'claimed'}>
+                <Button onClick={handleClaim} disabled={userPrize.status === 'claimed'}>
                     {userPrize.status === 'claimed' ? 'Claimed' : 'Claim Now'}
                 </Button>
             </CardFooter>
@@ -127,5 +147,3 @@ export default function PrizesPage() {
     </AppLayout>
   );
 }
-
-    

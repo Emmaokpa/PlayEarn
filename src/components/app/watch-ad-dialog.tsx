@@ -13,15 +13,18 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Film, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function WatchAdDialog({
   open,
   onOpenChange,
   onAdComplete,
+  reward,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdComplete: () => void;
+  reward?: number;
 }) {
   const [countdown, setCountdown] = useState(15);
   const [isComplete, setIsComplete] = useState(false);
@@ -48,6 +51,8 @@ export default function WatchAdDialog({
     onAdComplete();
     onOpenChange(false);
   };
+  
+  const claimText = reward ? `Claim ${reward} Coins` : 'Claim Your Reward';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,12 +84,10 @@ export default function WatchAdDialog({
             disabled={!isComplete}
             variant={isComplete ? 'default' : 'secondary'}
           >
-            {isComplete ? 'Claim Your Spin!' : 'Claiming...'}
+            {isComplete ? claimText : 'Claiming...'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-    

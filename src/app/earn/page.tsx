@@ -1,3 +1,4 @@
+
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
@@ -14,7 +15,7 @@ import { useState, useEffect } from 'react';
 import WatchAdDialog from '@/components/app/watch-ad-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import type { UserProfile, AdView } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -74,7 +75,7 @@ export default function EarnPage() {
     }
 
     if (!userProfile.isVip && adViews.length > 0) {
-      const lastAdTime = adViews[0].timestamp.toDate();
+      const lastAdTime = adViews[0].timestamp; // Already a Date object
       const now = new Date();
       const diffMinutes = (now.getTime() - lastAdTime.getTime()) / (1000 * 60);
 
@@ -100,6 +101,40 @@ export default function EarnPage() {
     });
     setTimeout(() => setCopied(false), 2000);
   };
+  
+  const handleAdComplete = async () => {
+    if (!firestore || !user) return;
+    
+    const batch = writeBatch(firestore);
+
+    // 1. Give coins
+    const userRef = doc(firestore, 'users', user.uid);
+    batch.update(userRef, { coins: increment(AD_REWARD) });
+
+    // 2. Record the ad view
+    const adViewRef = doc(collection(firestore, `users/${user.uid}/adViews`));
+    batch.set(adViewRef, {
+        userId: user.uid,
+        adId: 'earn-page-ad',
+        timestamp: serverTimestamp(),
+    });
+    
+    try {
+        await batch.commit();
+        toast({
+            title: 'Reward Claimed!',
+            description: `You earned ${AD_REWARD} coins.`,
+        });
+    } catch (error) {
+        console.error("Error claiming ad reward:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Claim Failed',
+            description: 'Could not claim your reward. Please try again.',
+        });
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -202,6 +237,7 @@ export default function EarnPage() {
       <WatchAdDialog
         open={isAdDialogOpen}
         onOpenChange={setIsAdDialogOpen}
+        onAdComplete={handleAdComplete}
         reward={AD_REWARD}
       />
     </AppLayout>

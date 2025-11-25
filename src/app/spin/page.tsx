@@ -5,7 +5,7 @@ import AppLayout from '@/components/layout/app-layout';
 import SpinWheel from '@/components/app/spin-wheel';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, collection, Timestamp, increment, addDoc } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, collection, Timestamp, increment, addDoc, writeBatch } from 'firebase/firestore';
 import type { UserProfile, SpinPrize } from '@/lib/data';
 import { useState, useEffect } from 'react';
 import { Gift, History, Loader2, Video, ShoppingCart, Star, Coins } from 'lucide-react';
@@ -180,6 +180,7 @@ export default function SpinPage() {
           prizeWon: prize,
           spinType: usedSpinType,
           timestamp: serverTimestamp(),
+          id: spinHistoryRef.id
         });
         
         // Commit spin data changes
@@ -207,26 +208,25 @@ export default function SpinPage() {
   const handleAdComplete = async () => {
     if (!firestore || !user) return;
     
-    // Use a transaction to safely update the ad spin count
+    const batch = writeBatch(firestore);
+    
+    // Grant a spin
+    const spinDataRef = doc(firestore, `users/${user.uid}/spinData`, 'spin_status');
+    batch.set(spinDataRef, { 
+        purchasedSpinsRemaining: increment(1),
+        adSpinsUsedToday: increment(1),
+    }, { merge: true });
+
+    // Record the ad view for challenges
+    const adViewRef = doc(collection(firestore, `users/${user.uid}/adViews`));
+    batch.set(adViewRef, {
+      userId: user.uid,
+      adId: 'spin-for-prize',
+      timestamp: serverTimestamp(),
+    });
+
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const userSpinDocRef = doc(firestore, `users/${user.uid}/spinData`, 'spin_status');
-            const userSpinDoc = await transaction.get(userSpinDocRef);
-
-            if (userSpinDoc.exists() && (userSpinDoc.data().adSpinsUsedToday ?? 0) >= AD_SPIN_LIMIT) {
-                 toast({
-                    variant: "destructive",
-                    title: "Ad Limit Reached",
-                    description: "You have already watched all your available ads for today.",
-                });
-                return; // Stop the transaction
-            }
-
-            transaction.set(userSpinDocRef, { 
-                purchasedSpinsRemaining: increment(1), // Granting a "purchased" spin for simplicity
-                adSpinsUsedToday: increment(1)
-            }, { merge: true });
-        });
+        await batch.commit();
         toast({
             title: "Spin Awarded!",
             description: "You've earned an extra spin. Good luck!",
@@ -380,5 +380,3 @@ export default function SpinPage() {
     </AppLayout>
   );
 }
-
-    
