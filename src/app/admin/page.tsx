@@ -27,7 +27,7 @@ import { useFirebase, useDoc, useMemoFirebase, useCollection, errorEmitter, Fire
 import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission, RewardFulfillment } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink, PackageCheck } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink, PackageCheck, LayoutDashboard, FilePen, Cog } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, use } from 'react';
 import {
@@ -49,6 +49,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const gameFormSchema = z.object({
@@ -587,7 +588,7 @@ function AffiliateApprovalList() {
             batch.update(userRef, { coins: increment(submission.rewardAmount) });
             userUpdateData.approvedAt = serverTimestamp();
         }
-        batch.update(userSubmissionRef, userUpdateData);
+        batch.set(userSubmissionRef, userUpdateData, { merge: true });
         
         batch.commit()
             .then(() => {
@@ -816,37 +817,50 @@ function AdminDashboard() {
         setIsSeeding(false);
     }
     
-  return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:items-start">
-        <div className="space-y-8 lg:col-span-1">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Database Tools</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={onSeedDatabase} disabled={isSeeding}>
-                        <Database className="mr-2 h-4 w-4" />
-                        {isSeeding ? 'Seeding...' : 'Seed Database'}
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        Populate your database with initial affiliate offers.
-                    </p>
-                </CardContent>
-            </Card>
-            <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
-            <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
-            <AddIAPForm selectedPack={selectedIap} onClearSelection={() => setSelectedIap(null)} />
-            <AddAffiliateForm selectedOffer={selectedAffiliate} onClearSelection={() => setSelectedAffiliate(null)} />
+    return (
+    <Tabs defaultValue="dashboard" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</TabsTrigger>
+        <TabsTrigger value="content"><FilePen className="mr-2 h-4 w-4" />Content</TabsTrigger>
+        <TabsTrigger value="tools"><Cog className="mr-2 h-4 w-4" />Tools</TabsTrigger>
+      </TabsList>
+      <TabsContent value="dashboard" className="space-y-8 mt-6">
+        <FulfillmentQueue />
+        <AffiliateApprovalList />
+      </TabsContent>
+      <TabsContent value="content" className="space-y-8 mt-6">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+            <div className="space-y-8">
+                <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
+                <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
+                <AddIAPForm selectedPack={selectedIap} onClearSelection={() => setSelectedIap(null)} />
+                <AddAffiliateForm selectedOffer={selectedAffiliate} onClearSelection={() => setSelectedAffiliate(null)} />
+            </div>
+             <div className="space-y-8">
+                <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
+                <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
+                <IAPList packs={iaps} isLoading={iapsLoading} onEdit={(pack) => handleEdit(pack, setSelectedIap)} onDelete={(id) => handleDelete('inAppPurchases', id, 'In-App Purchase')} />
+                <AffiliateList offers={affiliates} isLoading={affiliatesLoading} onEdit={(offer) => handleEdit(offer, setSelectedAffiliate)} onDelete={(id) => handleDelete('affiliateOffers', id, 'Affiliate Offer')} />
+            </div>
         </div>
-        <div className="space-y-8 lg:col-span-2">
-            <FulfillmentQueue />
-            <AffiliateApprovalList />
-            <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
-            <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
-            <IAPList packs={iaps} isLoading={iapsLoading} onEdit={(pack) => handleEdit(pack, setSelectedIap)} onDelete={(id) => handleDelete('inAppPurchases', id, 'In-App Purchase')} />
-            <AffiliateList offers={affiliates} isLoading={affiliatesLoading} onEdit={(offer) => handleEdit(offer, setSelectedAffiliate)} onDelete={(id) => handleDelete('affiliateOffers', id, 'Affiliate Offer')} />
-        </div>
-    </div>
+      </TabsContent>
+      <TabsContent value="tools" className="mt-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Database Tools</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Button onClick={onSeedDatabase} disabled={isSeeding}>
+                    <Database className="mr-2 h-4 w-4" />
+                    {isSeeding ? 'Seeding...' : 'Seed Database'}
+                </Button>
+                <p className="text-sm text-muted-foreground mt-2">
+                    Populate your database with initial affiliate offers.
+                </p>
+            </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -894,3 +908,5 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
+
+    
