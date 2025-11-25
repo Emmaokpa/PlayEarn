@@ -55,14 +55,8 @@ const sidebarNavItems = [
     { href: '/challenges', label: 'Challenges', icon: Sparkles },
     { href: '/earn/affiliate', label: 'Affiliate', icon: Handshake },
     { href: '/redeem', label: 'Redeem', icon: Gift },
-    // Store is now handled by the Accordion
+    { href: '/store', label: 'Store', icon: ShoppingCart },
     { href: '/profile', label: 'Profile', icon: User },
-];
-
-const storeNavItems = [
-    { href: '/store', label: 'Currency Store', icon: ShoppingCart },
-    { href: '/store/digital', label: 'Digital Goods', icon: Package },
-    { href: '/store/physical', label: 'Physical Goods', icon: Laptop },
 ];
 
 const adminNavItems = [
@@ -116,8 +110,6 @@ function SidebarNav({
   const pathname = usePathname();
   const mainItems = isAdmin ? [...sidebarNavItems, ...adminNavItems] : sidebarNavItems;
 
-  const isStoreActive = pathname.startsWith('/store');
-
   return (
     <nav className="grid items-start gap-1 text-sm font-medium">
       {mainItems.map((item) => {
@@ -135,30 +127,6 @@ function SidebarNav({
           />
         );
       })}
-       <Accordion type="single" collapsible className="w-full" defaultValue={isStoreActive ? "store" : ""}>
-        <AccordionItem value="store" className="border-b-0">
-          <AccordionTrigger className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-base text-muted-foreground transition-all hover:text-primary hover:no-underline", isStoreActive && 'text-primary')}>
-             <ShoppingCart className="h-5 w-5" />
-             <span className="flex-1 text-left">Store</span>
-          </AccordionTrigger>
-          <AccordionContent className="pl-8 pt-1">
-            <nav className="grid items-start gap-1">
-              {storeNavItems.map(item => {
-                 const isActive = pathname === item.href;
-                 return (
-                    <NavLink
-                        key={item.href}
-                        {...item}
-                        isActive={isActive}
-                        isSidebar
-                        onClick={closeSidebar}
-                    />
-                 )
-              })}
-            </nav>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
     </nav>
   );
 }
