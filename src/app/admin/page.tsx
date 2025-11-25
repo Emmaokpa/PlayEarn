@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
-import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment } from 'firebase/firestore';
+import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert, Trash2, Edit, List, Database, Check, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -614,7 +614,7 @@ function AffiliateApprovalList() {
                                     <TableCell>{s.userName}</TableCell>
                                     <TableCell>{s.offerTitle}</TableCell>
                                     <TableCell className="font-mono text-xs">{s.proof}</TableCell>
-                                    <TableCell className="text-muted-foreground">{formatDistanceToNow(s.submittedAt.toDate(), { addSuffix: true })}</TableCell>
+                                    <TableCell className="text-muted-foreground">{formatDistanceToNow(s.submittedAt, { addSuffix: true })}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex gap-2 justify-end">
                                             <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => handleApproval(s, 'approved')}><Check className="h-4 w-4" /></Button>
@@ -763,3 +763,5 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
+
+    
