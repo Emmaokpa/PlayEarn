@@ -40,7 +40,7 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
         onSuccess={handleSuccess}
         onError={handleError}
         options={{
-            cloudName: 'demo'
+            cloudName: process.env.NEXT_PUBLIC_CLOUDINary_CLOUD_NAME
         }}
       >
         {({ open }) => {
