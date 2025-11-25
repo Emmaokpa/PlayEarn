@@ -15,6 +15,7 @@ export interface Reward {
   name: string;
   description: string;
   coins: number;
+  type: 'virtual' | 'physical';
   imageUrl: string;
   imageHint: string;
   isVipOnly?: boolean;
@@ -114,4 +115,18 @@ export interface UserPrize {
     prize: SpinPrize;
     status: 'unclaimed' | 'claimed';
     wonAt: Timestamp;
+}
+
+export interface RewardFulfillment {
+    id: string;
+    userId: string;
+    userEmail: string;
+    rewardId: string;
+    rewardDetails: {
+        name: string;
+        coins: number;
+    };
+    status: 'pending' | 'fulfilled' | 'error';
+    requestedAt: FieldValue;
+    fulfilledAt?: FieldValue;
 }

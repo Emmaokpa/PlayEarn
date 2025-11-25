@@ -14,6 +14,7 @@
  * - /inAppPurchases/{purchaseId}: All IAPs (coins, spins), publicly readable, writeable by admins only.
  * - /affiliateOffers/{offerId}: Affiliate offers, publicly readable, writeable by admins only.
  * - /affiliateSubmissions/{submissionId}: Global collection for submissions, only admins can read/write.
+ * - /fulfillments/{fulfillmentId}: Global queue for physical reward redemptions. Users create, admins update.
  * - All user subcollections (/users/{userId}/**): Accessible only to the owning user.
  *
  * Key Security Decisions:
@@ -191,5 +192,29 @@ service cloud.firestore {
        allow read, list, update, delete: if isAdmin();
        allow create: if isSignedIn() && isValidAffiliateSubmission(request.resource.data);
      }
+     
+    /**
+     * @description Validates a reward fulfillment request on creation.
+     * @param {map} data The incoming resource data.
+     * @return {boolean} True if the data is valid, false otherwise.
+     */
+    function isValidFulfillmentRequest(data) {
+        return data.userId == request.auth.uid &&
+               data.userEmail == request.auth.token.email &&
+               data.rewardId is string &&
+               data.rewardDetails is map &&
+               data.status == 'pending' &&
+               data.requestedAt == request.time;
+    }
+
+    /**
+     * @description Rules for reward fulfillment requests.
+     * @path /fulfillments/{fulfillmentId}
+     * @principle Users can create their own requests. Admins can read, update, and delete.
+     */
+    match /fulfillments/{fulfillmentId} {
+      allow create: if isSignedIn() && isValidFulfillmentRequest(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
   }
 }

@@ -16,8 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Coins, Crown } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { useFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
+import { doc, increment, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
 
 interface RewardCardProps {
   reward: Reward;
@@ -36,7 +36,7 @@ export default function RewardCard({
   const canAfford = userCoins >= reward.coins;
   const canRedeem = reward.isVipOnly ? isUserVip && canAfford : canAfford;
 
-  const handleRedeem = () => {
+  const handleRedeem = async () => {
     if (!user || !firestore) return;
 
     if (reward.isVipOnly && !isUserVip) {
@@ -59,16 +59,41 @@ export default function RewardCard({
       return;
     }
     
+    // Use a batch to deduct coins and create fulfillment request atomically
+    const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.uid);
-    updateDocumentNonBlocking(userRef, { coins: increment(-reward.coins) });
+    batch.update(userRef, { coins: increment(-reward.coins) });
 
-    // Here you would typically also create a record of the redemption
-    // For example, in a `/users/{userId}/redeemedRewards` collection
-    
-    toast({
-      title: 'Reward Redeemed!',
-      description: `You've successfully redeemed "${reward.name}".`,
-    });
+    // For physical rewards, create a fulfillment request
+    if (reward.type === 'physical') {
+        const fulfillmentRef = doc(collection(firestore, 'fulfillments'));
+        batch.set(fulfillmentRef, {
+            id: fulfillmentRef.id,
+            userId: user.uid,
+            userEmail: user.email,
+            rewardId: reward.id,
+            rewardDetails: { name: reward.name, coins: reward.coins },
+            status: 'pending',
+            requestedAt: serverTimestamp(),
+        });
+    }
+
+    try {
+        await batch.commit();
+        toast({
+            title: 'Redemption successful!',
+            description: reward.type === 'physical' 
+              ? `Your request for "${reward.name}" is being processed.`
+              : `You've successfully redeemed "${reward.name}".`,
+        });
+    } catch (error) {
+        console.error("Redemption failed:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Redemption Failed',
+            description: 'Something went wrong. Your coins have not been deducted.',
+        });
+    }
   };
 
   return (

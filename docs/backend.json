@@ -116,29 +116,16 @@
       "type": "object",
       "description": "Represents a reward that a user can earn or redeem.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the reward."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the reward."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the reward."
-        },
-        "coins": {
-          "type": "number",
-          "description": "The number of coins required to redeem this reward."
-        }
+        "id": { "type": "string", "description": "Unique identifier for the reward." },
+        "name": { "type": "string", "description": "The name of the reward." },
+        "description": { "type": "string", "description": "A description of the reward." },
+        "coins": { "type": "number", "description": "The number of coins required to redeem this reward." },
+        "type": { "type": "string", "enum": ["virtual", "physical"], "description": "The type of reward, e.g., virtual item or physical gift card." },
+        "imageUrl": { "type": "string" },
+        "imageHint": { "type": "string" },
+        "isVipOnly": { "type": "boolean" }
       },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "coins"
-      ]
+      "required": [ "id", "name", "description", "coins", "type", "imageUrl", "imageHint" ]
     },
     "UserReward": {
       "$schema": "http://json-schema.org/draft-07-schema#",
@@ -389,6 +376,23 @@
             "claimed": { "type": "array", "items": { "type": "string" }, "description": "An array of challenge IDs that have been claimed for this day." }
         },
         "required": ["id", "claimed"]
+    },
+    "RewardFulfillment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RewardFulfillment",
+      "type": "object",
+      "description": "Represents a user's request to redeem a physical reward, pending fulfillment.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the fulfillment request." },
+        "userId": { "type": "string", "description": "The ID of the user requesting fulfillment." },
+        "userEmail": { "type": "string", "description": "The email of the user for delivery." },
+        "rewardId": { "type": "string", "description": "The ID of the reward being redeemed." },
+        "rewardDetails": { "type": "object", "description": "A snapshot of the reward details at time of redemption." },
+        "status": { "type": "string", "enum": ["pending", "fulfilled", "error"], "description": "The status of the fulfillment request." },
+        "requestedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was made." },
+        "fulfilledAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was fulfilled." }
+      },
+      "required": ["id", "userId", "userEmail", "rewardId", "rewardDetails", "status", "requestedAt"]
     }
   },
   "auth": {
@@ -487,6 +491,15 @@
           "schema": { "$ref": "#/backend/entities/AffiliateSubmission" },
           "description": "Global collection for all affiliate submissions pending admin review. Readable/writable only by admins.",
           "params": [{ "name": "submissionId", "description": "The unique ID for the submission." }]
+        }
+      },
+      {
+        "path": "/fulfillments/{fulfillmentId}",
+        "definition": {
+          "entityName": "RewardFulfillment",
+          "schema": { "$ref": "#/backend/entities/RewardFulfillment" },
+          "description": "Global collection for all reward fulfillment requests pending action. Users can create, but only admins can update/delete.",
+          "params": [{ "name": "fulfillmentId", "description": "The unique ID for the fulfillment request." }]
         }
       },
       {
@@ -609,6 +622,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game definitions. These are publicly readable.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **In-App Purchases:** `/inAppPurchases/{purchaseId}` is a new generic collection for all real-money purchases, replacing the old `coinPacks` collection to support both coins and spins. Publicly readable.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups, spinData, spinHistory, prizes, dailyChallenges) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
+    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game definitions. These are publicly readable.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **In-App Purchases:** `/inAppPurchases/{purchaseId}` is a new generic collection for all real-money purchases, replacing the old `coinPacks` collection to support both coins and spins. Publicly readable.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **Fulfillments:** `/fulfillments/{fulfillmentId}` is a new global collection for managing the fulfillment of physical rewards. Users can create requests, but only admins can process them. This is crucial for integrating with third-party gift card APIs.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups, spinData, spinHistory, prizes, dailyChallenges) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
   }
 }
