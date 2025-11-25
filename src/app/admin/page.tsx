@@ -373,11 +373,11 @@ function AddIAPForm({ selectedPack, onClearSelection }: { selectedPack: InAppPur
     const { toast } = useToast();
     const form = useForm<z.infer<typeof iapFormSchema>>({
         resolver: zodResolver(iapFormSchema),
-        defaultValues: { name: '', description: '', amount: 1, price: 0.99, imageUrl: '' },
+        defaultValues: { name: '', description: '', type: 'coins', amount: 1, price: 0.99, imageUrl: '' },
     });
 
     useEffect(() => {
-        form.reset(selectedPack || { name: '', description: '', amount: 1, price: 0.99, imageUrl: '' });
+        form.reset(selectedPack || { name: '', description: '', type: 'coins', amount: 1, price: 0.99, imageUrl: '' });
     }, [selectedPack, form]);
 
     async function onSubmit(values: z.infer<typeof iapFormSchema>) {
@@ -393,7 +393,7 @@ function AddIAPForm({ selectedPack, onClearSelection }: { selectedPack: InAppPur
                 await setDoc(newPackRef, { ...values, id: newPackRef.id, imageHint });
                 toast({ title: 'Pack Added!', description: `"${values.name}" is now available in the store.` });
             }
-            form.reset({ name: '', description: '', amount: 1, price: 0.99, imageUrl: '' });
+            form.reset({ name: '', description: '', type: 'coins', amount: 1, price: 0.99, imageUrl: '' });
             onClearSelection();
         } catch (error) {
             console.error('Error saving pack: ', error);
