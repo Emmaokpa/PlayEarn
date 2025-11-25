@@ -24,10 +24,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
+import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission, RewardFulfillment } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink, PackageCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, use } from 'react';
 import {
@@ -62,6 +62,7 @@ const rewardFormSchema = z.object({
     name: z.string().min(2, { message: 'Reward name is required.' }),
     description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
     coins: z.coerce.number().min(1, { message: 'Cost must be at least 1 coin.' }),
+    type: z.enum(['virtual', 'physical'], { required_error: "You must select a reward type." }),
     isVipOnly: z.boolean().default(false),
     imageUrl: z.string().url({ message: 'An image URL is required.' }).min(1, { message: 'Please upload an image.' }),
 });
@@ -264,11 +265,11 @@ function AddRewardForm({ selectedReward, onClearSelection }: { selectedReward: R
     const { toast } = useToast();
     const form = useForm<z.infer<typeof rewardFormSchema>>({
         resolver: zodResolver(rewardFormSchema),
-        defaultValues: { name: '', description: '', coins: 100, isVipOnly: false, imageUrl: '' },
+        defaultValues: { name: '', description: '', coins: 100, type: 'virtual', isVipOnly: false, imageUrl: '' },
     });
 
     useEffect(() => {
-        form.reset(selectedReward || { name: '', description: '', coins: 100, isVipOnly: false, imageUrl: '' });
+        form.reset(selectedReward || { name: '', description: '', coins: 100, type: 'virtual', isVipOnly: false, imageUrl: '' });
     }, [selectedReward, form]);
 
     async function onSubmit(values: z.infer<typeof rewardFormSchema>) {
@@ -284,7 +285,7 @@ function AddRewardForm({ selectedReward, onClearSelection }: { selectedReward: R
                 await setDoc(newRewardRef, { ...values, id: newRewardRef.id, imageHint });
                 toast({ title: 'Reward Added!', description: `"${values.name}" is now available.` });
             }
-            form.reset({ name: '', description: '', coins: 100, isVipOnly: false, imageUrl: '' });
+            form.reset({ name: '', description: '', coins: 100, type: 'virtual', isVipOnly: false, imageUrl: '' });
             onClearSelection();
         } catch (error) {
             console.error('Error saving reward: ', error);
@@ -301,6 +302,22 @@ function AddRewardForm({ selectedReward, onClearSelection }: { selectedReward: R
                         <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Reward Name</FormLabel><FormControl><Input placeholder="e.g. $5 Gift Card" {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="A gift card for your favorite store." {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="coins" render={({ field }) => ( <FormItem><FormLabel>Cost (Coins)</FormLabel><FormControl><Input type="number" placeholder="5000" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="type" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select reward type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="virtual">Virtual (In-game item)</SelectItem>
+                                        <SelectItem value="physical">Physical (e.g., Gift Card)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                    'Physical' rewards will create a fulfillment request for admins.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
                         <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Reward Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="isVipOnly" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3"><FormLabel>VIP Only</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem> )} />
                         <div className="flex gap-2 pt-4">
@@ -554,7 +571,7 @@ function AffiliateApprovalList() {
     );
     const { data: submissions, isLoading } = useCollection<AffiliateSubmission>(submissionsQuery);
 
-    const handleApproval = async (submission: AffiliateSubmission, newStatus: 'approved' | 'rejected') => {
+    const handleApproval = (submission: AffiliateSubmission, newStatus: 'approved' | 'rejected') => {
         if (!firestore) return;
 
         const batch = writeBatch(firestore);
@@ -595,7 +612,8 @@ function AffiliateApprovalList() {
 
     const getFormattedDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
-        return formatDistanceToNow(timestamp, { addSuffix: true });
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return formatDistanceToNow(date, { addSuffix: true });
     };
     
     if (isLoading) {
@@ -651,6 +669,94 @@ function AffiliateApprovalList() {
                     </Table>
                 ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">No pending submissions.</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function FulfillmentQueue() {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const fulfillmentsQuery = useMemoFirebase(
+      () => firestore ? query(collection(firestore, 'fulfillments'), where('status', '==', 'pending')) : null,
+      [firestore]
+    );
+    const { data: fulfillments, isLoading } = useCollection<RewardFulfillment>(fulfillmentsQuery);
+
+    const handleFulfillment = async (fulfillment: RewardFulfillment, newStatus: 'fulfilled' | 'error') => {
+        if (!firestore) return;
+        
+        const fulfillmentRef = doc(firestore, 'fulfillments', fulfillment.id);
+        
+        updateDoc(fulfillmentRef, { 
+            status: newStatus,
+            ...(newStatus === 'fulfilled' && { fulfilledAt: serverTimestamp() })
+        }).then(() => {
+            toast({
+                title: `Request ${newStatus}`,
+                description: `Request for "${fulfillment.rewardDetails.name}" was marked as ${newStatus}.`,
+            });
+        }).catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: fulfillmentRef.path,
+                operation: 'update',
+                requestResourceData: { status: newStatus },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
+    };
+
+    const getFormattedDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return formatDistanceToNow(date, { addSuffix: true });
+    };
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Pending Reward Fulfillments</CardTitle></CardHeader>
+                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
+        );
+    }
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Pending Reward Fulfillments</CardTitle>
+                <CardDescription>Review and manually fulfill user requests for physical rewards.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {fulfillments && fulfillments.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User Email</TableHead>
+                                <TableHead>Reward</TableHead>
+                                <TableHead>Requested</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {fulfillments.map((f) => (
+                                <TableRow key={f.id}>
+                                    <TableCell className="font-semibold">{f.userEmail}</TableCell>
+                                    <TableCell>{f.rewardDetails.name} ({f.rewardDetails.coins} coins)</TableCell>
+                                    <TableCell className="text-muted-foreground">{getFormattedDate(f.requestedAt)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex gap-2 justify-end">
+                                            <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => handleFulfillment(f, 'fulfilled')}><PackageCheck className="h-4 w-4" /></Button>
+                                            <Button size="icon" variant="destructive" onClick={() => handleFulfillment(f, 'error')}><X className="h-4 w-4" /></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No pending fulfillment requests.</p>
                 )}
             </CardContent>
         </Card>
@@ -733,6 +839,7 @@ function AdminDashboard() {
             <AddAffiliateForm selectedOffer={selectedAffiliate} onClearSelection={() => setSelectedAffiliate(null)} />
         </div>
         <div className="space-y-8 lg:col-span-2">
+            <FulfillmentQueue />
             <AffiliateApprovalList />
             <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
             <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
