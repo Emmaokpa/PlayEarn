@@ -23,7 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -556,35 +556,43 @@ function AffiliateApprovalList() {
 
     const handleApproval = async (submission: AffiliateSubmission, newStatus: 'approved' | 'rejected') => {
         if (!firestore) return;
+
+        const batch = writeBatch(firestore);
         
-        try {
-            const batch = writeBatch(firestore);
-            
-            // 1. Update the global submission document
-            const submissionRef = doc(firestore, 'affiliateSubmissions', submission.id);
-            batch.update(submissionRef, { status: newStatus });
+        // 1. Update the global submission document
+        const submissionRef = doc(firestore, 'affiliateSubmissions', submission.id);
+        const submissionUpdate = { status: newStatus };
+        batch.update(submissionRef, submissionUpdate);
 
-            // 2. Update the user-specific submission status document
-            const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
+        // 2. Update the user-specific submission status document
+        const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
+        const userSubmissionUpdate = { status: newStatus };
+        batch.set(userSubmissionRef, userSubmissionUpdate, { merge: true });
 
-            if (newStatus === 'approved') {
-                const userRef = doc(firestore, 'users', submission.userId);
-                batch.update(userRef, { coins: increment(submission.rewardAmount) });
-                batch.set(userSubmissionRef, { status: 'approved' }, { merge: true });
-            } else { // 'rejected'
-                batch.set(userSubmissionRef, { status: 'rejected' }, { merge: true });
-            }
-            
-            await batch.commit();
-
-            toast({
-                title: `Submission ${newStatus}`,
-                description: `${submission.userName}'s submission for "${submission.offerTitle}" was ${newStatus}.`,
-            });
-        } catch (error) {
-            console.error("Error updating submission:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not process submission.' });
+        if (newStatus === 'approved') {
+            const userRef = doc(firestore, 'users', submission.userId);
+            batch.update(userRef, { coins: increment(submission.rewardAmount) });
         }
+        
+        batch.commit()
+            .then(() => {
+                toast({
+                    title: `Submission ${newStatus}`,
+                    description: `${submission.userName}'s submission for "${submission.offerTitle}" was ${newStatus}.`,
+                });
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: submissionRef.path, // We can use any of the batched refs for context
+                    operation: 'write',
+                    requestResourceData: { 
+                        globalSubmission: submissionUpdate,
+                        userSubmission: userSubmissionUpdate,
+                        userCoinUpdate: newStatus === 'approved' ? { coins: `increment(${submission.rewardAmount})` } : undefined
+                    },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
     };
 
     const getFormattedDate = (timestamp: any) => {
@@ -782,3 +790,5 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
+
+    
