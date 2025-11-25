@@ -5,7 +5,7 @@ import AppLayout from '@/components/layout/app-layout';
 import SpinWheel from '@/components/app/spin-wheel';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, collection, Timestamp, increment } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, collection, Timestamp, increment, addDoc } from 'firebase/firestore';
 import type { UserProfile, SpinPrize } from '@/lib/data';
 import { useState, useEffect } from 'react';
 import { Gift, History, Loader2, Video, ShoppingCart, Star, Coins } from 'lucide-react';
@@ -157,23 +157,19 @@ export default function SpinPage() {
         spinDataToWrite.lastSpinTimestamp = serverTimestamp() as Timestamp;
 
         // Apply prize based on type
-        const userDocRef = doc(firestore, 'users', user.uid);
-        switch (prize.type) {
-          case 'coins':
-            transaction.update(userDocRef, { coins: increment(prize.value as number) });
-            break;
-          case 'sticker':
-             // For now, we just log it. A future step could add it to a user's sticker collection.
-            console.log(`User ${user.uid} won a ${prize.value} sticker.`);
-            break;
-          case 'entry':
-            // Logic to add a gift card entry would go here.
-            console.log(`User ${user.uid} won an entry for a $${prize.value} gift card.`);
-            break;
-          case 'gift_card':
-             // High-value prize logic. Could flag for manual verification.
-            console.log(`User ${user.uid} won a $${prize.value} gift card!`);
-            break;
+        if (prize.type === 'coins') {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          transaction.update(userDocRef, { coins: increment(prize.value as number) });
+        } else {
+          // For all non-coin prizes, add them to the user's prize collection
+          const newPrizeRef = doc(collection(firestore, `users/${user.uid}/prizes`));
+          transaction.set(newPrizeRef, {
+            userId: user.uid,
+            prize: prize,
+            status: 'unclaimed',
+            wonAt: serverTimestamp(),
+            id: newPrizeRef.id,
+          });
         }
 
 
@@ -384,3 +380,5 @@ export default function SpinPage() {
     </AppLayout>
   );
 }
+
+    

@@ -94,3 +94,13 @@ export interface SpinHistory {
     spinType: 'free' | 'ad' | 'purchased';
     timestamp: Timestamp;
 }
+
+export interface UserPrize {
+    id: string;
+    userId: string;
+    prize: SpinPrize;
+    status: 'unclaimed' | 'claimed';
+    wonAt: Timestamp;
+}
+
+    
