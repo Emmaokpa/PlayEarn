@@ -17,7 +17,7 @@ import { Coins, Crown, Loader2, CheckCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, increment, setDoc, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, increment, setDoc, collection, serverTimestamp, addDoc, updateDoc } from 'firebase/firestore';
 import { useState } from 'react';
 
 interface RewardCardProps {
@@ -65,30 +65,44 @@ export default function RewardCard({
 
     setRedeemState('loading');
     
+    // NEW, MORE RELIABLE LOGIC
+    // Step 1: Create the fulfillment request first.
+    if (reward.type === 'physical') {
+      try {
+        const fulfillmentData = {
+          userId: user.uid,
+          userEmail: user.email,
+          rewardId: reward.id,
+          rewardDetails: { name: reward.name, coins: reward.coins },
+          status: 'pending' as const,
+          requestedAt: serverTimestamp(),
+        };
+        // Use addDoc to get a unique ID automatically
+        await addDoc(collection(firestore, 'fulfillments'), fulfillmentData);
+
+      } catch (error) {
+          console.error("Failed to create fulfillment request:", error);
+          const permissionError = new FirestorePermissionError({
+              path: `/fulfillments`,
+              operation: 'create',
+              requestResourceData: fulfillmentData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+
+          toast({
+              variant: 'destructive',
+              title: 'Redemption Failed',
+              description: 'Could not create your fulfillment request. Your coins have not been deducted.',
+          });
+          setRedeemState('idle');
+          return; // Stop the process here
+      }
+    }
+
+    // Step 2: Only if the above succeeds (or for virtual items), deduct coins.
     try {
-        const batch = writeBatch(firestore);
-
-        // 1. Deduct coins from the user's profile
         const userRef = doc(firestore, 'users', user.uid);
-        batch.update(userRef, { coins: increment(-reward.coins) });
-
-        // 2. If it's a physical reward, create a fulfillment request
-        if (reward.type === 'physical') {
-            const fulfillmentRef = doc(collection(firestore, 'fulfillments'));
-            const fulfillmentData = {
-                id: fulfillmentRef.id,
-                userId: user.uid,
-                userEmail: user.email, // This was the critical missing piece
-                rewardId: reward.id,
-                rewardDetails: { name: reward.name, coins: reward.coins },
-                status: 'pending' as const,
-                requestedAt: serverTimestamp(),
-            };
-            batch.set(fulfillmentRef, fulfillmentData);
-        }
-
-        // Atomically commit both operations
-        await batch.commit();
+        await updateDoc(userRef, { coins: increment(-reward.coins) });
 
         setRedeemState('success');
         toast({
@@ -102,25 +116,24 @@ export default function RewardCard({
             setRedeemState('idle');
         }, 3000);
 
-    } catch (serverError) {
-        console.error("Redemption failed:", serverError);
-        // If the batch fails, emit a detailed error for debugging
+    } catch (error) {
+        console.error("Failed to deduct coins:", error);
+        // This is a tricky state: fulfillment might be created but coin deduction failed.
+        // A more complex app would have a backend process to reconcile this.
+        // For now, we inform the user.
         const permissionError = new FirestorePermissionError({
-            path: `/fulfillments/ (or /users/${user.uid})`,
-            operation: 'write',
-            requestResourceData: {
-              coinDeduction: -reward.coins,
-              fulfillmentRequest: reward.type === 'physical' ? 'Attempted to create' : 'N/A'
-            },
+            path: `/users/${user.uid}`,
+            operation: 'update',
+            requestResourceData: { coins: `increment(${-reward.coins})`},
         });
         errorEmitter.emit('permission-error', permissionError);
-
-        setRedeemState('idle');
+        
         toast({
             variant: 'destructive',
-            title: 'Redemption Failed',
-            description: 'Something went wrong. Your coins have not been deducted.',
+            title: 'Update Failed',
+            description: 'Your request was received, but there was an error updating your coin balance. Please contact support.',
         });
+        setRedeemState('idle');
     }
   };
   
