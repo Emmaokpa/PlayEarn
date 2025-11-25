@@ -559,16 +559,21 @@ function AffiliateApprovalList() {
         
         try {
             const batch = writeBatch(firestore);
+            
+            // 1. Update the global submission document
             const submissionRef = doc(firestore, 'affiliateSubmissions', submission.id);
+            batch.update(submissionRef, { status: newStatus });
+
+            // 2. Update the user-specific submission status document
+            const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
 
             if (newStatus === 'approved') {
                 const userRef = doc(firestore, 'users', submission.userId);
                 batch.update(userRef, { coins: increment(submission.rewardAmount) });
-                 const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
                 batch.set(userSubmissionRef, { status: 'approved' }, { merge: true });
+            } else { // 'rejected'
+                batch.set(userSubmissionRef, { status: 'rejected' }, { merge: true });
             }
-            
-            batch.update(submissionRef, { status: newStatus });
             
             await batch.commit();
 
