@@ -71,8 +71,8 @@ export default function AppLayout({
   }
 
   return (
-    <div className={cn("flex min-h-screen w-full flex-col bg-background text-foreground", isGamePage && "landscape:overflow-hidden")}>
-      <header className={cn("sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6", isGamePage && "landscape:hidden")}>
+    <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
+      <header className={cn("sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6", isGamePage && "landscape:hidden")}>
         <h1 className="truncate pr-4 text-xl font-bold font-headline">
           {title}
         </h1>
@@ -93,7 +93,9 @@ export default function AppLayout({
           </Avatar>
         </div>
       </header>
-      <main className={cn("flex-1 overflow-y-auto p-4 sm:p-6", isGamePage && "flex flex-col")}>{children}</main>
+      <main className="flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-24">
+        {children}
+      </main>
       <div className={cn(isGamePage && "landscape:hidden")}>
          <BottomNav />
       </div>
