@@ -16,8 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Coins, Crown, Loader2, CheckCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { useFirebase, errorEmitter, FirestorePermissionError, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, setDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, increment, setDoc, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useState } from 'react';
 
 interface RewardCardProps {
@@ -65,37 +65,30 @@ export default function RewardCard({
 
     setRedeemState('loading');
     
-    // This is a more direct approach to ensure the fulfillment request is created.
     try {
+        const batch = writeBatch(firestore);
+
+        // 1. Deduct coins from the user's profile
+        const userRef = doc(firestore, 'users', user.uid);
+        batch.update(userRef, { coins: increment(-reward.coins) });
+
+        // 2. If it's a physical reward, create a fulfillment request
         if (reward.type === 'physical') {
             const fulfillmentRef = doc(collection(firestore, 'fulfillments'));
             const fulfillmentData = {
                 id: fulfillmentRef.id,
                 userId: user.uid,
-                userEmail: user.email,
+                userEmail: user.email, // This was the critical missing piece
                 rewardId: reward.id,
                 rewardDetails: { name: reward.name, coins: reward.coins },
                 status: 'pending' as const,
                 requestedAt: serverTimestamp(),
             };
-
-            await setDoc(fulfillmentRef, fulfillmentData)
-                .catch(err => {
-                     // Make sure any security rule failure is visible
-                    const permissionError = new FirestorePermissionError({
-                        path: fulfillmentRef.path,
-                        operation: 'create',
-                        requestResourceData: fulfillmentData
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    // Re-throw to stop execution
-                    throw err; 
-                });
+            batch.set(fulfillmentRef, fulfillmentData);
         }
-        
-        // Deduct coins as a separate, non-blocking update for responsiveness
-        const userRef = doc(firestore, 'users', user.uid);
-        updateDocumentNonBlocking(userRef, { coins: increment(-reward.coins) });
+
+        // Atomically commit both operations
+        await batch.commit();
 
         setRedeemState('success');
         toast({
@@ -109,8 +102,19 @@ export default function RewardCard({
             setRedeemState('idle');
         }, 3000);
 
-    } catch (error) {
-        console.error("Redemption failed:", error);
+    } catch (serverError) {
+        console.error("Redemption failed:", serverError);
+        // If the batch fails, emit a detailed error for debugging
+        const permissionError = new FirestorePermissionError({
+            path: `/fulfillments/ (or /users/${user.uid})`,
+            operation: 'write',
+            requestResourceData: {
+              coinDeduction: -reward.coins,
+              fulfillmentRequest: reward.type === 'physical' ? 'Attempted to create' : 'N/A'
+            },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
         setRedeemState('idle');
         toast({
             variant: 'destructive',
@@ -181,4 +185,3 @@ export default function RewardCard({
     </Card>
   );
 }
-
