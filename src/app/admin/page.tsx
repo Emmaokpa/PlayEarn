@@ -688,24 +688,40 @@ function FulfillmentQueue() {
     const handleFulfillment = async (fulfillment: RewardFulfillment, newStatus: 'fulfilled' | 'error') => {
         if (!firestore) return;
         
+        const batch = writeBatch(firestore);
         const fulfillmentRef = doc(firestore, 'fulfillments', fulfillment.id);
+
+        let updateData: { status: 'fulfilled' | 'error'; fulfilledAt?: any } = { status: newStatus };
+
+        if (newStatus === 'fulfilled') {
+            updateData.fulfilledAt = serverTimestamp();
+        }
         
-        updateDoc(fulfillmentRef, { 
-            status: newStatus,
-            ...(newStatus === 'fulfilled' && { fulfilledAt: serverTimestamp() })
-        }).then(() => {
+        batch.update(fulfillmentRef, updateData);
+
+        // If rejecting ('error'), refund the user's coins
+        if (newStatus === 'error') {
+            const userRef = doc(firestore, 'users', fulfillment.userId);
+            batch.update(userRef, { coins: increment(fulfillment.rewardDetails.coins) });
+        }
+        
+        try {
+            await batch.commit();
             toast({
                 title: `Request ${newStatus}`,
-                description: `Request for "${fulfillment.rewardDetails.name}" was marked as ${newStatus}.`,
+                description: `Request for "${fulfillment.rewardDetails.name}" was marked as ${newStatus}.${newStatus === 'error' ? ' Coins have been refunded.' : ''}`,
             });
-        }).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
                 path: fulfillmentRef.path,
-                operation: 'update',
-                requestResourceData: { status: newStatus },
+                operation: 'write', // Batch write combines operations
+                requestResourceData: { 
+                    fulfillmentUpdate: updateData,
+                    ...(newStatus === 'error' && { userRefund: { coins: `increment(${fulfillment.rewardDetails.coins})` } })
+                },
             });
             errorEmitter.emit('permission-error', permissionError);
-        });
+        }
     };
 
     const getFormattedDate = (timestamp: any) => {
@@ -908,5 +924,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    
