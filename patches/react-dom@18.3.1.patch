@@ -1,0 +1,60 @@
+diff --git a/node_modules/react-dom/cjs/react-dom.development.js b/node_modules/react-dom/cjs/react-dom.development.js
+index 9260a4d..4108a7b 100644
+--- a/node_modules/react-dom/cjs/react-dom.development.js
++++ b/node_modules/react-dom/cjs/react-dom.development.js
+@@ -1,6 +1,6 @@
+ /**
+- * @license React
+- * react-dom.development.js
++ * @license React
++ * react-dom.development.js
+  *
+  * Copyright (c) Facebook, Inc. and its affiliates.
+  *
+@@ -2824,6 +2824,7 @@ function renderToReadableStream() {
+   throw new Error('renderToReadableStream is not implemented in react-dom/server.browser.');
+ }
+ function renderToNodeStream() {
++  // TODO: Implement this for react-dom/server.browser
+   throw new Error('renderToNodeStream is not implemented in react-dom/server.browser.');
+ } // We need to do this because when we don't have modules, this file is bundled.
+ // CJS bundles return their exports as a single object, so we can't add properties
+diff --git a/node_modules/react-dom/index.js b/node_modules/react-dom/index.js
+index 00a5f70..553641b 100644
+--- a/node_modules/react-dom/index.js
++++ b/node_modules/react-dom/index.js
+@@ -6,7 +6,7 @@
+ 
+ function checkDCE() {
+   // This is an obscure syntax that warns people not to use this react-dom/index.js
+-  // entry point inside their bundles.
++  // entry point inside their bundles.
+   if (
+     typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === 'undefined' ||
+     typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== 'function'
+diff --git a/node_modules/react-dom/server.browser.js b/node_modules/react-dom/server.browser.js
+index 9811333..4d115e3 100644
+--- a/node_modules/react-dom/server.browser.js
++++ b/node_modules/react-dom/server.browser.js
+@@ -6,7 +6,7 @@
+ 
+ function checkDCE() {
+   // This is an obscure syntax that warns people not to use this react-dom/server.browser.js
+-  // entry point inside their bundles.
++  // entry point inside their bundles.
+   if (
+     typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === 'undefined' ||
+     typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== 'function'
+diff --git a/node_modules/react-dom/server.js b/node_modules/react-dom/server.js
+index 6f70a3c..07119fe 100644
+--- a/node_modules/react-dom/server.js
++++ b/node_modules/react-dom/server.js
+@@ -6,7 +6,7 @@
+ 
+ function checkDCE() {
+   // This is an obscure syntax that warns people not to use this react-dom/server.js
+-  // entry point inside their bundles.
++  // entry point inside their bundles.
+   if (
+     typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === 'undefined' ||
+     typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== 'function'
