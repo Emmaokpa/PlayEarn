@@ -8,11 +8,12 @@ import RewardCard from '@/components/app/reward-card';
 import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Filter } from 'lucide-react';
+import { Filter, Info } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 type SortOption = 'coins-asc' | 'coins-desc';
 type TypeFilter = 'all' | 'virtual' | 'physical';
@@ -69,6 +70,19 @@ export default function RedeemPage() {
           Use your coins to claim awesome rewards.
         </p>
       </div>
+
+      <Alert className="mb-8 border-primary/30 bg-primary/10">
+        <Info className="h-4 w-4" />
+        <AlertTitle className="font-bold">How Rewards Work</AlertTitle>
+        <AlertDescription>
+          <ul className="mt-2 list-disc pl-5 space-y-1 text-sm">
+            <li><b>10,000 coins = $1.00 USD</b></li>
+            <li>Minimum redemption is 15,000 coins ($1.50).</li>
+            <li>A 10% service fee applies to all cash reward redemptions.</li>
+            <li>Play more games and complete offers to earn coins faster!</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
 
       <Card className="mb-8">
         <CardHeader className="pb-4">

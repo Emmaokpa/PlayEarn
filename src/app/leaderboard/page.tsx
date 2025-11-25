@@ -48,7 +48,7 @@ export default function LeaderboardPage() {
       <div className="mb-8 text-center">
         <h2 className="font-headline text-3xl font-bold">Top Earners</h2>
         <p className="mt-2 text-muted-foreground">
-          The #1 VIP player wins a $10 gift card! Upgrade to compete.
+          The player with the most coins above 500,000 at the end of the week wins a $100 gift card!
         </p>
       </div>
 
