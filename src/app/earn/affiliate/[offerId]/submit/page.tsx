@@ -2,7 +2,7 @@
 'use client';
 
 import { use, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
@@ -15,6 +15,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -23,7 +24,6 @@ import { Input } from '@/components/ui/input';
 import ImageUpload from '@/components/app/ImageUpload';
 import { ExternalLink, Send } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function SubmitAffiliatePage({ params }: { params: Promise<{ offerId: string }> }) {
   const { offerId } = use(params);
@@ -107,14 +107,14 @@ export default function SubmitAffiliatePage({ params }: { params: Promise<{ offe
 
   return (
     <AppLayout title="Submit Proof">
-      <Card>
+      <Card className="flex flex-col">
         <CardHeader>
           <CardTitle>Submit Proof for "{offer.title}"</CardTitle>
           <CardDescription>
             After completing the offer, provide proof of completion (e.g. username, email, or a screenshot). An admin will review it and award your coins.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="flex-1 space-y-6">
           <div className="space-y-2">
             <Label htmlFor="proofText">Text Proof (Username, Email, etc.)</Label>
             <Input
@@ -133,20 +133,19 @@ export default function SubmitAffiliatePage({ params }: { params: Promise<{ offe
               initialImageUrl={proofImageUrl} 
             />
           </div>
-
-          <div className="space-y-4 pt-4">
-             <Button onClick={handleSubmit} disabled={isSubmitting || (!proofText && !proofImageUrl)} className="w-full" size="lg">
-                <Send className="mr-2 h-5 w-5" />
-                {isSubmitting ? 'Submitting...' : 'Submit for Review'}
-             </Button>
-             <Button asChild variant="outline" className="w-full">
-                <Link href={offer.link} target="_blank" rel="noopener noreferrer">
-                    Go back to Offer Page
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                </Link>
-             </Button>
-          </div>
         </CardContent>
+         <CardFooter className="flex flex-col items-stretch gap-4 pt-6">
+           <Button onClick={handleSubmit} disabled={isSubmitting || (!proofText && !proofImageUrl)} className="w-full" size="lg">
+              <Send className="mr-2 h-5 w-5" />
+              {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+           </Button>
+           <Button asChild variant="outline" className="w-full">
+              <Link href={offer.link} target="_blank" rel="noopener noreferrer">
+                  Go back to Offer Page
+                  <ExternalLink className="ml-2 h-4 w-4" />
+              </Link>
+           </Button>
+        </CardFooter>
       </Card>
     </AppLayout>
   );

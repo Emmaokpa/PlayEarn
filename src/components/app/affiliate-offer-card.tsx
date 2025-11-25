@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Coins, CheckCircle, Hourglass, Send } from 'lucide-react';
+import { Coins, CheckCircle, Hourglass, Send, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -52,13 +52,22 @@ export default function AffiliateOfferCard({
         );
     }
 
+    // New button group for a clearer flow
     return (
-        <Button asChild size="lg" className="w-full">
-            <Link href={`/earn/affiliate/${offer.id}/submit`}>
-                <Send className="mr-2 h-5 w-5" />
-                Submit for Review
-            </Link>
-        </Button>
+        <div className="w-full space-y-2">
+             <Button asChild size="lg" className="w-full">
+                <Link href={offer.link} target="_blank" rel="noopener noreferrer">
+                    Go to Offer
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+            <Button asChild size="lg" variant="secondary" className="w-full">
+                <Link href={`/earn/affiliate/${offer.id}/submit`}>
+                    <Send className="mr-2 h-5 w-5" />
+                    Submit Proof
+                </Link>
+            </Button>
+        </div>
     )
   }
 
