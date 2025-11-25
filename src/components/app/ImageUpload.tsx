@@ -39,6 +39,9 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
         uploadPreset="qa4yjgs4"
         onSuccess={handleSuccess}
         onError={handleError}
+        options={{
+            cloudName: 'demo'
+        }}
       >
         {({ open }) => {
           return (
