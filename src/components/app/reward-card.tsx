@@ -65,8 +65,7 @@ export default function RewardCard({
 
     setRedeemState('loading');
     
-    // NEW, MORE RELIABLE LOGIC
-    // Step 1: Create the fulfillment request first.
+    // For physical items, create the fulfillment request first.
     if (reward.type === 'physical') {
       try {
         const fulfillmentData = {
@@ -77,29 +76,22 @@ export default function RewardCard({
           status: 'pending' as const,
           requestedAt: serverTimestamp(),
         };
-        // Use addDoc to get a unique ID automatically
         await addDoc(collection(firestore, 'fulfillments'), fulfillmentData);
 
       } catch (error) {
           console.error("Failed to create fulfillment request:", error);
-          const permissionError = new FirestorePermissionError({
-              path: `/fulfillments`,
-              operation: 'create',
-              requestResourceData: fulfillmentData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-
+          // Stop the process here if the fulfillment fails
           toast({
               variant: 'destructive',
               title: 'Redemption Failed',
               description: 'Could not create your fulfillment request. Your coins have not been deducted.',
           });
           setRedeemState('idle');
-          return; // Stop the process here
+          return;
       }
     }
 
-    // Step 2: Only if the above succeeds (or for virtual items), deduct coins.
+    // This part runs for both virtual items, and for physical items AFTER fulfillment is created.
     try {
         const userRef = doc(firestore, 'users', user.uid);
         await updateDoc(userRef, { coins: increment(-reward.coins) });
@@ -108,7 +100,7 @@ export default function RewardCard({
         toast({
             title: 'Redemption successful!',
             description: reward.type === 'physical' 
-              ? `Your request for "${reward.name}" is being processed.`
+              ? `Your request for "${reward.name}" is being processed. It will be sent to your email: ${user.email}`
               : `You've successfully redeemed "${reward.name}".`,
         });
 
@@ -121,13 +113,6 @@ export default function RewardCard({
         // This is a tricky state: fulfillment might be created but coin deduction failed.
         // A more complex app would have a backend process to reconcile this.
         // For now, we inform the user.
-        const permissionError = new FirestorePermissionError({
-            path: `/users/${user.uid}`,
-            operation: 'update',
-            requestResourceData: { coins: `increment(${-reward.coins})`},
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        
         toast({
             variant: 'destructive',
             title: 'Update Failed',
