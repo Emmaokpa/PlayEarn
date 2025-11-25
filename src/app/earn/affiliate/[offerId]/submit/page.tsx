@@ -1,7 +1,7 @@
 
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import ImageUpload from '@/components/app/ImageUpload';
-import { ExternalLink, Send } from 'lucide-react';
+import { ExternalLink, Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SubmitAffiliatePage({ params }: { params: Promise<{ offerId: string }> }) {
@@ -46,12 +46,14 @@ export default function SubmitAffiliatePage({ params }: { params: Promise<{ offe
   const isLoading = offerLoading || profileLoading;
 
   const handleSubmit = async () => {
-    if (!user || !firestore || !userProfile || !offer || (!proofText && !proofImageUrl)) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please provide text or image proof of completion.',
-      });
+    if (isSubmitting || !user || !firestore || !userProfile || !offer || (!proofText && !proofImageUrl)) {
+      if (!proofText && !proofImageUrl) {
+        toast({
+            variant: 'destructive',
+            title: 'Missing Information',
+            description: 'Please provide text or image proof of completion.',
+        });
+      }
       return;
     }
     
@@ -93,6 +95,12 @@ export default function SubmitAffiliatePage({ params }: { params: Promise<{ offe
     }
   };
 
+  useEffect(() => {
+    if (proofImageUrl && !isSubmitting) {
+        handleSubmit();
+    }
+  }, [proofImageUrl, isSubmitting]);
+
   if (isLoading) {
     return (
       <AppLayout title="Submit Proof">
@@ -107,14 +115,14 @@ export default function SubmitAffiliatePage({ params }: { params: Promise<{ offe
 
   return (
     <AppLayout title="Submit Proof">
-      <Card className="flex flex-col h-full">
+      <Card>
         <CardHeader>
           <CardTitle>Submit Proof for "{offer.title}"</CardTitle>
           <CardDescription>
             After completing the offer, provide proof of completion (e.g. username, email, or a screenshot). An admin will review it and award your coins.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 space-y-6 min-h-0">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="proofText">Text Proof (Username, Email, etc.)</Label>
             <Input
@@ -128,16 +136,24 @@ export default function SubmitAffiliatePage({ params }: { params: Promise<{ offe
           
           <div className="space-y-2">
             <Label>Image Proof (Screenshot)</Label>
-            <ImageUpload 
-              onUpload={setProofImageUrl} 
-              initialImageUrl={proofImageUrl} 
-            />
+            <p className="text-sm text-muted-foreground">Uploading an image will automatically submit your proof for review.</p>
+            {isSubmitting && proofImageUrl ? (
+                 <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Submitting your proof...</span>
+                </div>
+            ) : (
+                <ImageUpload 
+                    onUpload={setProofImageUrl} 
+                    initialImageUrl={proofImageUrl} 
+                />
+            )}
           </div>
         </CardContent>
          <CardFooter className="flex flex-col items-stretch gap-4 pt-6">
-           <Button onClick={handleSubmit} disabled={isSubmitting || (!proofText && !proofImageUrl)} className="w-full" size="lg">
+           <Button onClick={handleSubmit} disabled={isSubmitting || !!proofImageUrl || (!proofText && !proofImageUrl)} className="w-full" size="lg">
               <Send className="mr-2 h-5 w-5" />
-              {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+              {isSubmitting ? 'Submitting...' : 'Submit Text Proof'}
            </Button>
            <Button asChild variant="outline" className="w-full">
               <Link href={offer.link} target="_blank" rel="noopener noreferrer">

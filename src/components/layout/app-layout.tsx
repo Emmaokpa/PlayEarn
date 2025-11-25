@@ -46,7 +46,7 @@ export default function AppLayout({
   // Render a loading state or nothing while auth is being checked or redirecting
   if (isLoading || !user) {
      return (
-      <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
+      <div className="flex h-screen flex-col bg-background text-foreground">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6">
           <Skeleton className="h-7 w-32" />
           <div className="flex flex-shrink-0 items-center gap-4">
@@ -71,7 +71,7 @@ export default function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
+    <div className="flex h-dvh flex-col bg-background text-foreground">
       <header className={cn("sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-sm sm:px-6", isGamePage && "landscape:hidden")}>
         <h1 className="truncate pr-4 text-xl font-bold font-headline">
           {title}
@@ -96,7 +96,7 @@ export default function AppLayout({
       <main className="flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-24">
         {children}
       </main>
-      <div className={cn(isGamePage && "landscape:hidden")}>
+       <div className={cn("sticky bottom-0", isGamePage && "landscape:hidden")}>
          <BottomNav />
       </div>
     </div>
