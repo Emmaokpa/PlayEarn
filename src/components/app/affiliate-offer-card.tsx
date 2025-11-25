@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { AffiliateOffer, UserProfile } from '@/lib/data';
+import type { AffiliateOffer, UserAffiliate } from '@/lib/data';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,23 +19,18 @@ import Link from 'next/link';
 
 interface AffiliateOfferCardProps {
   offer: AffiliateOffer;
-  userProfile: UserProfile | null;
-  completedOffers: string[];
-  pendingOffers: string[];
+  userSubmission: UserAffiliate | undefined;
 }
 
 export default function AffiliateOfferCard({
   offer,
-  userProfile,
-  completedOffers,
-  pendingOffers
+  userSubmission,
 }: AffiliateOfferCardProps) {
   
-  const isCompleted = completedOffers.includes(offer.id);
-  const isPending = pendingOffers.includes(offer.id);
+  const status = userSubmission?.status;
 
   const getButtonState = () => {
-    if (isCompleted) {
+    if (status === 'approved') {
         return (
             <Button size="lg" className="w-full bg-green-600 hover:bg-green-700" disabled>
                 <CheckCircle className="mr-2 h-5 w-5" />
@@ -43,7 +38,7 @@ export default function AffiliateOfferCard({
             </Button>
         );
     }
-    if (isPending) {
+    if (status === 'pending') {
         return (
             <Button size="lg" className="w-full" disabled>
                 <Hourglass className="mr-2 h-5 w-5 animate-spin" />
@@ -75,7 +70,7 @@ export default function AffiliateOfferCard({
     <Card
       className={cn(
         'flex flex-col overflow-hidden transition-shadow hover:shadow-lg',
-        (isCompleted || isPending) && 'opacity-70'
+        status === 'approved' && 'opacity-70'
       )}
     >
       <CardHeader className="p-0">

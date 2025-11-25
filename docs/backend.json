@@ -298,9 +298,10 @@
         "link": { "type": "string", "description": "The affiliate URL." },
         "imageUrl": { "type": "string", "description": "URL for the offer's image." },
         "imageHint": { "type": "string", "description": "Keywords for AI image search." },
-        "rewardCoins": { "type": "number", "description": "Coins awarded for completing the offer." }
+        "rewardCoins": { "type": "number", "description": "Coins awarded for completing the offer." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the offer was created." }
       },
-      "required": ["id", "title", "description", "link", "imageUrl", "imageHint", "rewardCoins"]
+      "required": ["id", "title", "description", "link", "imageUrl", "imageHint", "rewardCoins", "createdAt"]
     },
     "UserAffiliate": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -308,12 +309,13 @@
       "type": "object",
       "description": "Tracks a user's completion of an affiliate offer.",
       "properties": {
-        "id": { "type": "string", "description": "Unique ID for this completion record." },
+        "id": { "type": "string", "description": "Unique ID for this completion record, same as offerId." },
         "userId": { "type": "string", "description": "ID of the user who completed the offer." },
         "offerId": { "type": "string", "description": "ID of the completed affiliate offer." },
-        "completedAt": { "type": "string", "description": "Timestamp of completion.", "format": "date-time" }
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "The status of the submission." },
+        "approvedAt": { "type": "string", "format": "date-time", "description": "Timestamp when the submission was approved." }
       },
-      "required": ["id", "userId", "offerId", "completedAt"]
+      "required": ["id", "userId", "offerId", "status"]
     },
      "AffiliateSubmission": {
       "$schema": "http://json-schema.org/draft-07/schema#",

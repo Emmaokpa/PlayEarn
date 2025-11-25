@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
-import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where, updateDoc } from 'firebase/firestore';
+import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -476,7 +476,7 @@ function AddAffiliateForm({ selectedOffer, onClearSelection }: { selectedOffer: 
                 toast({ title: 'Offer Updated!', description: `"${values.title}" has been updated.` });
             } else {
                 const newOfferRef = doc(collection(firestore, 'affiliateOffers'));
-                await setDoc(newOfferRef, { ...values, id: newOfferRef.id, imageHint });
+                await setDoc(newOfferRef, { ...values, id: newOfferRef.id, imageHint, createdAt: serverTimestamp() });
                 toast({ title: 'Offer Added!', description: `"${values.title}" is now available.` });
             }
             form.reset({ title: '', description: '', link: '', imageUrl: '', rewardCoins: 1000 });
@@ -559,18 +559,18 @@ function AffiliateApprovalList() {
 
         const batch = writeBatch(firestore);
         
-        // 1. Update the global submission document
         const submissionRef = doc(firestore, 'affiliateSubmissions', submission.id);
         batch.update(submissionRef, { status: newStatus });
 
-        // 2. Update the user-specific submission status document
         const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
-        batch.update(userSubmissionRef, { status: newStatus });
-
+        
+        let userUpdateData: { status: string; approvedAt?: any } = { status: newStatus };
         if (newStatus === 'approved') {
             const userRef = doc(firestore, 'users', submission.userId);
             batch.update(userRef, { coins: increment(submission.rewardAmount) });
+            userUpdateData.approvedAt = serverTimestamp();
         }
+        batch.update(userSubmissionRef, userUpdateData);
         
         batch.commit()
             .then(() => {
@@ -581,11 +581,11 @@ function AffiliateApprovalList() {
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
-                    path: submissionRef.path, // We can use any of the batched refs for context
+                    path: submissionRef.path,
                     operation: 'write',
                     requestResourceData: { 
                         globalSubmission: { status: newStatus },
-                        userSubmission: { status: newStatus },
+                        userSubmission: userUpdateData,
                         userCoinUpdate: newStatus === 'approved' ? { coins: `increment(${submission.rewardAmount})` } : undefined
                     },
                 });
@@ -595,7 +595,6 @@ function AffiliateApprovalList() {
 
     const getFormattedDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
-        // The useCollection hook already converts Timestamps to Date objects
         return formatDistanceToNow(timestamp, { addSuffix: true });
     };
     

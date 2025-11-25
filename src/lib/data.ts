@@ -70,13 +70,13 @@ export interface AffiliateOffer {
   imageUrl: string;
   imageHint: string;
   rewardCoins: number;
+  createdAt: FieldValue;
 }
 
 export interface UserAffiliate {
-    id: string;
-    userId: string;
-    offerId: string;
-    completedAt: FieldValue;
+    id: string; // offerId
+    status: 'pending' | 'approved' | 'rejected';
+    approvedAt?: Timestamp;
 }
 
 export interface AffiliateSubmission {

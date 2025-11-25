@@ -2,11 +2,12 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import type { AffiliateOffer, UserProfile, UserAffiliate } from '@/lib/data';
+import type { AffiliateOffer, UserAffiliate } from '@/lib/data';
 import AffiliateOfferCard from '@/components/app/affiliate-offer-card';
-import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMemo } from 'react';
 
 export default function AffiliatePage() {
   const { firestore, user } = useFirebase();
@@ -17,31 +18,46 @@ export default function AffiliatePage() {
   );
   const { data: offers, isLoading: offersLoading } =
     useCollection<AffiliateOffer>(offersQuery);
-
-  const userProfileRef = useMemoFirebase(
-    () => (user && firestore ? doc(firestore, 'users', user.uid) : null),
-    [user, firestore]
-  );
-  const { data: userProfile, isLoading: userLoading } =
-    useDoc<UserProfile>(userProfileRef);
     
   const userSubmissionsQuery = useMemoFirebase(
     () => (user && firestore ? collection(firestore, `users/${user.uid}/affiliateSignups`) : null),
     [user, firestore]
   );
-  const { data: userSubmissions, isLoading: submissionsLoading } = useCollection<{status: string}>(userSubmissionsQuery);
-
-  const completedOffers = useMemoFirebase(
-      () => userSubmissions?.filter(s => s.status === 'approved').map(s => s.id) ?? [],
-      [userSubmissions]
-  ) as string[];
-
-  const pendingOffers = useMemoFirebase(
-      () => userSubmissions?.filter(s => s.status === 'pending').map(s => s.id) ?? [],
-      [userSubmissions]
-  ) as string[];
+  const { data: userSubmissions, isLoading: submissionsLoading } = useCollection<UserAffiliate>(userSubmissionsQuery);
   
-  const isLoading = offersLoading || userLoading || submissionsLoading;
+  const isLoading = offersLoading || submissionsLoading;
+  
+  const twentyFourHoursAgo = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000), []);
+  const oneWeekAgo = useMemo(() => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), []);
+
+  const filteredOffers = useMemo(() => {
+    if (!offers || !userSubmissions) return [];
+
+    return offers.filter(offer => {
+      const submission = userSubmissions.find(s => s.id === offer.id);
+
+      if (submission) {
+        if (submission.status === 'approved') {
+          // If approved, check if it was approved more than 24 hours ago
+          if (submission.approvedAt && submission.approvedAt.toDate() < twentyFourHoursAgo) {
+            return false; // Hide old, completed offers
+          }
+        }
+        // Always show pending or rejected offers, or recently approved ones
+        return true;
+      } else {
+        // If no submission, check if the offer itself is too old
+        const offerCreationDate = offer.createdAt?.toDate ? offer.createdAt.toDate() : new Date(0);
+        if (offerCreationDate < oneWeekAgo) {
+          return false; // Hide un-actioned offers older than a week
+        }
+      }
+      
+      return true; // Show offer
+    });
+
+  }, [offers, userSubmissions, twentyFourHoursAgo, oneWeekAgo]);
+
 
   return (
     <AppLayout title="Affiliate Offers">
@@ -56,13 +72,11 @@ export default function AffiliatePage() {
           ? Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-96 rounded-lg" />
             ))
-          : offers?.map((offer) => (
+          : filteredOffers?.map((offer) => (
               <AffiliateOfferCard
                 key={offer.id}
                 offer={offer}
-                userProfile={userProfile}
-                completedOffers={completedOffers}
-                pendingOffers={pendingOffers}
+                userSubmission={userSubmissions?.find(s => s.id === offer.id)}
               />
             ))}
       </div>
