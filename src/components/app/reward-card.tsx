@@ -16,8 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Coins, Crown, Loader2, CheckCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { useFirebase } from '@/firebase';
-import { doc, increment, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirebase, errorEmitter, FirestorePermissionError, updateDocumentNonBlocking } from '@/firebase';
+import { doc, increment, setDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useState } from 'react';
 
 interface RewardCardProps {
@@ -65,25 +65,38 @@ export default function RewardCard({
 
     setRedeemState('loading');
     
-    const batch = writeBatch(firestore);
-    const userRef = doc(firestore, 'users', user.uid);
-    batch.update(userRef, { coins: increment(-reward.coins) });
-
-    if (reward.type === 'physical') {
-        const fulfillmentRef = doc(collection(firestore, 'fulfillments'));
-        batch.set(fulfillmentRef, {
-            id: fulfillmentRef.id,
-            userId: user.uid,
-            userEmail: user.email, // This was the missing field
-            rewardId: reward.id,
-            rewardDetails: { name: reward.name, coins: reward.coins },
-            status: 'pending',
-            requestedAt: serverTimestamp(),
-        });
-    }
-
+    // This is a more direct approach to ensure the fulfillment request is created.
     try {
-        await batch.commit();
+        if (reward.type === 'physical') {
+            const fulfillmentRef = doc(collection(firestore, 'fulfillments'));
+            const fulfillmentData = {
+                id: fulfillmentRef.id,
+                userId: user.uid,
+                userEmail: user.email,
+                rewardId: reward.id,
+                rewardDetails: { name: reward.name, coins: reward.coins },
+                status: 'pending' as const,
+                requestedAt: serverTimestamp(),
+            };
+
+            await setDoc(fulfillmentRef, fulfillmentData)
+                .catch(err => {
+                     // Make sure any security rule failure is visible
+                    const permissionError = new FirestorePermissionError({
+                        path: fulfillmentRef.path,
+                        operation: 'create',
+                        requestResourceData: fulfillmentData
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    // Re-throw to stop execution
+                    throw err; 
+                });
+        }
+        
+        // Deduct coins as a separate, non-blocking update for responsiveness
+        const userRef = doc(firestore, 'users', user.uid);
+        updateDocumentNonBlocking(userRef, { coins: increment(-reward.coins) });
+
         setRedeemState('success');
         toast({
             title: 'Redemption successful!',
@@ -94,7 +107,7 @@ export default function RewardCard({
 
         setTimeout(() => {
             setRedeemState('idle');
-        }, 3000); // Revert button state after 3 seconds
+        }, 3000);
 
     } catch (error) {
         console.error("Redemption failed:", error);
@@ -169,4 +182,3 @@ export default function RewardCard({
   );
 }
 
-    
