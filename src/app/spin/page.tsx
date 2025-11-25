@@ -1,4 +1,3 @@
-
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
@@ -356,7 +355,7 @@ export default function SpinPage() {
             <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
                 <Button asChild>
                     <Link href="/store">
-                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        <ShoppingCart className="mr-2 h-5 w-5" />
                         Buy More Spins!
                     </Link>
                 </Button>
@@ -380,3 +379,5 @@ export default function SpinPage() {
     </AppLayout>
   );
 }
+
+    
