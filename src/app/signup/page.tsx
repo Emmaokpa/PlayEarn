@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -16,7 +17,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import Link from 'next/link';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Check, X, Loader2 } from 'lucide-react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import {
   doc,
@@ -29,9 +30,12 @@ import {
   getDocs,
   limit,
   increment,
+  getDoc,
 } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -42,11 +46,16 @@ const formSchema = z.object({
   referralCode: z.string().optional(),
 });
 
+type ReferralStatus = 'idle' | 'loading' | 'valid' | 'invalid';
+
 export default function SignUpPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
+
+  const [referralStatus, setReferralStatus] = useState<ReferralStatus>('idle');
+  const [referrerId, setReferrerId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,6 +66,45 @@ export default function SignUpPage() {
       referralCode: '',
     },
   });
+
+  const referralCode = form.watch('referralCode');
+  const debouncedReferralCode = useDebounce(referralCode, 500);
+
+  const validateReferralCode = useCallback(
+    async (code: string) => {
+      if (!firestore) return;
+      if (!code) {
+        setReferralStatus('idle');
+        setReferrerId(null);
+        return;
+      }
+      setReferralStatus('loading');
+      try {
+        const q = query(
+          collection(firestore, 'users'),
+          where('referralCode', '==', code.trim().toUpperCase()),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          setReferralStatus('valid');
+          setReferrerId(querySnapshot.docs[0].id);
+        } else {
+          setReferralStatus('invalid');
+          setReferrerId(null);
+        }
+      } catch (error) {
+        console.error('Referral validation error:', error);
+        setReferralStatus('idle');
+        setReferrerId(null);
+      }
+    },
+    [firestore]
+  );
+
+  useEffect(() => {
+    validateReferralCode(debouncedReferralCode ?? '');
+  }, [debouncedReferralCode, validateReferralCode]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!firestore || !auth) {
@@ -80,48 +128,42 @@ export default function SignUpPage() {
       let initialCoins = 100; // Default starting coins
       const referralReward = 1000;
 
-      // 2. Handle referral if code is provided
-      if (values.referralCode) {
-        const usersRef = collection(firestore, 'users');
-        const q = query(
-          usersRef,
-          where('referralCode', '==', values.referralCode.trim().toUpperCase()),
-          limit(1)
-        );
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const referrerDoc = querySnapshot.docs[0];
-          batch.update(referrerDoc.ref, {
-            coins: increment(referralReward),
-          });
-          initialCoins += referralReward; // Give bonus to new user
-          toast({
-            title: 'Referral Applied!',
-            description: `You and your friend both received ${referralReward.toLocaleString()} coins!`,
-          });
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Invalid Referral Code',
-            description: 'The code you entered was not found. Continuing sign-up without bonus.',
-          });
-        }
+      // 2. Handle referral if code is valid and referrerId is set
+      if (referralStatus === 'valid' && referrerId) {
+        const referrerRef = doc(firestore, 'users', referrerId);
+        batch.update(referrerRef, {
+          coins: increment(referralReward),
+        });
+        initialCoins += referralReward; // Give bonus to new user
+        toast({
+          title: 'Referral Applied!',
+          description: `You and your friend both received ${referralReward.toLocaleString()} coins!`,
+        });
+      } else if (values.referralCode) {
+        // If code was entered but is invalid, inform the user
+        toast({
+          variant: 'destructive',
+          title: 'Invalid Referral Code',
+          description: 'Continuing sign-up without bonus.',
+        });
       }
+
 
       // 3. Create new user's profile in Firestore
       const userDocRef = doc(firestore, 'users', user.uid);
       batch.set(userDocRef, {
         id: user.uid,
         telegramId: user.uid, // Using UID as a placeholder
+        username: values.name.toLowerCase().replace(/\s/g, ''), // simple username
         name: values.name,
-        username: values.name.toLowerCase().replace(/\\s/g, ''), // simple username
         avatarUrl: `https://picsum.photos/seed/${user.uid}/100/100`, // Placeholder
         coins: initialCoins, // Starting coins + referral bonus
         referralCode: `${user.uid.substring(0, 6).toUpperCase()}`,
         isVip: false,
         isAdmin: false, // New users are never admins
         registrationDate: serverTimestamp(),
+        gamePlaysToday: 0,
+        lastGameplayReset: new Date().toISOString().split('T')[0],
       });
 
       // 4. Commit all database changes
@@ -146,6 +188,19 @@ export default function SignUpPage() {
       });
     }
   }
+
+  const renderReferralStatus = () => {
+    switch (referralStatus) {
+      case 'loading':
+        return <p className="text-xs text-muted-foreground flex items-center mt-2"><Loader2 className="h-3 w-3 mr-1 animate-spin"/>Checking code...</p>;
+      case 'valid':
+        return <p className="text-xs text-green-500 flex items-center mt-2"><Check className="h-3 w-3 mr-1"/>Referral Applied!</p>;
+      case 'invalid':
+        return <p className="text-xs text-destructive flex items-center mt-2"><X className="h-3 w-3 mr-1"/>Invalid code</p>;
+      default:
+        return <FormDescription>Enter a code to get a bonus!</FormDescription>;
+    }
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -212,6 +267,7 @@ export default function SignUpPage() {
                   <FormControl>
                     <Input placeholder="ABC123" {...field} />
                   </FormControl>
+                  {renderReferralStatus()}
                   <FormMessage />
                 </FormItem>
               )}
