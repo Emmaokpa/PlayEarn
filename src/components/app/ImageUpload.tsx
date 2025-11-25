@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { CldUploadWidget } from 'next-cloudinary';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import Image from 'next/image';
 
 interface ImageUploadProps {
@@ -39,17 +39,36 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
       toast({
         variant: 'destructive',
         title: 'Upload Failed',
-        description: 'There was a problem with the image uploader. Please check the console.',
+        description: 'There was a problem with the image uploader. Please check your configuration.',
       });
   };
+  
+  const handleRemoveImage = () => {
+    setImageUrl('');
+    onUpload('');
+  }
 
-  if (!cloudName) {
-    return (
-      <Button type="button" variant="outline" disabled>
-        <Upload className="mr-2 h-4 w-4" />
-        Upload Disabled
-      </Button>
-    );
+  if (imageUrl) {
+      return (
+        <div className="relative w-fit">
+          <Image
+            src={imageUrl}
+            alt="Uploaded image preview"
+            width={200}
+            height={150}
+            className="rounded-md border object-cover"
+          />
+          <Button 
+            type="button"
+            variant="destructive"
+            size="icon"
+            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+            onClick={handleRemoveImage}
+          >
+            <X className="h-4 w-4"/>
+          </Button>
+        </div>
+      )
   }
 
   return (
@@ -74,6 +93,7 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
               type="button"
               variant="outline"
               onClick={handleOnClick}
+              disabled={!cloudName}
             >
               <Upload className="mr-2 h-4 w-4" />
               Upload Image
@@ -81,19 +101,7 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
           );
         }}
       </CldUploadWidget>
-
-      {imageUrl && (
-        <div className="mt-4">
-          <p className="text-sm text-muted-foreground mb-2">Image Preview:</p>
-          <Image
-            src={imageUrl}
-            alt="Uploaded image preview"
-            width={200}
-            height={150}
-            className="rounded-md border object-cover"
-          />
-        </div>
-      )}
     </div>
   );
 }
+
