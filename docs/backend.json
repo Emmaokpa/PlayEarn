@@ -326,12 +326,13 @@
         "userName": { "type": "string", "description": "The name of the user for easy identification in admin panel." },
         "offerId": { "type": "string", "description": "The ID of the affiliate offer." },
         "offerTitle": { "type": "string", "description": "The title of the offer for easy identification." },
-        "proof": { "type": "string", "description": "The proof submitted by the user (e.g., username, email)." },
+        "proofText": { "type": "string", "description": "The text proof submitted by the user (e.g., username, email)." },
+        "proofImageUrl": { "type": "string", "description": "The URL of the image proof submitted by the user (e.g., screenshot)." },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "The status of the submission." },
         "submittedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the submission was made." },
         "rewardAmount": { "type": "number", "description": "The number of coins to be rewarded upon approval." }
       },
-      "required": ["id", "userId", "userName", "offerId", "offerTitle", "proof", "status", "submittedAt", "rewardAmount"]
+      "required": ["id", "userId", "userName", "offerId", "offerTitle", "status", "submittedAt", "rewardAmount"]
     },
     "UserSpinData": {
         "$schema": "http://json-schema.org/draft-07/schema#",

@@ -163,13 +163,30 @@ service cloud.firestore {
     }
 
     /**
+     * @description Validates an affiliate submission on creation.
+     * @param {map} data The incoming resource data.
+     * @return {boolean} True if the data is valid, false otherwise.
+     */
+    function isValidAffiliateSubmission(data) {
+      return data.userId == request.auth.uid &&
+             data.userName is string &&
+             data.offerId is string &&
+             data.offerTitle is string &&
+             data.status == 'pending' &&
+             data.submittedAt == request.time &&
+             data.rewardAmount is number &&
+             (data.proofText is string || data.proofImageUrl is string);
+    }
+
+
+    /**
      * @description Rules for affiliate offer submissions.
      * @path /affiliateSubmissions/{submissionId}
-     * @principle Admins have full control. Users can only create their own.
+     * @principle Admins have full control. Users can only create their own with valid data.
      */
      match /affiliateSubmissions/{submissionId} {
        allow read, list, update, delete: if isAdmin();
-       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+       allow create: if isSignedIn() && isValidAffiliateSubmission(request.resource.data);
      }
   }
 }

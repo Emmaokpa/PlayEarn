@@ -27,7 +27,7 @@ import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase'
 import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert, Trash2, Edit, List, Database, Check, X } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, use } from 'react';
 import {
@@ -48,6 +48,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 
 
 const gameFormSchema = z.object({
@@ -580,6 +581,12 @@ function AffiliateApprovalList() {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not process submission.' });
         }
     };
+
+    const getFormattedDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A';
+        // The useCollection hook already converts Timestamps to Date objects
+        return formatDistanceToNow(timestamp, { addSuffix: true });
+    };
     
     if (isLoading) {
         return (
@@ -613,8 +620,15 @@ function AffiliateApprovalList() {
                                 <TableRow key={s.id}>
                                     <TableCell>{s.userName}</TableCell>
                                     <TableCell>{s.offerTitle}</TableCell>
-                                    <TableCell className="font-mono text-xs">{s.proof}</TableCell>
-                                    <TableCell className="text-muted-foreground">{formatDistanceToNow(s.submittedAt, { addSuffix: true })}</TableCell>
+                                    <TableCell>
+                                        {s.proofText && <p className="font-mono text-xs">{s.proofText}</p>}
+                                        {s.proofImageUrl && (
+                                            <Link href={s.proofImageUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                                                View Image <ExternalLink className="h-3 w-3" />
+                                            </Link>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{getFormattedDate(s.submittedAt)}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex gap-2 justify-end">
                                             <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => handleApproval(s, 'approved')}><Check className="h-4 w-4" /></Button>
@@ -763,5 +777,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    

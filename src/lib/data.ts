@@ -85,7 +85,8 @@ export interface AffiliateSubmission {
   userName: string;
   offerId: string;
   offerTitle: string;
-  proof: string;
+  proofText: string;
+  proofImageUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: FieldValue;
   rewardAmount: number;

@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, CheckCircle, ExternalLink, Send, Hourglass } from 'lucide-react';
+import { Coins, CheckCircle, ExternalLink, Send, Hourglass, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
 import { doc, serverTimestamp, setDoc, collection } from 'firebase/firestore';
@@ -31,6 +31,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
+import ImageUpload from './ImageUpload';
+import { Label } from '@/components/ui/label';
 
 interface AffiliateOfferCardProps {
   offer: AffiliateOffer;
@@ -47,14 +49,15 @@ export default function AffiliateOfferCard({
 }: AffiliateOfferCardProps) {
   const { toast } = useToast();
   const { firestore, user } = useFirebase();
-  const [proof, setProof] = useState('');
+  const [proofText, setProofText] = useState('');
+  const [proofImageUrl, setProofImageUrl] = useState('');
   
   const isCompleted = completedOffers.includes(offer.id);
   const isPending = pendingOffers.includes(offer.id);
 
   const handleSubmitForReview = async () => {
-    if (!user || !firestore || !userProfile || !proof) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please provide proof of completion.' });
+    if (!user || !firestore || !userProfile || (!proofText && !proofImageUrl)) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please provide text or image proof of completion.' });
         return;
     }
     
@@ -66,7 +69,8 @@ export default function AffiliateOfferCard({
             userName: userProfile.name,
             offerId: offer.id,
             offerTitle: offer.title,
-            proof: proof,
+            proofText: proofText,
+            proofImageUrl: proofImageUrl,
             status: 'pending',
             submittedAt: serverTimestamp(),
             rewardAmount: offer.rewardCoins,
@@ -81,7 +85,8 @@ export default function AffiliateOfferCard({
             title: 'Submission Received!',
             description: 'Your submission is now pending review by an admin. You will receive your coins upon approval.',
         });
-        setProof('');
+        setProofText('');
+        setProofImageUrl('');
 
     } catch (error) {
        console.error("Error submitting for review:", error);
@@ -123,22 +128,30 @@ export default function AffiliateOfferCard({
                 <AlertDialogHeader>
                     <AlertDialogTitle>Submit Proof for "{offer.title}"</AlertDialogTitle>
                     <AlertDialogDescription>
-                        After completing the offer, provide your username or email used for signup as proof. An admin will review it.
+                        After completing the offer, provide proof of completion (e.g. username, email, screenshot). An admin will review it.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="space-y-2">
-                    <Input 
-                        value={proof} 
-                        onChange={(e) => setProof(e.target.value)}
-                        placeholder="e.g., your_username or you@email.com"
-                    />
+                <div className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="proofText">Text Proof (Username, Email, etc.)</Label>
+                        <Input 
+                            id="proofText"
+                            value={proofText} 
+                            onChange={(e) => setProofText(e.target.value)}
+                            placeholder="e.g., your_username"
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Image Proof (Screenshot)</Label>
+                        <ImageUpload onUpload={setProofImageUrl} initialImageUrl={proofImageUrl} />
+                    </div>
                      <Link href={offer.link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
                         Go to Offer Page <ExternalLink className="h-4 w-4" />
                     </Link>
                 </div>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleSubmitForReview} disabled={!proof}>
+                    <AlertDialogAction onClick={handleSubmitForReview} disabled={!proofText && !proofImageUrl}>
                         Submit
                     </AlertDialogAction>
                 </AlertDialogFooter>
