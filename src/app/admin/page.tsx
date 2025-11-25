@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
-import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where } from 'firebase/firestore';
+import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -561,13 +561,11 @@ function AffiliateApprovalList() {
         
         // 1. Update the global submission document
         const submissionRef = doc(firestore, 'affiliateSubmissions', submission.id);
-        const submissionUpdate = { status: newStatus };
-        batch.update(submissionRef, submissionUpdate);
+        batch.update(submissionRef, { status: newStatus });
 
         // 2. Update the user-specific submission status document
         const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
-        const userSubmissionUpdate = { status: newStatus };
-        batch.set(userSubmissionRef, userSubmissionUpdate, { merge: true });
+        batch.update(userSubmissionRef, { status: newStatus });
 
         if (newStatus === 'approved') {
             const userRef = doc(firestore, 'users', submission.userId);
@@ -586,8 +584,8 @@ function AffiliateApprovalList() {
                     path: submissionRef.path, // We can use any of the batched refs for context
                     operation: 'write',
                     requestResourceData: { 
-                        globalSubmission: submissionUpdate,
-                        userSubmission: userSubmissionUpdate,
+                        globalSubmission: { status: newStatus },
+                        userSubmission: { status: newStatus },
                         userCoinUpdate: newStatus === 'approved' ? { coins: `increment(${submission.rewardAmount})` } : undefined
                     },
                 });
@@ -790,5 +788,3 @@ export default function AdminPage() {
     </AppLayout>
   );
 }
-
-    

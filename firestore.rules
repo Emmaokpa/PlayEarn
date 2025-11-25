@@ -101,9 +101,12 @@ service cloud.firestore {
 
       allow delete: if false; // Deleting users should be handled carefully, disabling for now.
 
-      // User can create their own affiliate signup records, Admins can update them (for rejection)
+      // User can create their own submission records.
+      // Admins can update them (to approve/reject).
       match /affiliateSignups/{offerId} {
-        allow write: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isAdmin();
+        allow read, delete: if isOwner(userId) || isAdmin();
       }
 
       // Rules for all other subcollections under a user's document
