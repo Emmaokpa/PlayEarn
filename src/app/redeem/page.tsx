@@ -76,8 +76,8 @@ export default function RedeemPage() {
         <AlertTitle className="font-bold">How Rewards Work</AlertTitle>
         <AlertDescription>
           <ul className="mt-2 list-disc pl-5 space-y-1 text-sm">
-            <li><b>10,000 coins = $1.00 USD</b></li>
-            <li>Minimum redemption is 15,000 coins ($1.50).</li>
+            <li><b>1,000 coins = $1.00 USD</b></li>
+            <li>Minimum redemption is 1,500 coins ($1.50).</li>
             <li>A 10% service fee applies to all cash reward redemptions.</li>
             <li>Play more games and complete offers to earn coins faster!</li>
           </ul>
