@@ -107,14 +107,14 @@ export default function SubmitAffiliatePage({ params }: { params: Promise<{ offe
 
   return (
     <AppLayout title="Submit Proof">
-      <Card className="flex flex-col">
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <CardTitle>Submit Proof for "{offer.title}"</CardTitle>
           <CardDescription>
             After completing the offer, provide proof of completion (e.g. username, email, or a screenshot). An admin will review it and award your coins.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 space-y-6">
+        <CardContent className="flex-1 space-y-6 min-h-0">
           <div className="space-y-2">
             <Label htmlFor="proofText">Text Proof (Username, Email, etc.)</Label>
             <Input
