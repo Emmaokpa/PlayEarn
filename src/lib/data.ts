@@ -32,6 +32,7 @@ export interface UserProfile {
   isAdmin: boolean;
   registrationDate: string;
   gamePlaysToday?: number;
+  lastGameplayReset?: string;
 }
 
 export interface AdView {

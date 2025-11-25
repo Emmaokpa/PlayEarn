@@ -232,21 +232,20 @@ export default function ChallengesPage() {
   );
 
   useEffect(() => {
-    if (!dailyChallengeStateRef) return;
+    if (!dailyChallengeStateRef || !user || !firestore) return;
     const fetchClaimedStatus = async () => {
         const docSnap = await getDoc(dailyChallengeStateRef);
         if (docSnap.exists()) {
             setClaimedChallenges(docSnap.data().claimed ?? []);
-            // Also check if we need to reset gamePlaysToday
-            if (docSnap.data().lastResetDate !== todayStr && user) {
-                await setDoc(doc(firestore, `users/${user.uid}`), { gamePlaysToday: 0 }, { merge: true });
-            }
-
         } else {
-            // New day, reset the claimed challenges and gameplays
+            // New day, reset claimed challenges and gameplays
             setClaimedChallenges([]);
             if (user) {
-                await setDoc(doc(firestore, `users/${user.uid}`), { gamePlaysToday: 0 }, { merge: true });
+                // Check if user's last gameplay reset was not today
+                const userDocSnap = await getDoc(doc(firestore, `users/${user.uid}`));
+                if (userDocSnap.exists() && userDocSnap.data().lastGameplayReset !== todayStr) {
+                    await setDoc(doc(firestore, `users/${user.uid}`), { gamePlaysToday: 0, lastGameplayReset: todayStr }, { merge: true });
+                }
             }
         }
     };
@@ -287,7 +286,7 @@ export default function ChallengesPage() {
         
         if (!dailyChallengeStateRef) throw new Error("Daily challenge state ref not found");
         const newClaimed = [...claimedChallenges, challengeId];
-        batch.set(dailyChallengeStateRef, { claimed: newClaimed, lastResetDate: todayStr }, { merge: true });
+        batch.set(dailyChallengeStateRef, { claimed: newClaimed }, { merge: true });
 
         await batch.commit();
 

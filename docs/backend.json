@@ -51,6 +51,10 @@
         "gamePlaysToday": {
             "type": "number",
             "description": "The number of game sessions played today. Resets daily."
+        },
+        "lastGameplayReset": {
+            "type": "string",
+            "description": "The date of the last gameplay reset (YYYY-MM-DD)."
         }
       },
       "required": [
@@ -339,6 +343,17 @@
             "timestamp": { "type": "string", "format": "date-time", "description": "When the spin occurred." }
         },
         "required": ["id", "userId", "prizeWon", "spinType", "timestamp"]
+    },
+    "DailyChallenges": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "DailyChallenges",
+        "type": "object",
+        "description": "Tracks a user's daily challenge completion status.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID for the record, should be the date (YYYY-MM-DD)." },
+            "claimed": { "type": "array", "items": { "type": "string" }, "description": "An array of challenge IDs that have been claimed for this day." }
+        },
+        "required": ["id", "claimed"]
     }
   },
   "auth": {
@@ -524,8 +539,20 @@
             { "name": "spinId", "description": "The unique ID for the spin event." }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/dailyChallenges/{date}",
+        "definition": {
+          "entityName": "DailyChallenges",
+          "schema": { "$ref": "#/backend/entities/DailyChallenges" },
+          "description": "A collection storing daily challenge completion status for a user, keyed by date (YYYY-MM-DD). Path-based ownership.",
+          "params": [
+            { "name": "userId", "description": "The unique ID of the user." },
+            { "name": "date", "description": "The date of the challenge status (YYYY-MM-DD)." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game definitions. These are publicly readable.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **In-App Purchases:** `/inAppPurchases/{purchaseId}` is a new generic collection for all real-money purchases, replacing the old `coinPacks` collection to support both coins and spins. Publicly readable.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups, spinData, spinHistory) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
+    "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game definitions. These are publicly readable.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **In-App Purchases:** `/inAppPurchases/{purchaseId}` is a new generic collection for all real-money purchases, replacing the old `coinPacks` collection to support both coins and spins. Publicly readable.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups, spinData, spinHistory, dailyChallenges) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
   }
 }
