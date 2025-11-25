@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { CldUploadWidget } from 'next-cloudinary';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Upload } from 'lucide-react';
 
 interface ImageUploadProps {
   onUpload: (url: string) => void;
@@ -17,57 +18,50 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
   useEffect(() => {
-    console.log('ImageUpload component mounted. Cloud Name:', cloudName);
     setImageUrl(initialImageUrl);
-  }, [initialImageUrl, cloudName]);
+  }, [initialImageUrl]);
 
-  const handleUploadSuccess = (result: any) => {
-    console.log('Cloudinary success result:', result);
+  const handleSuccess = (result: any) => {
     if (result.event === 'success' && result.info?.secure_url) {
-        const url = result.info.secure_url;
-        setImageUrl(url);
-        onUpload(url);
-        toast({
-          title: 'Image Uploaded',
-          description: 'Your image has been uploaded successfully.',
-        });
+      const url = result.info.secure_url;
+      setImageUrl(url);
+      onUpload(url);
+      toast({
+        title: 'Image Uploaded',
+        description: 'Your image has been uploaded successfully.',
+      });
     }
   };
-  
-  const handleUploadError = (error: any) => {
-     console.error('Upload widget error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Upload Failed',
-        description: 'There was a problem with the image uploader. Please check the console for details.',
-      });
-  }
+
+  const handleError = (error: any) => {
+    console.error('Upload widget error:', error);
+    toast({
+      variant: 'destructive',
+      title: 'Upload Failed',
+      description: 'There was a problem with the image uploader. Please check the console.',
+    });
+  };
 
   if (!cloudName) {
-    console.error("Critical Error: Cloudinary cloud name is not configured.");
     return (
       <Button type="button" variant="outline" disabled>
+        <Upload className="mr-2 h-4 w-4" />
         Upload Disabled
       </Button>
-    )
+    );
   }
 
   return (
     <div>
-        <CldUploadWidget
-            uploadPreset="qa4yjgs4"
-            onSuccess={handleUploadSuccess}
-            onError={handleUploadError}
-            options={{
-                cloudName: cloudName,
-                sources: ['local', 'url'],
-                multiple: false
-            }}
-        >
+      <CldUploadWidget
+        options={{ cloudName }}
+        uploadPreset="qa4yjgs4"
+        onSuccess={handleSuccess}
+        onError={handleError}
+      >
         {({ open }) => {
           function handleOnClick(e: React.MouseEvent<HTMLButtonElement>) {
             e.preventDefault();
-            console.log('Upload button clicked. Attempting to open widget.');
             if (typeof open === 'function') {
               open();
             } else {
@@ -80,6 +74,7 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
               variant="outline"
               onClick={handleOnClick}
             >
+              <Upload className="mr-2 h-4 w-4" />
               Upload Image
             </Button>
           );
