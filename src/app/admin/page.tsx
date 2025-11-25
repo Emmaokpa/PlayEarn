@@ -24,7 +24,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import type { Game, UserProfile, Reward, InAppPurchase } from '@/lib/data';
+import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ShieldAlert, Trash2, Edit, List, Database } from 'lucide-react';
@@ -450,12 +450,104 @@ function IAPList({ onEdit, onDelete, packs, isLoading }: { onEdit: (pack: InAppP
     )
 }
 
+function AddAffiliateForm({ selectedOffer, onClearSelection }: { selectedOffer: AffiliateOffer | null; onClearSelection: () => void; }) {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof affiliateFormSchema>>({
+        resolver: zodResolver(affiliateFormSchema),
+        defaultValues: { title: '', description: '', link: '', imageUrl: '', rewardCoins: 1000 },
+    });
+
+    useEffect(() => {
+        form.reset(selectedOffer || { title: '', description: '', link: '', imageUrl: '', rewardCoins: 1000 });
+    }, [selectedOffer, form]);
+
+    async function onSubmit(values: z.infer<typeof affiliateFormSchema>) {
+        if (!firestore) return;
+        try {
+            const imageHint = values.title.split(' ').slice(0, 2).join(' ');
+            if (selectedOffer) {
+                const offerRef = doc(firestore, 'affiliateOffers', selectedOffer.id);
+                await setDoc(offerRef, { ...values, imageHint }, { merge: true });
+                toast({ title: 'Offer Updated!', description: `"${values.title}" has been updated.` });
+            } else {
+                const newOfferRef = doc(collection(firestore, 'affiliateOffers'));
+                await setDoc(newOfferRef, { ...values, id: newOfferRef.id, imageHint });
+                toast({ title: 'Offer Added!', description: `"${values.title}" is now available.` });
+            }
+            form.reset({ title: '', description: '', link: '', imageUrl: '', rewardCoins: 1000 });
+            onClearSelection();
+        } catch (error) {
+            console.error('Error saving offer: ', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not save the offer.' });
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>{selectedOffer ? 'Edit Affiliate Offer' : 'Add New Affiliate Offer'}</CardTitle></CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="title" render={({ field }) => ( <FormItem><FormLabel>Offer Title</FormLabel><FormControl><Input placeholder="e.g. Sign Up for Awesome Service" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="Get 10,000 coins for signing up!" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="link" render={({ field }) => ( <FormItem><FormLabel>Affiliate URL</FormLabel><FormControl><Input placeholder="https://partner.com/track?id=123" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="rewardCoins" render={({ field }) => ( <FormItem><FormLabel>Reward (Coins)</FormLabel><FormControl><Input type="number" placeholder="10000" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Offer Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )} />
+                        <div className="flex gap-2 pt-4">
+                            <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Saving...' : (selectedOffer ? 'Update Offer' : 'Add Offer')}</Button>
+                            {selectedOffer && (<Button variant="outline" onClick={onClearSelection}>Cancel Edit</Button>)}
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
+}
+
+function AffiliateList({ onEdit, onDelete, offers, isLoading }: { onEdit: (offer: AffiliateOffer) => void; onDelete: (offerId: string) => void; offers: AffiliateOffer[] | null, isLoading: boolean }) {
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Manage Affiliate Offers</CardTitle></CardHeader>
+                <CardContent><div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div></CardContent>
+            </Card>
+        )
+    }
+    return (
+        <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><List /> Manage Affiliate Offers</CardTitle></CardHeader>
+            <CardContent>
+                <ul className="space-y-2">
+                    {offers?.map((offer) => (
+                        <li key={offer.id} className="flex items-center justify-between rounded-md border p-3">
+                            <span className="font-semibold truncate pr-2">{offer.title}</span>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="icon" onClick={() => onEdit(offer)}><Edit className="h-4 w-4" /></Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{offer.title}".</AlertDialogDescription></AlertDialogHeader>
+                                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(offer.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        </li>
+                    ))}
+                    {offers?.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No affiliate offers found.</p>}
+                </ul>
+            </CardContent>
+        </Card>
+    )
+}
+
 function AdminDashboard() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [selectedGame, setSelectedGame] = useState<Game | null>(null);
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
     const [selectedIap, setSelectedIap] = useState<InAppPurchase | null>(null);
+    const [selectedAffiliate, setSelectedAffiliate] = useState<AffiliateOffer | null>(null);
     const [isSeeding, setIsSeeding] = useState(false);
 
     const gamesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'games') : null), [firestore]);
@@ -466,6 +558,9 @@ function AdminDashboard() {
     
     const iapsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'inAppPurchases') : null), [firestore]);
     const { data: iaps, isLoading: iapsLoading } = useCollection<InAppPurchase>(iapsQuery);
+    
+    const affiliatesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'affiliateOffers') : null), [firestore]);
+    const { data: affiliates, isLoading: affiliatesLoading } = useCollection<AffiliateOffer>(affiliatesQuery);
 
     const handleEdit = <T extends { id: string }>(item: T, setSelected: (item: T) => void) => {
         setSelected(item);
@@ -512,18 +607,20 @@ function AdminDashboard() {
                         {isSeeding ? 'Seeding...' : 'Seed Database'}
                     </Button>
                     <p className="text-sm text-muted-foreground mt-2">
-                        Populate your database with initial sticker packs & affiliate offers.
+                        Populate your database with initial affiliate offers.
                     </p>
                 </CardContent>
             </Card>
             <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
             <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
             <AddIAPForm selectedPack={selectedIap} onClearSelection={() => setSelectedIap(null)} />
+            <AddAffiliateForm selectedOffer={selectedAffiliate} onClearSelection={() => setSelectedAffiliate(null)} />
         </div>
         <div className="space-y-8 lg:col-span-2">
             <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
             <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
             <IAPList packs={iaps} isLoading={iapsLoading} onEdit={(pack) => handleEdit(pack, setSelectedIap)} onDelete={(id) => handleDelete('inAppPurchases', id, 'In-App Purchase')} />
+            <AffiliateList offers={affiliates} isLoading={affiliatesLoading} onEdit={(offer) => handleEdit(offer, setSelectedAffiliate)} onDelete={(id) => handleDelete('affiliateOffers', id, 'Affiliate Offer')} />
         </div>
     </div>
   );
