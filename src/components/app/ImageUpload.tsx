@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,6 +14,7 @@ interface ImageUploadProps {
 export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUploadProps) {
   const [imageUrl, setImageUrl] = useState(initialImageUrl);
   const { toast } = useToast();
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
   useEffect(() => {
     setImageUrl(initialImageUrl);
@@ -31,8 +33,17 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
       toast({
         variant: 'destructive',
         title: 'Upload Failed',
-        description: 'There was a problem with the image uploader. Please try again.',
+        description: 'There was a problem with the image uploader. Please check your configuration and try again.',
       });
+  }
+
+  if (!cloudName) {
+    console.error("Cloudinary cloud name is not configured. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in your environment variables.");
+    return (
+      <Button type="button" variant="outline" disabled>
+        Upload Disabled
+      </Button>
+    )
   }
 
   return (
@@ -42,7 +53,7 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
             onSuccess={handleUploadSuccess}
             onError={handleUploadError}
             options={{
-                cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+                cloudName: cloudName,
                 sources: ['local', 'url'],
                 multiple: false
             }}
