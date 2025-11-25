@@ -324,9 +324,9 @@ export default function SpinPage() {
                 Watch Ad for a Spin ({AD_SPIN_LIMIT - (spinData?.adSpinsUsedToday ?? 0)} left)
             </Button>
             <Button asChild variant="outline" className="w-full" disabled={isSpinning}>
-                <Link href="/store/buy-spins">
+                <Link href="/store">
                     <ShoppingCart className="mr-2 h-4 w-4" />
-                    Buy Spin Packs
+                    Buy Spin Packs in Store
                 </Link>
             </Button>
         </div>
@@ -355,9 +355,9 @@ export default function SpinPage() {
             {renderPrizeContent()}
             <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
                 <Button asChild>
-                    <Link href="/store/buy-spins">
+                    <Link href="/store">
                         <ShoppingCart className="mr-2 h-4 w-4" />
-                        Buy More Spins for Bigger Prizes!
+                        Buy More Spins!
                     </Link>
                 </Button>
                 <AlertDialogAction onClick={() => setResult(null)} variant="outline">Awesome!</AlertDialogAction>
