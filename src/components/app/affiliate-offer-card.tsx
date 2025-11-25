@@ -33,6 +33,8 @@ import {
 import { Input } from '@/components/ui/input';
 import ImageUpload from './ImageUpload';
 import { Label } from '@/components/ui/label';
+import { CldUploadWidget } from 'next-cloudinary';
+
 
 interface AffiliateOfferCardProps {
   offer: AffiliateOffer;
@@ -51,6 +53,7 @@ export default function AffiliateOfferCard({
   const { firestore, user } = useFirebase();
   const [proofText, setProofText] = useState('');
   const [proofImageUrl, setProofImageUrl] = useState('');
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   
   const isCompleted = completedOffers.includes(offer.id);
   const isPending = pendingOffers.includes(offer.id);
@@ -143,8 +146,42 @@ export default function AffiliateOfferCard({
                     </div>
                      <div className="space-y-2">
                         <Label>Image Proof (Screenshot)</Label>
-                        <ImageUpload onUpload={setProofImageUrl} initialImageUrl={proofImageUrl} />
-                    </div>
+                        <CldUploadWidget
+                            options={{ cloudName }}
+                            uploadPreset="qa4yjgs4"
+                            onSuccess={(result: any) => {
+                                if (result.event === 'success') {
+                                    setProofImageUrl(result.info.secure_url);
+                                }
+                            }}
+                        >
+                        {({ open }) => {
+                            return (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => open()}
+                                    disabled={!cloudName}
+                                >
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Upload Image
+                                </Button>
+                            );
+                        }}
+                        </CldUploadWidget>
+                        {proofImageUrl && (
+                           <div className="mt-4">
+                                <p className="text-sm text-muted-foreground mb-2">Image Preview:</p>
+                                <Image
+                                    src={proofImageUrl}
+                                    alt="Uploaded image preview"
+                                    width={200}
+                                    height={150}
+                                    className="rounded-md border object-cover"
+                                />
+                           </div>
+                        )}
+                     </div>
                      <Link href={offer.link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
                         Go to Offer Page <ExternalLink className="h-4 w-4" />
                     </Link>

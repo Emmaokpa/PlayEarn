@@ -6,6 +6,7 @@ import { CldUploadWidget } from 'next-cloudinary';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Upload } from 'lucide-react';
+import Image from 'next/image';
 
 interface ImageUploadProps {
   onUpload: (url: string) => void;
@@ -33,13 +34,13 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
     }
   };
 
-  const handleError = (error: any) => {
-    console.error('Upload widget error:', error);
-    toast({
-      variant: 'destructive',
-      title: 'Upload Failed',
-      description: 'There was a problem with the image uploader. Please check the console.',
-    });
+  const handleUploadError = (error: any) => {
+     console.error('Upload widget error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: 'There was a problem with the image uploader. Please check the console.',
+      });
   };
 
   if (!cloudName) {
@@ -57,7 +58,7 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
         options={{ cloudName }}
         uploadPreset="qa4yjgs4"
         onSuccess={handleSuccess}
-        onError={handleError}
+        onError={handleUploadError}
       >
         {({ open }) => {
           function handleOnClick(e: React.MouseEvent<HTMLButtonElement>) {
@@ -84,12 +85,12 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
       {imageUrl && (
         <div className="mt-4">
           <p className="text-sm text-muted-foreground mb-2">Image Preview:</p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={imageUrl}
             alt="Uploaded image preview"
             width={200}
-            className="rounded-md border"
+            height={150}
+            className="rounded-md border object-cover"
           />
         </div>
       )}
