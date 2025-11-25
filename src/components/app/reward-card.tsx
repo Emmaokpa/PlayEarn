@@ -13,17 +13,20 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, Crown } from 'lucide-react';
+import { Coins, Crown, Loader2, CheckCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { useFirebase } from '@/firebase';
 import { doc, increment, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
+import { useState } from 'react';
 
 interface RewardCardProps {
   reward: Reward;
   isUserVip: boolean;
   userCoins: number;
 }
+
+type RedeemState = 'idle' | 'loading' | 'success';
 
 export default function RewardCard({
   reward,
@@ -32,12 +35,13 @@ export default function RewardCard({
 }: RewardCardProps) {
   const { toast } = useToast();
   const { firestore, user } = useFirebase();
+  const [redeemState, setRedeemState] = useState<RedeemState>('idle');
 
   const canAfford = userCoins >= reward.coins;
   const canRedeem = reward.isVipOnly ? isUserVip && canAfford : canAfford;
 
   const handleRedeem = async () => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || redeemState !== 'idle') return;
 
     if (reward.isVipOnly && !isUserVip) {
       toast({
@@ -58,13 +62,13 @@ export default function RewardCard({
       });
       return;
     }
+
+    setRedeemState('loading');
     
-    // Use a batch to deduct coins and create fulfillment request atomically
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.uid);
     batch.update(userRef, { coins: increment(-reward.coins) });
 
-    // For physical rewards, create a fulfillment request
     if (reward.type === 'physical') {
         const fulfillmentRef = doc(collection(firestore, 'fulfillments'));
         batch.set(fulfillmentRef, {
@@ -80,14 +84,21 @@ export default function RewardCard({
 
     try {
         await batch.commit();
+        setRedeemState('success');
         toast({
             title: 'Redemption successful!',
             description: reward.type === 'physical' 
               ? `Your request for "${reward.name}" is being processed.`
               : `You've successfully redeemed "${reward.name}".`,
         });
+
+        setTimeout(() => {
+            setRedeemState('idle');
+        }, 3000); // Revert button state after 3 seconds
+
     } catch (error) {
         console.error("Redemption failed:", error);
+        setRedeemState('idle');
         toast({
             variant: 'destructive',
             title: 'Redemption Failed',
@@ -95,6 +106,17 @@ export default function RewardCard({
         });
     }
   };
+  
+  const getButtonContent = () => {
+    switch (redeemState) {
+        case 'loading':
+            return <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing...</>;
+        case 'success':
+            return <><CheckCircle className="mr-2 h-4 w-4" />Success!</>;
+        default:
+            return 'Redeem';
+    }
+  }
 
   return (
     <Card
@@ -135,8 +157,12 @@ export default function RewardCard({
           <Coins className="h-5 w-5 text-primary" />
           <span>{reward.coins.toLocaleString()}</span>
         </div>
-        <Button onClick={handleRedeem} disabled={!canRedeem}>
-          Redeem
+        <Button 
+            onClick={handleRedeem} 
+            disabled={!canRedeem || redeemState !== 'idle'}
+            className={cn(redeemState === 'success' && 'bg-green-600 hover:bg-green-600')}
+        >
+          {getButtonContent()}
         </Button>
       </CardFooter>
     </Card>
