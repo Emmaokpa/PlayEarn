@@ -25,6 +25,7 @@ import {
   Sparkles,
   Wand2,
   Package,
+  Laptop,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,6 +34,7 @@ import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const bottomNavItems = [
@@ -53,8 +55,14 @@ const sidebarNavItems = [
     { href: '/challenges', label: 'Challenges', icon: Sparkles },
     { href: '/earn/affiliate', label: 'Affiliate', icon: Handshake },
     { href: '/redeem', label: 'Redeem', icon: Gift },
-    { href: '/store', label: 'Store', icon: ShoppingCart },
+    // Store is now handled by the Accordion
     { href: '/profile', label: 'Profile', icon: User },
+];
+
+const storeNavItems = [
+    { href: '/store', label: 'Currency Store', icon: ShoppingCart },
+    { href: '/store/digital', label: 'Digital Goods', icon: Package },
+    { href: '/store/physical', label: 'Physical Goods', icon: Laptop },
 ];
 
 const adminNavItems = [
@@ -106,10 +114,13 @@ function SidebarNav({
   isAdmin: boolean;
 }) {
   const pathname = usePathname();
-  const items = isAdmin ? [...sidebarNavItems, ...adminNavItems] : sidebarNavItems;
+  const mainItems = isAdmin ? [...sidebarNavItems, ...adminNavItems] : sidebarNavItems;
+
+  const isStoreActive = pathname.startsWith('/store');
+
   return (
-    <nav className="grid items-start gap-2 text-sm font-medium">
-      {items.map((item) => {
+    <nav className="grid items-start gap-1 text-sm font-medium">
+      {mainItems.map((item) => {
          const isActive =
          item.href === '/dashboard' || item.href === '/earn' || item.href === '/leaderboard' || item.href === '/spin' || item.href === '/challenges' || item.href === '/create' || item.href === '/prizes'
            ? pathname === item.href
@@ -124,6 +135,30 @@ function SidebarNav({
           />
         );
       })}
+       <Accordion type="single" collapsible className="w-full" defaultValue={isStoreActive ? "store" : ""}>
+        <AccordionItem value="store" className="border-b-0">
+          <AccordionTrigger className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-base text-muted-foreground transition-all hover:text-primary hover:no-underline", isStoreActive && 'text-primary')}>
+             <ShoppingCart className="h-5 w-5" />
+             <span className="flex-1 text-left">Store</span>
+          </AccordionTrigger>
+          <AccordionContent className="pl-8 pt-1">
+            <nav className="grid items-start gap-1">
+              {storeNavItems.map(item => {
+                 const isActive = pathname === item.href;
+                 return (
+                    <NavLink
+                        key={item.href}
+                        {...item}
+                        isActive={isActive}
+                        isSidebar
+                        onClick={closeSidebar}
+                    />
+                 )
+              })}
+            </nav>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </nav>
   );
 }
@@ -187,5 +222,3 @@ export default function BottomNav() {
     </>
   );
 }
-
-    
