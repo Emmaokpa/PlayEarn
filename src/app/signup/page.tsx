@@ -125,8 +125,8 @@ export default function SignUpPage() {
       const user = userCredential.user;
 
       const batch = writeBatch(firestore);
-      let initialCoins = 100; // Default starting coins
-      const referralReward = 1000;
+      let initialCoins = 10; // Default starting coins
+      const referralReward = 100;
 
       // 2. Handle referral if code is valid and referrerId is set
       if (referralStatus === 'valid' && referrerId) {

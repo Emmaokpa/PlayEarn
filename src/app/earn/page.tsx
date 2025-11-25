@@ -19,7 +19,7 @@ import { doc, collection, query, where, orderBy, writeBatch, serverTimestamp, in
 import type { UserProfile, AdView } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const AD_REWARD = 100;
+const AD_REWARD = 10;
 const REGULAR_AD_LIMIT = 10;
 const VIP_AD_LIMIT = 50;
 const AD_COOLDOWN_MINUTES = 5;
@@ -57,7 +57,7 @@ export default function EarnPage() {
   const { data: adViews, isLoading: areAdsLoading } = useCollection<AdView>(adViewsQuery);
 
   const isVip = userProfile?.isVip ?? false;
-  const referralReward = isVip ? 3000 : 1000;
+  const referralReward = isVip ? 300 : 100;
   const isLoading = isProfileLoading || areAdsLoading;
   
   useEffect(() => {

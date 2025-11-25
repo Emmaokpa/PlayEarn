@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from '@/lib/utils';
 
 const PLAY_TIME_SECONDS = 300; // 5 minutes
-const REWARD_AMOUNT = 50;
+const REWARD_AMOUNT = 5;
 
 export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
