@@ -17,14 +17,20 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
   useEffect(() => {
+    console.log('ImageUpload component mounted. Cloud Name:', cloudName);
     setImageUrl(initialImageUrl);
-  }, [initialImageUrl]);
+  }, [initialImageUrl, cloudName]);
 
   const handleUploadSuccess = (result: any) => {
+    console.log('Cloudinary success result:', result);
     if (result.event === 'success' && result.info?.secure_url) {
         const url = result.info.secure_url;
         setImageUrl(url);
         onUpload(url);
+        toast({
+          title: 'Image Uploaded',
+          description: 'Your image has been uploaded successfully.',
+        });
     }
   };
   
@@ -33,12 +39,12 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
       toast({
         variant: 'destructive',
         title: 'Upload Failed',
-        description: 'There was a problem with the image uploader. Please check your configuration and try again.',
+        description: 'There was a problem with the image uploader. Please check the console for details.',
       });
   }
 
   if (!cloudName) {
-    console.error("Cloudinary cloud name is not configured. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME in your environment variables.");
+    console.error("Critical Error: Cloudinary cloud name is not configured.");
     return (
       <Button type="button" variant="outline" disabled>
         Upload Disabled
@@ -61,7 +67,12 @@ export default function ImageUpload({ onUpload, initialImageUrl = '' }: ImageUpl
         {({ open }) => {
           function handleOnClick(e: React.MouseEvent<HTMLButtonElement>) {
             e.preventDefault();
-            open();
+            console.log('Upload button clicked. Attempting to open widget.');
+            if (typeof open === 'function') {
+              open();
+            } else {
+              console.error('Widget "open" function not available.');
+            }
           }
           return (
             <Button
