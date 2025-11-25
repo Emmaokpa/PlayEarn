@@ -2,7 +2,7 @@
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
-import type { AffiliateOffer, UserProfile } from '@/lib/data';
+import type { AffiliateOffer, UserProfile, UserAffiliate } from '@/lib/data';
 import AffiliateOfferCard from '@/components/app/affiliate-offer-card';
 import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -25,10 +25,23 @@ export default function AffiliatePage() {
   const { data: userProfile, isLoading: userLoading } =
     useDoc<UserProfile>(userProfileRef);
     
-  // In a real app, you'd also fetch the user's completed offers to disable completed cards
-  const completedOffers: string[] = []; // Placeholder
+  const userSubmissionsQuery = useMemoFirebase(
+    () => (user && firestore ? collection(firestore, `users/${user.uid}/affiliateSignups`) : null),
+    [user, firestore]
+  );
+  const { data: userSubmissions, isLoading: submissionsLoading } = useCollection<{status: string}>(userSubmissionsQuery);
 
-  const isLoading = offersLoading || userLoading;
+  const completedOffers = useMemoFirebase(
+      () => userSubmissions?.filter(s => s.status === 'approved').map(s => s.id) ?? [],
+      [userSubmissions]
+  ) as string[];
+
+  const pendingOffers = useMemoFirebase(
+      () => userSubmissions?.filter(s => s.status === 'pending').map(s => s.id) ?? [],
+      [userSubmissions]
+  ) as string[];
+  
+  const isLoading = offersLoading || userLoading || submissionsLoading;
 
   return (
     <AppLayout title="Affiliate Offers">
@@ -47,13 +60,12 @@ export default function AffiliatePage() {
               <AffiliateOfferCard
                 key={offer.id}
                 offer={offer}
-                userCoins={userProfile?.coins ?? 0}
-                isCompleted={completedOffers.includes(offer.id)}
+                userProfile={userProfile}
+                completedOffers={completedOffers}
+                pendingOffers={pendingOffers}
               />
             ))}
       </div>
     </AppLayout>
   );
 }
-
-    

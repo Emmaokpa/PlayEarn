@@ -24,10 +24,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer } from '@/lib/data';
-import { doc, addDoc, collection, setDoc, deleteDoc } from 'firebase/firestore';
+import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
+import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert, Trash2, Edit, List, Database } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List, Database, Check, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, use } from 'react';
 import {
@@ -45,6 +45,9 @@ import ImageUpload from '@/components/app/ImageUpload';
 import { Switch } from '@/components/ui/switch';
 import { seedDatabase } from '@/lib/seed';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
 
 
 const gameFormSchema = z.object({
@@ -541,6 +544,95 @@ function AffiliateList({ onEdit, onDelete, offers, isLoading }: { onEdit: (offer
     )
 }
 
+function AffiliateApprovalList() {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const submissionsQuery = useMemoFirebase(
+      () => firestore ? query(collection(firestore, 'affiliateSubmissions'), where('status', '==', 'pending')) : null,
+      [firestore]
+    );
+    const { data: submissions, isLoading } = useCollection<AffiliateSubmission>(submissionsQuery);
+
+    const handleApproval = async (submission: AffiliateSubmission, newStatus: 'approved' | 'rejected') => {
+        if (!firestore) return;
+        
+        try {
+            const batch = writeBatch(firestore);
+            const submissionRef = doc(firestore, 'affiliateSubmissions', submission.id);
+
+            if (newStatus === 'approved') {
+                const userRef = doc(firestore, 'users', submission.userId);
+                batch.update(userRef, { coins: increment(submission.rewardAmount) });
+                 const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
+                batch.set(userSubmissionRef, { status: 'approved' }, { merge: true });
+            }
+            
+            batch.update(submissionRef, { status: newStatus });
+            
+            await batch.commit();
+
+            toast({
+                title: `Submission ${newStatus}`,
+                description: `${submission.userName}'s submission for "${submission.offerTitle}" was ${newStatus}.`,
+            });
+        } catch (error) {
+            console.error("Error updating submission:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not process submission.' });
+        }
+    };
+    
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Pending Affiliate Approvals</CardTitle></CardHeader>
+                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Pending Affiliate Approvals</CardTitle>
+                <CardDescription>Review and approve or reject user submissions for affiliate offers.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {submissions && submissions.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User</TableHead>
+                                <TableHead>Offer</TableHead>
+                                <TableHead>Proof</TableHead>
+                                <TableHead>Submitted</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {submissions.map((s) => (
+                                <TableRow key={s.id}>
+                                    <TableCell>{s.userName}</TableCell>
+                                    <TableCell>{s.offerTitle}</TableCell>
+                                    <TableCell className="font-mono text-xs">{s.proof}</TableCell>
+                                    <TableCell className="text-muted-foreground">{formatDistanceToNow(s.submittedAt.toDate(), { addSuffix: true })}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex gap-2 justify-end">
+                                            <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => handleApproval(s, 'approved')}><Check className="h-4 w-4" /></Button>
+                                            <Button size="icon" variant="destructive" onClick={() => handleApproval(s, 'rejected')}><X className="h-4 w-4" /></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No pending submissions.</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 function AdminDashboard() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
@@ -617,6 +709,7 @@ function AdminDashboard() {
             <AddAffiliateForm selectedOffer={selectedAffiliate} onClearSelection={() => setSelectedAffiliate(null)} />
         </div>
         <div className="space-y-8 lg:col-span-2">
+            <AffiliateApprovalList />
             <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
             <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
             <IAPList packs={iaps} isLoading={iapsLoading} onEdit={(pack) => handleEdit(pack, setSelectedIap)} onDelete={(id) => handleDelete('inAppPurchases', id, 'In-App Purchase')} />

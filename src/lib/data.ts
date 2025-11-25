@@ -79,6 +79,18 @@ export interface UserAffiliate {
     completedAt: FieldValue;
 }
 
+export interface AffiliateSubmission {
+  id: string;
+  userId: string;
+  userName: string;
+  offerId: string;
+  offerTitle: string;
+  proof: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: FieldValue;
+  rewardAmount: number;
+}
+
 export interface SpinPrize {
     id: string;
     text: string;
@@ -102,5 +114,3 @@ export interface UserPrize {
     status: 'unclaimed' | 'claimed';
     wonAt: Timestamp;
 }
-
-    

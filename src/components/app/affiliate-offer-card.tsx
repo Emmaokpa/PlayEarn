@@ -1,7 +1,8 @@
 
 'use client';
 
-import type { AffiliateOffer } from '@/lib/data';
+import { useState } from 'react';
+import type { AffiliateOffer, UserProfile } from '@/lib/data';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,73 +14,144 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, CheckCircle, ExternalLink } from 'lucide-react';
+import { Coins, CheckCircle, ExternalLink, Send, Hourglass } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, writeBatch, serverTimestamp, collection, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { useFirebase } from '@/firebase';
+import { doc, serverTimestamp, setDoc, collection } from 'firebase/firestore';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
 
 interface AffiliateOfferCardProps {
   offer: AffiliateOffer;
-  userCoins: number;
-  isCompleted: boolean;
+  userProfile: UserProfile | null;
+  completedOffers: string[];
+  pendingOffers: string[];
 }
 
 export default function AffiliateOfferCard({
   offer,
-  userCoins,
-  isCompleted: initialIsCompleted,
+  userProfile,
+  completedOffers,
+  pendingOffers
 }: AffiliateOfferCardProps) {
   const { toast } = useToast();
   const { firestore, user } = useFirebase();
-  const [isCompleted, setIsCompleted] = useState(initialIsCompleted);
+  const [proof, setProof] = useState('');
+  
+  const isCompleted = completedOffers.includes(offer.id);
+  const isPending = pendingOffers.includes(offer.id);
 
-  // This function would be called via a webhook or manual confirmation in a real app
-  // For this demo, we'll call it optimistically when the user clicks the link.
-  const handleCompleteOffer = async () => {
-    if (!user || !firestore || isCompleted) return;
-
+  const handleSubmitForReview = async () => {
+    if (!user || !firestore || !userProfile || !proof) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please provide proof of completion.' });
+        return;
+    }
+    
     try {
-      const batch = writeBatch(firestore);
+        const submissionRef = doc(collection(firestore, 'affiliateSubmissions'));
+        await setDoc(submissionRef, {
+            id: submissionRef.id,
+            userId: user.uid,
+            userName: userProfile.name,
+            offerId: offer.id,
+            offerTitle: offer.title,
+            proof: proof,
+            status: 'pending',
+            submittedAt: serverTimestamp(),
+            rewardAmount: offer.rewardCoins,
+        });
 
-      // 1. Give the user their reward
-      const userRef = doc(firestore, 'users', user.uid);
-      batch.update(userRef, { coins: increment(offer.rewardCoins) });
+        // Also track that this user has submitted this offer
+        const userSubmissionRef = doc(firestore, `users/${user.uid}/affiliateSignups`, offer.id);
+        await setDoc(userSubmissionRef, { status: 'pending' }, { merge: true });
 
-      // 2. Mark the offer as completed for this user
-      const completedOfferRef = doc(firestore, `users/${user.uid}/affiliateSignups`, offer.id);
-      batch.set(completedOfferRef, {
-          id: completedOfferRef.id,
-          userId: user.uid,
-          offerId: offer.id,
-          completedAt: serverTimestamp(),
-      });
-      
-      await batch.commit();
 
-      setIsCompleted(true);
-      toast({
-        title: 'Offer Completed!',
-        description: `You've earned ${offer.rewardCoins.toLocaleString()} coins for completing the "${offer.title}" offer.`,
-      });
+        toast({
+            title: 'Submission Received!',
+            description: 'Your submission is now pending review by an admin. You will receive your coins upon approval.',
+        });
+        setProof('');
 
     } catch (error) {
-       console.error("Error completing offer:", error);
+       console.error("Error submitting for review:", error);
        toast({
            variant: 'destructive',
-           title: 'Error',
-           description: 'There was an issue recording your offer completion. Please contact support.',
+           title: 'Submission Error',
+           description: 'There was an issue submitting your proof. Please try again.',
        })
     }
-
   };
+
+  const getButtonState = () => {
+    if (isCompleted) {
+        return (
+            <Button size="lg" className="w-full bg-green-600 hover:bg-green-700" disabled>
+                <CheckCircle className="mr-2 h-5 w-5" />
+                Completed
+            </Button>
+        );
+    }
+    if (isPending) {
+        return (
+            <Button size="lg" className="w-full" disabled>
+                <Hourglass className="mr-2 h-5 w-5 animate-spin" />
+                Pending Review
+            </Button>
+        );
+    }
+
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button size="lg" className="w-full">
+                    <Send className="mr-2 h-5 w-5" />
+                    Submit for Review
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Submit Proof for "{offer.title}"</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        After completing the offer, provide your username or email used for signup as proof. An admin will review it.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2">
+                    <Input 
+                        value={proof} 
+                        onChange={(e) => setProof(e.target.value)}
+                        placeholder="e.g., your_username or you@email.com"
+                    />
+                     <Link href={offer.link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                        Go to Offer Page <ExternalLink className="h-4 w-4" />
+                    </Link>
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSubmitForReview} disabled={!proof}>
+                        Submit
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    )
+  }
 
   return (
     <Card
       className={cn(
         'flex flex-col overflow-hidden transition-shadow hover:shadow-lg',
-        isCompleted && 'opacity-70'
+        (isCompleted || isPending) && 'opacity-70'
       )}
     >
       <CardHeader className="p-0">
@@ -108,21 +180,7 @@ export default function AffiliateOfferCard({
                 <span>{offer.rewardCoins.toLocaleString()}</span>
             </div>
         </div>
-         <Button asChild size="lg" className="w-full" disabled={isCompleted}>
-            <Link href={offer.link} target="_blank" rel="noopener noreferrer" onClick={handleCompleteOffer}>
-                {isCompleted ? (
-                    <>
-                        <CheckCircle className="mr-2 h-5 w-5" />
-                        Offer Completed
-                    </>
-                ) : (
-                     <>
-                        Start Offer
-                        <ExternalLink className="ml-2 h-5 w-5" />
-                    </>
-                )}
-            </Link>
-        </Button>
+        {getButtonState()}
       </CardFooter>
     </Card>
   );

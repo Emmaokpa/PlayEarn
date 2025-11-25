@@ -13,6 +13,7 @@
  * - /stickerPacks/{stickerPackId}: Sticker packs, publicly readable, writeable by admins only.
  * - /inAppPurchases/{purchaseId}: All IAPs (coins, spins), publicly readable, writeable by admins only.
  * - /affiliateOffers/{offerId}: Affiliate offers, publicly readable, writeable by admins only.
+ * - /affiliateSubmissions/{submissionId}: Global collection for submissions, only admins can read/write.
  * - All user subcollections (/users/{userId}/**): Accessible only to the owning user.
  *
  * Key Security Decisions:
@@ -100,7 +101,12 @@ service cloud.firestore {
 
       allow delete: if false; // Deleting users should be handled carefully, disabling for now.
 
-      // Rules for all subcollections under a user's document
+      // User can create their own affiliate signup records
+      match /affiliateSignups/{offerId} {
+        allow write: if isOwner(userId);
+      }
+
+      // Rules for all other subcollections under a user's document
       match /{allPaths=**} {
         allow read, write: if isOwner(userId);
       }
@@ -152,8 +158,18 @@ service cloud.firestore {
      * @principle Publicly readable, but only admins can create/update.
      */
     match /affiliateOffers/{offerId} {
-        allow get, list: if true;
+        allow get, list: if isSignedIn();
         allow create, update, delete: if isAdmin();
     }
+
+    /**
+     * @description Rules for affiliate offer submissions.
+     * @path /affiliateSubmissions/{submissionId}
+     * @principle Admins have full control. Users can only create their own.
+     */
+     match /affiliateSubmissions/{submissionId} {
+       allow read, list, update, delete: if isAdmin();
+       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+     }
   }
 }
