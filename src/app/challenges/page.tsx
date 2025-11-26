@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Coins, Crown, Gamepad2, Play, Trophy, Video } from 'lucide-react';
+import { Coins, Crown, Gamepad2, Play, Trophy, Video, Star } from 'lucide-react';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import type { UserProfile, AdView, SpinHistory } from '@/lib/data';
 import { doc, collection, query, where, writeBatch, increment, getDoc, setDoc } from 'firebase/firestore';
@@ -41,15 +41,15 @@ interface ChallengeData {
 
 const allChallenges: Challenge[] = [
   {
-    id: 'daily-login',
-    title: 'Daily Check-in',
-    description: 'Log in to the app.',
+    id: 'first-spin-of-day',
+    title: 'First Spin',
+    description: 'Use your first spin of the day.',
     reward: 5,
-    icon: Play,
+    icon: Star,
     difficulty: 'Easy',
     isVipOnly: false,
     target: 1,
-    getProgress: () => 1, // Always completed on load
+    getProgress: (data) => data.spinsToday.length > 0 ? 1 : 0,
   },
   {
     id: 'watch-3-ads',
