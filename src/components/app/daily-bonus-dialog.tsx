@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -27,7 +28,7 @@ export default function DailyBonusDialog({
   // In a real app, this would come from the user's profile data.
   const { user } = useUser(); // Using a placeholder for now
   const isVip = false; // Placeholder
-  const bonusAmount = isVip ? 600 : 200;
+  const bonusAmount = isVip ? 60 : 20;
 
   const handleClaim = () => {
     onClaim(bonusAmount);

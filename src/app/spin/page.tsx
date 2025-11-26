@@ -1,3 +1,4 @@
+
 'use client';
 
 import AppLayout from '@/components/layout/app-layout';
@@ -31,13 +32,13 @@ const AD_SPIN_LIMIT = 3;
 
 // Define prizes directly in the component, now with a proper Jackpot
 const prizes: SpinPrize[] = [
-  { id: 'prize-50', text: '50', type: 'coins', value: 50, probability: 35 },
-  { id: 'prize-100', text: '100', type: 'coins', value: 100, probability: 25 },
+  { id: 'prize-5', text: '5', type: 'coins', value: 5, probability: 35 },
+  { id: 'prize-10', text: '10', type: 'coins', value: 10, probability: 25 },
   { id: 'prize-sticker-common', text: 'Sticker', type: 'sticker', value: 'common', probability: 15 },
-  { id: 'prize-200', text: '200', type: 'coins', value: 200, probability: 12 },
+  { id: 'prize-20', text: '20', type: 'coins', value: 20, probability: 12 },
   { id: 'prize-sticker-rare', text: 'Rare Sticker', type: 'sticker', value: 'rare', probability: 6 },
   { id: 'prize-entry-1', text: '$1 Entry', type: 'entry', value: 1, probability: 4 },
-  { id: 'prize-500', text: '500', type: 'coins', value: 500, probability: 2.5 },
+  { id: 'prize-50', text: '50', type: 'coins', value: 50, probability: 2.5 },
   { id: 'prize-gift-5', text: '$5 Card', type: 'gift_card', value: 5, probability: 0.4 },
   { id: 'prize-jackpot', text: 'JACKPOT', type: 'gift_card', value: 25, probability: 0.1 },
 ];
@@ -379,5 +380,3 @@ export default function SpinPage() {
     </AppLayout>
   );
 }
-
-    
