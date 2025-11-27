@@ -393,6 +393,27 @@
         "fulfilledAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was fulfilled." }
       },
       "required": ["id", "userId", "userEmail", "rewardId", "rewardDetails", "status", "requestedAt"]
+    },
+    "WithdrawalRequest": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "WithdrawalRequest",
+        "type": "object",
+        "description": "Represents a user's request to withdraw coins as cash.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the withdrawal request." },
+            "userId": { "type": "string", "description": "The ID of the user requesting the withdrawal." },
+            "userName": { "type": "string", "description": "The name of the user for easy identification." },
+            "amountCoins": { "type": "number", "description": "The number of coins being withdrawn." },
+            "amountUsd": { "type": "number", "description": "The USD equivalent of the coins before fees." },
+            "feeUsd": { "type": "number", "description": "The service fee charged in USD." },
+            "netUsd": { "type": "number", "description": "The final amount in USD to be paid out." },
+            "method": { "type": "string", "enum": ["PayPal"], "description": "The payment method for withdrawal." },
+            "recipientAddress": { "type": "string", "description": "The recipient's address (e.g., PayPal email)." },
+            "status": { "type": "string", "enum": ["pending", "processed", "rejected"], "description": "The status of the withdrawal request." },
+            "requestedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was made." },
+            "processedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was processed." }
+        },
+        "required": ["id", "userId", "userName", "amountCoins", "amountUsd", "feeUsd", "netUsd", "method", "recipientAddress", "status", "requestedAt"]
     }
   },
   "auth": {
@@ -500,6 +521,15 @@
           "schema": { "$ref": "#/backend/entities/RewardFulfillment" },
           "description": "Global collection for all reward fulfillment requests pending action. Users can create, but only admins can update/delete.",
           "params": [{ "name": "fulfillmentId", "description": "The unique ID for the fulfillment request." }]
+        }
+      },
+      {
+        "path": "/withdrawals/{withdrawalId}",
+        "definition": {
+          "entityName": "WithdrawalRequest",
+          "schema": { "$ref": "#/backend/entities/WithdrawalRequest" },
+          "description": "Global collection for all user cash withdrawal requests. Users can create, admins can read/update.",
+          "params": [{ "name": "withdrawalId", "description": "The unique ID for the withdrawal request." }]
         }
       },
       {
@@ -625,5 +655,3 @@
     "reasoning": "The Firestore structure is designed to support the RewardPlay application, focusing on scalability, security, and ease of maintenance. It leverages path-based ownership for user-specific data and denormalization where necessary to maintain authorization independence. The structure avoids complex rules by segregating data based on access patterns.\n\n*   **User Profiles:** `/users/{userId}` stores user profile data. This is a path-based ownership model, making rules straightforward.\n*   **Games:** `/games/{gameId}` stores game definitions. These are publicly readable.\n*   **Rewards:** `/rewards/{rewardId}` stores reward definitions. These are also globally accessible.\n*   **Sticker Packs:** `/stickerPacks/{stickerPackId}` stores sticker pack definitions. These are also globally accessible.\n*   **In-App Purchases:** `/inAppPurchases/{purchaseId}` is a new generic collection for all real-money purchases, replacing the old `coinPacks` collection to support both coins and spins. Publicly readable.\n*   **Affiliate Offers:** `/affiliateOffers/{offerId}` stores affiliate offer details, publicly readable but writeable only by admins.\n*   **Fulfillments:** `/fulfillments/{fulfillmentId}` is a new global collection for managing the fulfillment of physical rewards. Users can create requests, but only admins can process them. This is crucial for integrating with third-party gift card APIs.\n*   **User-Specific Subcollections:** All subcollections under `/users/{userId}` (rewards, adViews, gameProgress, affiliateSignups, spinData, spinHistory, prizes, dailyChallenges) implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**Authorization Independence:**  All subcollections under `/users/{userId}` implicitly inherit authorization based on the `userId` in the path. This eliminates the need for `get()` calls in security rules to validate user ownership, enabling atomic operations.\n\n**QAPs Support:** Segregation into user-owned subcollections enables efficient and secure `list` operations. Rules can simply check `request.auth.uid == userId` for any operations on `/users/{userId}/**`.\n\nThis structure avoids the use of custom claims (DBAC), relying solely on `request.auth.uid` for authorization, and enforces consistent naming conventions to improve debuggability."
   }
 }
-
-    

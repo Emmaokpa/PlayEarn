@@ -208,5 +208,33 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidFulfillmentRequest(request.resource.data);
       allow read, update, delete: if isAdmin();
     }
+
+     /**
+     * @description Validates a withdrawal request on creation.
+     * @param {map} data The incoming resource data.
+     * @return {boolean} True if the data is valid, false otherwise.
+     */
+    function isValidWithdrawalRequest(data) {
+        return data.userId == request.auth.uid &&
+               data.userName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name &&
+               data.amountCoins is number &&
+               data.amountUsd is number &&
+               data.feeUsd is number &&
+               data.netUsd is number &&
+               data.method is string &&
+               data.recipientAddress is string &&
+               data.status == 'pending' &&
+               data.requestedAt == request.time;
+    }
+
+    /**
+     * @description Rules for cash withdrawal requests.
+     * @path /withdrawals/{withdrawalId}
+     * @principle Users can create their own valid requests. Admins can read, update, and delete.
+     */
+    match /withdrawals/{withdrawalId} {
+      allow create: if isSignedIn() && isValidWithdrawalRequest(request.resource.data);
+      allow read, list, update, delete: if isAdmin();
+    }
   }
 }
