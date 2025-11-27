@@ -24,10 +24,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission, RewardFulfillment } from '@/lib/data';
+import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission, RewardFulfillment, WithdrawalRequest } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink, PackageCheck, LayoutDashboard, FilePen, Cog } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink, PackageCheck, LayoutDashboard, FilePen, Cog, Banknote } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, use } from 'react';
 import {
@@ -780,6 +780,112 @@ function FulfillmentQueue() {
     );
 }
 
+function WithdrawalQueue() {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const withdrawalsQuery = useMemoFirebase(
+      () => firestore ? query(collection(firestore, 'withdrawals'), where('status', '==', 'pending')) : null,
+      [firestore]
+    );
+    const { data: withdrawals, isLoading } = useCollection<WithdrawalRequest>(withdrawalsQuery);
+
+    const handleWithdrawal = async (withdrawal: WithdrawalRequest, newStatus: 'processed' | 'rejected') => {
+        if (!firestore) return;
+        
+        const batch = writeBatch(firestore);
+        const withdrawalRef = doc(firestore, 'withdrawals', withdrawal.id);
+
+        let updateData: { status: 'processed' | 'rejected'; processedAt?: any } = { status: newStatus };
+
+        if (newStatus === 'processed') {
+            updateData.processedAt = serverTimestamp();
+        }
+        
+        batch.update(withdrawalRef, updateData);
+
+        // If rejecting, refund the user's coins
+        if (newStatus === 'rejected') {
+            const userRef = doc(firestore, 'users', withdrawal.userId);
+            batch.update(userRef, { coins: increment(withdrawal.amountCoins) });
+        }
+        
+        try {
+            await batch.commit();
+            toast({
+                title: `Withdrawal ${newStatus}`,
+                description: `${withdrawal.userName}'s request for $${withdrawal.netUsd.toFixed(2)} was ${newStatus}.${newStatus === 'rejected' ? ' Coins have been refunded.' : ''}`,
+            });
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: withdrawalRef.path,
+                operation: 'write',
+                requestResourceData: { 
+                    withdrawalUpdate: updateData,
+                    ...(newStatus === 'rejected' && { userRefund: { coins: `increment(${withdrawal.amountCoins})` } })
+                },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+    };
+
+    const getFormattedDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return formatDistanceToNow(date, { addSuffix: true });
+    };
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Pending Withdrawals</CardTitle></CardHeader>
+                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
+        );
+    }
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Pending Cash Withdrawals</CardTitle>
+                <CardDescription>Review and process user requests to withdraw coins for cash.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {withdrawals && withdrawals.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Recipient</TableHead>
+                                <TableHead>Requested</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {withdrawals.map((w) => (
+                                <TableRow key={w.id}>
+                                    <TableCell className="font-semibold">{w.userName}</TableCell>
+                                    <TableCell className="font-semibold text-green-500">${w.netUsd.toFixed(2)}</TableCell>
+                                    <TableCell className="font-mono text-xs">{w.recipientAddress}</TableCell>
+                                    <TableCell className="text-muted-foreground">{getFormattedDate(w.requestedAt)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex gap-2 justify-end">
+                                            <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => handleWithdrawal(w, 'processed')}><Check className="h-4 w-4" /></Button>
+                                            <Button size="icon" variant="destructive" onClick={() => handleWithdrawal(w, 'rejected')}><X className="h-4 w-4" /></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No pending withdrawal requests.</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 function AdminDashboard() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
@@ -841,6 +947,7 @@ function AdminDashboard() {
         <TabsTrigger value="tools"><Cog className="mr-2 h-4 w-4" />Tools</TabsTrigger>
       </TabsList>
       <TabsContent value="dashboard" className="space-y-8 mt-6">
+        <WithdrawalQueue />
         <FulfillmentQueue />
         <AffiliateApprovalList />
       </TabsContent>

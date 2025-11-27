@@ -131,4 +131,17 @@ export interface RewardFulfillment {
     fulfilledAt?: FieldValue;
 }
 
-    
+export interface WithdrawalRequest {
+    id: string;
+    userId: string;
+    userName: string;
+    amountCoins: number;
+    amountUsd: number;
+    feeUsd: number;
+    netUsd: number;
+    method: 'PayPal';
+    recipientAddress: string;
+    status: 'pending' | 'processed' | 'rejected';
+    requestedAt: FieldValue;
+    processedAt?: FieldValue;
+}
