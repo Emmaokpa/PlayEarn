@@ -50,7 +50,6 @@ export interface StickerPack {
   price: number; // Price in coins
   imageUrl: string;
   imageHint: string;
-  purchaseType: 'digital'; // Stickers are always digital
 }
 
 export interface InAppPurchase {

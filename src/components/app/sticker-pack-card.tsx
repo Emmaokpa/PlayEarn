@@ -23,22 +23,6 @@ interface StickerPackCardProps {
   userCoins: number;
 }
 
-// Placeholder for the function that will eventually call your backend
-async function initiateTelegramPayment(payload: any) {
-  console.log("Preparing to initiate payment with payload:", payload);
-  // In a real implementation, this would be:
-  // const response = await fetch('/api/create-invoice', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // });
-  // const { invoiceUrl } = await response.json();
-  // if (invoiceUrl) {
-  //   Telegram.WebApp.openInvoice(invoiceUrl);
-  // }
-  alert("Payment flow not implemented. Check console for payload.");
-}
-
 export default function StickerPackCard({ pack, userCoins }: StickerPackCardProps) {
   const { toast } = useToast();
   const { firestore, user } = useFirebase();
