@@ -21,41 +21,77 @@ interface PurchasePackCardProps {
   pack: InAppPurchase;
 }
 
+// Placeholder for the function that will eventually call your backend
+async function initiateTelegramPayment(payload: any) {
+  console.log("Preparing to initiate payment with payload:", payload);
+  // In a real implementation, this would be:
+  // const response = await fetch('/api/create-invoice', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  // });
+  // const { invoiceUrl } = await response.json();
+  // if (invoiceUrl) {
+  //   Telegram.WebApp.openInvoice(invoiceUrl);
+  // }
+  alert("Payment flow not implemented. Check console for payload.");
+}
+
+
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
-  const { firestore, user } = useFirebase();
+  const { user } = useFirebase();
 
   const handleBuy = async () => {
-    if (!user || !firestore) return;
-    
-    // In a real app, this would trigger a payment flow (Stripe, Paddle, etc.)
-    // For now, we'll just simulate the purchase and add the items.
-    
-    try {
-        const batch = writeBatch(firestore);
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Not Logged In',
+        description: 'You must be logged in to make a purchase.',
+      });
+      return;
+    }
 
-        if (pack.type === 'coins') {
-            const userRef = doc(firestore, 'users', user.uid);
-            batch.update(userRef, { coins: increment(pack.amount) });
-        } else if (pack.type === 'spins') {
-            const spinDataRef = doc(firestore, `users/${user.uid}/spinData`, 'spin_status');
-            batch.set(spinDataRef, { purchasedSpinsRemaining: increment(pack.amount) }, { merge: true });
-        }
+    if (pack.purchaseType === 'digital') {
+      // PATH A: Digital Goods - Use Telegram Stars (XTR)
+      const USD_TO_STARS_RATE = 113; // 1 USD = 113 Stars
+      const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
+      
+      const payload = {
+        title: pack.name,
+        description: pack.description,
+        payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
+        currency: 'XTR',
+        prices: [{ label: `${pack.amount} ${pack.type}`, amount: priceInStars }],
+        provider_token: "", // Empty for Stars
+      };
+      
+      await initiateTelegramPayment(payload);
 
-        await batch.commit();
+    } else if (pack.purchaseType === 'physical') {
+      // PATH B: Physical Goods - Use Real Currency (USD)
+      const PHYSICAL_GOODS_PROVIDER_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_PHYSICAL_PROVIDER_TOKEN || "";
+      
+      if (!PHYSICAL_GOODS_PROVIDER_TOKEN) {
+        console.error("TELEGRAM_PHYSICAL_PROVIDER_TOKEN is not set in environment variables.");
+        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Physical goods payment provider is not configured.'});
+        return;
+      }
 
-        toast({
-        title: 'Purchase Successful!',
-        description: `You've successfully purchased the "${pack.name}" and received ${pack.amount.toLocaleString()} ${pack.type}.`,
-        });
+      const payload = {
+        title: pack.name,
+        description: pack.description,
+        payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
+        currency: 'USD',
+        prices: [{ label: pack.name, amount: Math.ceil(pack.price * 100) }], // Price in cents
+        provider_token: PHYSICAL_GOODS_PROVIDER_TOKEN,
+        need_shipping_address: true,
+      };
 
-    } catch (error) {
-        console.error("Purchase failed:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Purchase Failed',
-            description: 'Something went wrong. Please try again.',
-        });
+      await initiateTelegramPayment(payload);
+
+    } else {
+        toast({ variant: 'destructive', title: 'Unknown Product Type', description: 'This item cannot be purchased.'});
     }
   };
 

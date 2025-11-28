@@ -47,9 +47,10 @@ export interface StickerPack {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number; // Price in coins
   imageUrl: string;
   imageHint: string;
+  purchaseType: 'digital'; // Stickers are always digital
 }
 
 export interface InAppPurchase {
@@ -58,9 +59,10 @@ export interface InAppPurchase {
     name: string;
     description: string;
     amount: number;
-    price: number;
+    price: number; // Price in USD
     imageUrl: string;
     imageHint: string;
+    purchaseType: 'digital' | 'physical'; // Flag for payment path
 }
 
 export interface AffiliateOffer {
