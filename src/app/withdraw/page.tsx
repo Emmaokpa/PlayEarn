@@ -15,24 +15,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Coins, Info, Banknote, Percent, Loader2, Send } from 'lucide-react';
+import { Coins, Info, Banknote, Percent, Loader2, Send, CreditCard, Landmark } from 'lucide-react';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/data';
 import { doc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/use-debounce';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const COIN_TO_USD = 0.001; // 1000 coins = $1
 const MIN_WITHDRAWAL_COINS = 1500;
 const SERVICE_FEE_PERCENT = 0.1; // 10%
+
+type WithdrawalMethod = 'bank_transfer' | 'gift_card';
 
 export default function WithdrawPage() {
   const { user, firestore } = useFirebase();
   const { toast } = useToast();
 
   const [withdrawCoins, setWithdrawCoins] = useState<string>('');
-  const [paypalEmail, setPaypalEmail] = useState<string>('');
+  const [method, setMethod] = useState<WithdrawalMethod>('bank_transfer');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const debouncedWithdrawCoins = useDebounce(parseFloat(withdrawCoins) || 0, 300);
 
@@ -41,13 +46,7 @@ export default function WithdrawPage() {
     [user, firestore]
   );
   const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userProfileRef);
-  
-  useEffect(() => {
-    if (userProfile && user?.email && !paypalEmail) {
-      setPaypalEmail(user.email);
-    }
-  }, [userProfile, user, paypalEmail]);
-  
+
   const userCoins = userProfile?.coins ?? 0;
   const userBalanceUsd = userCoins * COIN_TO_USD;
 
@@ -67,9 +66,18 @@ export default function WithdrawPage() {
     return { usdValue: calculatedUsdValue, feeUsd: calculatedFee, netUsd: calculatedNetUsd, error: null };
   }, [debouncedWithdrawCoins, userCoins]);
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  const canSubmit = !error && netUsd > 0 && isValidEmail(paypalEmail) && !isSubmitting;
+  const canSubmit = useMemo(() => {
+    if (error || netUsd <= 0 || isSubmitting) return false;
+    if (method === 'bank_transfer') {
+        return bankName.trim().length > 2 && /^\d{10}$/.test(accountNumber);
+    }
+    if (method === 'gift_card') {
+        // For now, just check if an option is selected.
+        // In the future, you might have another dropdown for gift card type.
+        return true;
+    }
+    return false;
+  }, [error, netUsd, isSubmitting, method, bankName, accountNumber]);
 
   const handleSubmit = async () => {
     if (!canSubmit || !firestore || !user || !userProfile) return;
@@ -77,9 +85,24 @@ export default function WithdrawPage() {
     setIsSubmitting(true);
     
     // This is the placeholder for the backend call.
-    // In a real implementation, you would call your Next.js API route here.
-    // For now, we will create a withdrawal request document directly.
     try {
+        let recipientDetails = {};
+        if (method === 'bank_transfer') {
+            recipientDetails = {
+                method: 'Nigerian Bank Transfer',
+                recipientAddress: `${bankName} - ${accountNumber}`,
+                bankName: bankName,
+                accountNumber: accountNumber,
+            };
+        } else { // gift_card
+             recipientDetails = {
+                method: 'Gift Card',
+                recipientAddress: user.email, // Send gift card codes to user's email
+                bankName: null,
+                accountNumber: null,
+            };
+        }
+
         const withdrawalData = {
             userId: user.uid,
             userName: userProfile.name,
@@ -87,11 +110,11 @@ export default function WithdrawPage() {
             amountUsd: usdValue,
             feeUsd: feeUsd,
             netUsd: netUsd,
-            method: 'PayPal',
-            recipientAddress: paypalEmail,
             status: 'pending',
             requestedAt: serverTimestamp(),
+            ...recipientDetails,
         };
+
         await addDoc(collection(firestore, 'withdrawals'), withdrawalData);
       
         toast({
@@ -99,6 +122,9 @@ export default function WithdrawPage() {
             description: `Your request to withdraw $${netUsd.toFixed(2)} is pending review.`,
         });
         setWithdrawCoins('');
+        setBankName('');
+        setAccountNumber('');
+
     } catch (e) {
         console.error("Withdrawal request failed:", e);
         toast({
@@ -140,7 +166,7 @@ export default function WithdrawPage() {
               <li>1,000 coins = $1.00 USD</li>
               <li>Minimum withdrawal is {MIN_WITHDRAWAL_COINS.toLocaleString()} coins ($1.50).</li>
               <li>A 10% service fee applies to all cash withdrawals.</li>
-              <li>Payments are processed via PayPal within 3-5 business days.</li>
+              <li>Payments are processed within 3-5 business days.</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -176,16 +202,44 @@ export default function WithdrawPage() {
                         />
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="paypal">PayPal Email</Label>
-                        <Input
-                            id="paypal"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={paypalEmail}
-                            onChange={(e) => setPaypalEmail(e.target.value)}
-                        />
+                        <Label htmlFor="method">Withdrawal Method</Label>
+                        <Select value={method} onValueChange={(v) => setMethod(v as WithdrawalMethod)}>
+                            <SelectTrigger id="method">
+                                <SelectValue placeholder="Select a method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="bank_transfer"><div className="flex items-center gap-2"><Landmark className="h-4 w-4"/>Nigerian Bank Transfer</div></SelectItem>
+                                <SelectItem value="gift_card"><div className="flex items-center gap-2"><CreditCard className="h-4 w-4"/>Gift Card (Email)</div></SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
+
+                {method === 'bank_transfer' && (
+                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 animate-in fade-in">
+                        <div className="space-y-2">
+                            <Label htmlFor="bankName">Bank Name</Label>
+                            <Input
+                                id="bankName"
+                                type="text"
+                                placeholder="e.g., Kuda Bank"
+                                value={bankName}
+                                onChange={(e) => setBankName(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="accountNumber">Account Number</Label>
+                            <Input
+                                id="accountNumber"
+                                type="text"
+                                placeholder="10-digit number"
+                                value={accountNumber}
+                                onChange={(e) => setAccountNumber(e.target.value)}
+                                maxLength={10}
+                            />
+                        </div>
+                    </div>
+                )}
                 
                 {withdrawCoins && (
                     <div className="space-y-3 rounded-md border p-4">

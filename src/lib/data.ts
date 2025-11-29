@@ -140,8 +140,10 @@ export interface WithdrawalRequest {
     amountUsd: number;
     feeUsd: number;
     netUsd: number;
-    method: 'PayPal';
+    method: string;
     recipientAddress: string;
+    bankName?: string | null;
+    accountNumber?: string | null;
     status: 'pending' | 'processed' | 'rejected';
     requestedAt: FieldValue;
     processedAt?: FieldValue;

@@ -215,9 +215,12 @@ service cloud.firestore {
      * @return {boolean} True if the data is valid, false otherwise.
      */
     function isValidWithdrawalRequest(data) {
+        let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
         return data.userId == request.auth.uid &&
-               data.userName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name &&
+               data.userName == userProfile.name &&
                data.amountCoins is number &&
+               data.amountCoins >= 1500 && // Minimum withdrawal
+               data.amountCoins <= userProfile.coins && // Cannot withdraw more than they have
                data.amountUsd is number &&
                data.feeUsd is number &&
                data.netUsd is number &&

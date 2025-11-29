@@ -24,10 +24,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useFirebase, useDoc, useMemoFirebase, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission } from '@/lib/data';
+import type { Game, UserProfile, Reward, InAppPurchase, AffiliateOffer, AffiliateSubmission, RewardFulfillment, WithdrawalRequest, StickerPack } from '@/lib/data';
 import { doc, addDoc, collection, setDoc, deleteDoc, writeBatch, increment, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit, List, Database, Check, X, ExternalLink, PackageCheck, LayoutDashboard, FilePen, Cog, Banknote } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, use } from 'react';
 import {
@@ -49,6 +49,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const gameFormSchema = z.object({
@@ -372,11 +373,11 @@ function AddIAPForm({ selectedPack, onClearSelection }: { selectedPack: InAppPur
     const { toast } = useToast();
     const form = useForm<z.infer<typeof iapFormSchema>>({
         resolver: zodResolver(iapFormSchema),
-        defaultValues: { name: '', description: '', amount: 1, price: 0.99, imageUrl: '' },
+        defaultValues: { name: '', description: '', type: 'coins', amount: 1, price: 0.99, imageUrl: '' },
     });
 
     useEffect(() => {
-        form.reset(selectedPack || { name: '', description: '', amount: 1, price: 0.99, imageUrl: '' });
+        form.reset(selectedPack || { name: '', description: '', type: 'coins', amount: 1, price: 0.99, imageUrl: '' });
     }, [selectedPack, form]);
 
     async function onSubmit(values: z.infer<typeof iapFormSchema>) {
@@ -385,14 +386,14 @@ function AddIAPForm({ selectedPack, onClearSelection }: { selectedPack: InAppPur
             const imageHint = values.name.split(' ').slice(0, 2).join(' ');
             if (selectedPack) {
                 const packRef = doc(firestore, 'inAppPurchases', selectedPack.id);
-                await setDoc(packRef, { ...values, imageHint }, { merge: true });
+                await setDoc(packRef, { ...values, imageHint, purchaseType: 'digital' }, { merge: true });
                 toast({ title: 'Pack Updated!', description: `"${values.name}" has been updated.` });
             } else {
                 const newPackRef = doc(collection(firestore, 'inAppPurchases'));
-                await setDoc(newPackRef, { ...values, id: newPackRef.id, imageHint });
+                await setDoc(newPackRef, { ...values, id: newPackRef.id, imageHint, purchaseType: 'digital' });
                 toast({ title: 'Pack Added!', description: `"${values.name}" is now available in the store.` });
             }
-            form.reset({ name: '', description: '', amount: 1, price: 0.99, imageUrl: '' });
+            form.reset({ name: '', description: '', type: 'coins', amount: 1, price: 0.99, imageUrl: '' });
             onClearSelection();
         } catch (error) {
             console.error('Error saving pack: ', error);
@@ -571,7 +572,7 @@ function AffiliateApprovalList() {
     );
     const { data: submissions, isLoading } = useCollection<AffiliateSubmission>(submissionsQuery);
 
-    const handleApproval = async (submission: AffiliateSubmission, newStatus: 'approved' | 'rejected') => {
+    const handleApproval = (submission: AffiliateSubmission, newStatus: 'approved' | 'rejected') => {
         if (!firestore) return;
 
         const batch = writeBatch(firestore);
@@ -581,13 +582,13 @@ function AffiliateApprovalList() {
 
         const userSubmissionRef = doc(firestore, `users/${submission.userId}/affiliateSignups`, submission.offerId);
         
+        let userUpdateData: { status: string; approvedAt?: any } = { status: newStatus };
         if (newStatus === 'approved') {
             const userRef = doc(firestore, 'users', submission.userId);
             batch.update(userRef, { coins: increment(submission.rewardAmount) });
-            batch.set(userSubmissionRef, { status: 'approved', approvedAt: serverTimestamp() }, { merge: true });
-        } else {
-            batch.set(userSubmissionRef, { status: 'rejected' }, { merge: true });
+            userUpdateData.approvedAt = serverTimestamp();
         }
+        batch.set(userSubmissionRef, userUpdateData, { merge: true });
         
         batch.commit()
             .then(() => {
@@ -598,11 +599,11 @@ function AffiliateApprovalList() {
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
-                    path: submissionRef.path, // We can use any of the batched refs for context
+                    path: submissionRef.path,
                     operation: 'write',
                     requestResourceData: { 
                         globalSubmission: { status: newStatus },
-                        userSubmission: { status: newStatus },
+                        userSubmission: userUpdateData,
                         userCoinUpdate: newStatus === 'approved' ? { coins: `increment(${submission.rewardAmount})` } : undefined
                     },
                 });
@@ -612,7 +613,8 @@ function AffiliateApprovalList() {
 
     const getFormattedDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
-        return formatDistanceToNow(timestamp, { addSuffix: true });
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return formatDistanceToNow(date, { addSuffix: true });
     };
     
     if (isLoading) {
@@ -674,6 +676,306 @@ function AffiliateApprovalList() {
     );
 }
 
+function FulfillmentQueue() {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const fulfillmentsQuery = useMemoFirebase(
+      () => firestore ? query(collection(firestore, 'fulfillments'), where('status', '==', 'pending')) : null,
+      [firestore]
+    );
+    const { data: fulfillments, isLoading } = useCollection<RewardFulfillment>(fulfillmentsQuery);
+
+    const handleFulfillment = async (fulfillment: RewardFulfillment, newStatus: 'fulfilled' | 'error') => {
+        if (!firestore) return;
+        
+        const batch = writeBatch(firestore);
+        const fulfillmentRef = doc(firestore, 'fulfillments', fulfillment.id);
+
+        let updateData: { status: 'fulfilled' | 'error'; fulfilledAt?: any } = { status: newStatus };
+
+        if (newStatus === 'fulfilled') {
+            updateData.fulfilledAt = serverTimestamp();
+        }
+        
+        batch.update(fulfillmentRef, updateData);
+
+        // If rejecting ('error'), refund the user's coins
+        if (newStatus === 'error') {
+            const userRef = doc(firestore, 'users', fulfillment.userId);
+            batch.update(userRef, { coins: increment(fulfillment.rewardDetails.coins) });
+        }
+        
+        try {
+            await batch.commit();
+            toast({
+                title: `Request ${newStatus}`,
+                description: `Request for "${fulfillment.rewardDetails.name}" was marked as ${newStatus}.${newStatus === 'error' ? ' Coins have been refunded.' : ''}`,
+            });
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: fulfillmentRef.path,
+                operation: 'write', // Batch write combines operations
+                requestResourceData: { 
+                    fulfillmentUpdate: updateData,
+                    ...(newStatus === 'error' && { userRefund: { coins: `increment(${fulfillment.rewardDetails.coins})` } })
+                },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+    };
+
+    const getFormattedDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return formatDistanceToNow(date, { addSuffix: true });
+    };
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Pending Reward Fulfillments</CardTitle></CardHeader>
+                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
+        );
+    }
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Pending Reward Fulfillments</CardTitle>
+                <CardDescription>Review and manually fulfill user requests for physical rewards.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {fulfillments && fulfillments.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User Email</TableHead>
+                                <TableHead>Reward</TableHead>
+                                <TableHead>Requested</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {fulfillments.map((f) => (
+                                <TableRow key={f.id}>
+                                    <TableCell className="font-semibold">{f.userEmail}</TableCell>
+                                    <TableCell>{f.rewardDetails.name} ({f.rewardDetails.coins} coins)</TableCell>
+                                    <TableCell className="text-muted-foreground">{getFormattedDate(f.requestedAt)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex gap-2 justify-end">
+                                            <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => handleFulfillment(f, 'fulfilled')}><PackageCheck className="h-4 w-4" /></Button>
+                                            <Button size="icon" variant="destructive" onClick={() => handleFulfillment(f, 'error')}><X className="h-4 w-4" /></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No pending fulfillment requests.</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function WithdrawalQueue() {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const withdrawalsQuery = useMemoFirebase(
+      () => firestore ? query(collection(firestore, 'withdrawals'), where('status', '==', 'pending')) : null,
+      [firestore]
+    );
+    const { data: withdrawals, isLoading } = useCollection<WithdrawalRequest>(withdrawalsQuery);
+
+    const handleWithdrawal = async (withdrawal: WithdrawalRequest, newStatus: 'processed' | 'rejected') => {
+        if (!firestore) return;
+        
+        const batch = writeBatch(firestore);
+        const withdrawalRef = doc(firestore, 'withdrawals', withdrawal.id);
+
+        let updateData: { status: 'processed' | 'rejected'; processedAt?: any } = { status: newStatus };
+
+        if (newStatus === 'processed') {
+            updateData.processedAt = serverTimestamp();
+        }
+        
+        batch.update(withdrawalRef, updateData);
+
+        // If rejecting, refund the user's coins
+        if (newStatus === 'rejected') {
+            const userRef = doc(firestore, 'users', withdrawal.userId);
+            batch.update(userRef, { coins: increment(withdrawal.amountCoins) });
+        }
+        
+        try {
+            await batch.commit();
+            toast({
+                title: `Withdrawal ${newStatus}`,
+                description: `${withdrawal.userName}'s request for $${withdrawal.netUsd.toFixed(2)} was ${newStatus}.${newStatus === 'rejected' ? ' Coins have been refunded.' : ''}`,
+            });
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: withdrawalRef.path,
+                operation: 'write',
+                requestResourceData: { 
+                    withdrawalUpdate: updateData,
+                    ...(newStatus === 'rejected' && { userRefund: { coins: `increment(${withdrawal.amountCoins})` } })
+                },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
+    };
+
+    const getFormattedDate = (timestamp: any) => {
+        if (!timestamp) return 'N/A';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return formatDistanceToNow(date, { addSuffix: true });
+    };
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Pending Withdrawals</CardTitle></CardHeader>
+                <CardContent><Skeleton className="h-24 w-full" /></CardContent>
+            </Card>
+        );
+    }
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Pending Cash Withdrawals</CardTitle>
+                <CardDescription>Review and process user requests to withdraw coins for cash.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {withdrawals && withdrawals.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Recipient</TableHead>
+                                <TableHead>Requested</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {withdrawals.map((w) => (
+                                <TableRow key={w.id}>
+                                    <TableCell className="font-semibold">{w.userName}</TableCell>
+                                    <TableCell className="font-semibold text-green-500">${w.netUsd.toFixed(2)}</TableCell>
+                                    <TableCell className="font-mono text-xs">{w.recipientAddress}</TableCell>
+                                    <TableCell className="text-muted-foreground">{getFormattedDate(w.requestedAt)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex gap-2 justify-end">
+                                            <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => handleWithdrawal(w, 'processed')}><Check className="h-4 w-4" /></Button>
+                                            <Button size="icon" variant="destructive" onClick={() => handleWithdrawal(w, 'rejected')}><X className="h-4 w-4" /></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No pending withdrawal requests.</p>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+function AddStickerPackForm({ selectedPack, onClearSelection }: { selectedPack: StickerPack | null; onClearSelection: () => void; }) {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof stickerPackFormSchema>>({
+        resolver: zodResolver(stickerPackFormSchema),
+        defaultValues: { name: '', description: '', price: 100, imageUrl: '' },
+    });
+
+    useEffect(() => {
+        form.reset(selectedPack || { name: '', description: '', price: 100, imageUrl: '' });
+    }, [selectedPack, form]);
+
+    async function onSubmit(values: z.infer<typeof stickerPackFormSchema>) {
+        if (!firestore) return;
+        try {
+            const imageHint = values.name.split(' ').slice(0, 2).join(' ');
+            if (selectedPack) {
+                const packRef = doc(firestore, 'stickerPacks', selectedPack.id);
+                await setDoc(packRef, { ...values, imageHint }, { merge: true });
+                toast({ title: 'Pack Updated!', description: `"${values.name}" has been updated.` });
+            } else {
+                const newPackRef = doc(collection(firestore, 'stickerPacks'));
+                await setDoc(newPackRef, { ...values, id: newPackRef.id, imageHint });
+                toast({ title: 'Sticker Pack Added!', description: `"${values.name}" is now available in the store.` });
+            }
+            form.reset({ name: '', description: '', price: 100, imageUrl: '' });
+            onClearSelection();
+        } catch (error) {
+            console.error('Error saving sticker pack: ', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not save the sticker pack.' });
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>{selectedPack ? 'Edit Sticker Pack' : 'Add New Sticker Pack'}</CardTitle></CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Pack Name</FormLabel><FormControl><Input placeholder="e.g. Cute Cats Pack" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="A collection of adorable cat stickers." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="price" render={({ field }) => ( <FormItem><FormLabel>Price (Coins)</FormLabel><FormControl><Input type="number" placeholder="100" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="imageUrl" render={({ field }) => ( <FormItem><FormLabel>Pack Image</FormLabel><FormControl><ImageUpload onUpload={(url) => form.setValue('imageUrl', url, { shouldValidate: true })} initialImageUrl={field.value} /></FormControl><FormMessage /></FormItem> )} />
+                        <div className="flex gap-2 pt-4">
+                            <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? 'Saving...' : (selectedPack ? 'Update Pack' : 'Add Pack')}</Button>
+                            {selectedPack && (<Button variant="outline" onClick={onClearSelection}>Cancel Edit</Button>)}
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
+}
+
+function StickerPackList({ onEdit, onDelete, packs, isLoading }: { onEdit: (pack: StickerPack) => void; onDelete: (packId: string) => void; packs: StickerPack[] | null, isLoading: boolean }) {
+    if (isLoading) {
+      return (
+          <Card>
+              <CardHeader><CardTitle>Manage Sticker Packs</CardTitle></CardHeader>
+              <CardContent><div className="space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div></CardContent>
+          </Card>
+      )
+    }
+    return (
+        <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><List /> Manage Sticker Packs</CardTitle></CardHeader>
+            <CardContent>
+                <ul className="space-y-2">
+                    {packs?.map((pack) => (
+                        <li key={pack.id} className="flex items-center justify-between rounded-md border p-3">
+                            <span className="font-semibold truncate pr-2">{pack.name}</span>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="icon" onClick={() => onEdit(pack)}><Edit className="h-4 w-4" /></Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{pack.name}".</AlertDialogDescription></AlertDialogHeader>
+                                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => onDelete(pack.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        </li>
+                    ))}
+                    {packs?.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">No sticker packs found.</p>}
+                </ul>
+            </CardContent>
+        </Card>
+    )
+}
+
 function AdminDashboard() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
@@ -681,6 +983,7 @@ function AdminDashboard() {
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
     const [selectedIap, setSelectedIap] = useState<InAppPurchase | null>(null);
     const [selectedAffiliate, setSelectedAffiliate] = useState<AffiliateOffer | null>(null);
+    const [selectedStickerPack, setSelectedStickerPack] = useState<StickerPack | null>(null);
     const [isSeeding, setIsSeeding] = useState(false);
 
     const gamesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'games') : null), [firestore]);
@@ -694,6 +997,9 @@ function AdminDashboard() {
     
     const affiliatesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'affiliateOffers') : null), [firestore]);
     const { data: affiliates, isLoading: affiliatesLoading } = useCollection<AffiliateOffer>(affiliatesQuery);
+
+    const stickerPacksQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'stickerPacks') : null), [firestore]);
+    const { data: stickerPacks, isLoading: stickerPacksLoading } = useCollection<StickerPack>(stickerPacksQuery);
 
     const handleEdit = <T extends { id: string }>(item: T, setSelected: (item: T) => void) => {
         setSelected(item);
@@ -727,36 +1033,53 @@ function AdminDashboard() {
         setIsSeeding(false);
     }
     
-  return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:items-start">
-        <div className="space-y-8 lg:col-span-1">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Database Tools</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={onSeedDatabase} disabled={isSeeding}>
-                        <Database className="mr-2 h-4 w-4" />
-                        {isSeeding ? 'Seeding...' : 'Seed Database'}
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        Populate your database with initial affiliate offers.
-                    </p>
-                </CardContent>
-            </Card>
-            <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
-            <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
-            <AddIAPForm selectedPack={selectedIap} onClearSelection={() => setSelectedIap(null)} />
-            <AddAffiliateForm selectedOffer={selectedAffiliate} onClearSelection={() => setSelectedAffiliate(null)} />
+    return (
+    <Tabs defaultValue="dashboard" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</TabsTrigger>
+        <TabsTrigger value="content"><FilePen className="mr-2 h-4 w-4" />Content</TabsTrigger>
+        <TabsTrigger value="tools"><Cog className="mr-2 h-4 w-4" />Tools</TabsTrigger>
+      </TabsList>
+      <TabsContent value="dashboard" className="space-y-8 mt-6">
+        <WithdrawalQueue />
+        <FulfillmentQueue />
+        <AffiliateApprovalList />
+      </TabsContent>
+      <TabsContent value="content" className="space-y-8 mt-6">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+            <div className="space-y-8">
+                <AddGameForm selectedGame={selectedGame} onClearSelection={() => setSelectedGame(null)} />
+                <AddRewardForm selectedReward={selectedReward} onClearSelection={() => setSelectedReward(null)} />
+                <AddIAPForm selectedPack={selectedIap} onClearSelection={() => setSelectedIap(null)} />
+                <AddAffiliateForm selectedOffer={selectedAffiliate} onClearSelection={() => setSelectedAffiliate(null)} />
+                <AddStickerPackForm selectedPack={selectedStickerPack} onClearSelection={() => setSelectedStickerPack(null)} />
+            </div>
+             <div className="space-y-8">
+                <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
+                <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
+                <IAPList packs={iaps} isLoading={iapsLoading} onEdit={(pack) => handleEdit(pack, setSelectedIap)} onDelete={(id) => handleDelete('inAppPurchases', id, 'In-App Purchase')} />
+                <AffiliateList offers={affiliates} isLoading={affiliatesLoading} onEdit={(offer) => handleEdit(offer, setSelectedAffiliate)} onDelete={(id) => handleDelete('affiliateOffers', id, 'Affiliate Offer')} />
+                <StickerPackList packs={stickerPacks} isLoading={stickerPacksLoading} onEdit={(pack) => handleEdit(pack, setSelectedStickerPack)} onDelete={(id) => handleDelete('stickerPacks', id, 'Sticker Pack')} />
+            </div>
         </div>
-        <div className="space-y-8 lg:col-span-2">
-            <AffiliateApprovalList />
-            <GameList games={games} isLoading={gamesLoading} onEdit={(game) => handleEdit(game, setSelectedGame)} onDelete={(id) => handleDelete('games', id, 'Game')} />
-            <RewardList rewards={rewards} isLoading={rewardsLoading} onEdit={(reward) => handleEdit(reward, setSelectedReward)} onDelete={(id) => handleDelete('rewards', id, 'Reward')} />
-            <IAPList packs={iaps} isLoading={iapsLoading} onEdit={(pack) => handleEdit(pack, setSelectedIap)} onDelete={(id) => handleDelete('inAppPurchases', id, 'In-App Purchase')} />
-            <AffiliateList offers={affiliates} isLoading={affiliatesLoading} onEdit={(offer) => handleEdit(offer, setSelectedAffiliate)} onDelete={(id) => handleDelete('affiliateOffers', id, 'Affiliate Offer')} />
-        </div>
-    </div>
+      </TabsContent>
+      <TabsContent value="tools" className="mt-6">
+        <Card>
+            <CardHeader>
+                <CardTitle>Database Tools</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Button onClick={onSeedDatabase} disabled={isSeeding}>
+                    <Database className="mr-2 h-4 w-4" />
+                    {isSeeding ? 'Seeding...' : 'Seed Database'}
+                </Button>
+                <p className="text-sm text-muted-foreground mt-2">
+                    Populate your database with initial affiliate offers.
+                </p>
+            </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 }
 

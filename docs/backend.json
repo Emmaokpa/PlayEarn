@@ -395,25 +395,27 @@
       "required": ["id", "userId", "userEmail", "rewardId", "rewardDetails", "status", "requestedAt"]
     },
     "WithdrawalRequest": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "WithdrawalRequest",
-        "type": "object",
-        "description": "Represents a user's request to withdraw coins as cash.",
-        "properties": {
-            "id": { "type": "string", "description": "Unique identifier for the withdrawal request." },
-            "userId": { "type": "string", "description": "The ID of the user requesting the withdrawal." },
-            "userName": { "type": "string", "description": "The name of the user for easy identification." },
-            "amountCoins": { "type": "number", "description": "The number of coins being withdrawn." },
-            "amountUsd": { "type": "number", "description": "The USD equivalent of the coins before fees." },
-            "feeUsd": { "type": "number", "description": "The service fee charged in USD." },
-            "netUsd": { "type": "number", "description": "The final amount in USD to be paid out." },
-            "method": { "type": "string", "enum": ["PayPal"], "description": "The payment method for withdrawal." },
-            "recipientAddress": { "type": "string", "description": "The recipient's address (e.g., PayPal email)." },
-            "status": { "type": "string", "enum": ["pending", "processed", "rejected"], "description": "The status of the withdrawal request." },
-            "requestedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was made." },
-            "processedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was processed." }
-        },
-        "required": ["id", "userId", "userName", "amountCoins", "amountUsd", "feeUsd", "netUsd", "method", "recipientAddress", "status", "requestedAt"]
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WithdrawalRequest",
+      "type": "object",
+      "description": "Represents a user's request to withdraw coins as cash.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the withdrawal request." },
+        "userId": { "type": "string", "description": "The ID of the user requesting the withdrawal." },
+        "userName": { "type": "string", "description": "The name of the user for easy identification." },
+        "amountCoins": { "type": "number", "description": "The number of coins being withdrawn." },
+        "amountUsd": { "type": "number", "description": "The USD equivalent of the coins before fees." },
+        "feeUsd": { "type": "number", "description": "The service fee charged in USD." },
+        "netUsd": { "type": "number", "description": "The final amount in USD to be paid out." },
+        "method": { "type": "string", "enum": ["Nigerian Bank Transfer", "Gift Card"], "description": "The payment method for withdrawal." },
+        "recipientAddress": { "type": "string", "description": "The recipient's details (e.g., 'Kuda Bank - 1234567890' or email for gift card)." },
+        "bankName": { "type": ["string", "null"], "description": "The recipient's bank name if applicable." },
+        "accountNumber": { "type": ["string", "null"], "description": "The recipient's bank account number if applicable." },
+        "status": { "type": "string", "enum": ["pending", "processed", "rejected"], "description": "The status of the withdrawal request." },
+        "requestedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was made." },
+        "processedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the request was processed." }
+      },
+      "required": ["id", "userId", "userName", "amountCoins", "amountUsd", "feeUsd", "netUsd", "method", "recipientAddress", "status", "requestedAt"]
     }
   },
   "auth": {
