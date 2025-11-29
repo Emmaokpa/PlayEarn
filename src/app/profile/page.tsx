@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,6 +26,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { initiateTelegramPayment } from '@/lib/telegram-payment';
 
 const menuItems = [
   { icon: UserIcon, text: 'Edit Profile' },
@@ -50,23 +52,31 @@ export default function ProfilePage() {
   const isVip = userProfile?.isVip ?? false;
 
   const handleVipUpgrade = async () => {
-    if (!user || !firestore || isVip) return;
+    if (!user || isVip) return;
 
-    const userRef = doc(firestore, 'users', user.uid);
-    try {
-      await updateDoc(userRef, { isVip: true });
-      toast({
-        title: 'Congratulations!',
-        description: "You're now a VIP member. All VIP features are unlocked.",
-      });
-    } catch (error) {
-      console.error('VIP Upgrade Error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Upgrade Failed',
-        description: 'Something went wrong. Please try again.',
-      });
-    }
+    // This is now a digital purchase via Telegram Stars
+    const VIP_PRICE_USD = 4.99;
+    const USD_TO_STARS_RATE = 113;
+    const priceInStars = Math.ceil(VIP_PRICE_USD * USD_TO_STARS_RATE);
+
+    const payload = {
+        title: 'VIP Subscription',
+        description: 'Unlock all exclusive features and multiply your earnings!',
+        payload: `vip-upgrade-${user.uid}-${Date.now()}`,
+        currency: 'XTR',
+        prices: [{ label: 'VIP Membership (1 Month)', amount: priceInStars }],
+        provider_token: "", // Empty for Stars
+    };
+      
+    await initiateTelegramPayment(payload);
+
+    // The actual granting of VIP status should be handled by a webhook
+    // after the payment is confirmed by Telegram. For now, the button
+    // will just trigger the payment flow.
+    toast({
+        title: 'Complete Your Purchase',
+        description: 'Follow the instructions from Telegram to become a VIP.',
+    });
   };
 
   return (
@@ -124,7 +134,7 @@ export default function ProfilePage() {
               </li>
             </ul>
              <Button className="w-full font-bold" size="lg" onClick={handleVipUpgrade} disabled={isVip}>
-              {isVip ? 'Manage Subscription' : 'Upgrade to VIP'}
+              {isVip ? 'Manage Subscription' : 'Upgrade with Stars'}
             </Button>
           </CardContent>
         </Card>

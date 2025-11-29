@@ -14,29 +14,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Coins, Gem, Star } from 'lucide-react';
 import { useFirebase } from '@/firebase';
-import { doc, increment, writeBatch } from 'firebase/firestore';
 import Image from 'next/image';
+import { initiateTelegramPayment } from '@/lib/telegram-payment';
+
 
 interface PurchasePackCardProps {
   pack: InAppPurchase;
 }
-
-// Placeholder for the function that will eventually call your backend
-async function initiateTelegramPayment(payload: any) {
-  console.log("Preparing to initiate payment with payload:", payload);
-  // In a real implementation, this would be:
-  // const response = await fetch('/api/create-invoice', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // });
-  // const { invoiceUrl } = await response.json();
-  // if (invoiceUrl) {
-  //   Telegram.WebApp.openInvoice(invoiceUrl);
-  // }
-  alert("Payment flow not implemented. Check console for payload.");
-}
-
 
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
@@ -106,6 +90,20 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     }
   }
 
+  const getPriceDisplay = () => {
+      if (pack.purchaseType === 'digital') {
+          const USD_TO_STARS_RATE = 113;
+          const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
+          return (
+              <div className="flex items-center gap-1">
+                  <Star className="h-5 w-5 text-yellow-400" />
+                  <span>{priceInStars.toLocaleString()}</span>
+              </div>
+          )
+      }
+      return `$${pack.price.toFixed(2)}`;
+  }
+
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:border-primary">
        {pack.imageUrl ? (
@@ -146,7 +144,7 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
         <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold">
-            Buy for ${pack.price.toFixed(2)}
+            Buy for {getPriceDisplay()}
         </Button>
       </CardFooter>
     </Card>

@@ -13,10 +13,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, CheckCircle } from 'lucide-react';
-import { useFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment } from 'firebase/firestore';
+import { Coins, CheckCircle, Star } from 'lucide-react';
+import { useFirebase } from '@/firebase';
 import { useState } from 'react';
+import { initiateTelegramPayment } from '@/lib/telegram-payment';
 
 interface StickerPackCardProps {
   pack: StickerPack;
@@ -25,38 +25,40 @@ interface StickerPackCardProps {
 
 export default function StickerPackCard({ pack, userCoins }: StickerPackCardProps) {
   const { toast } = useToast();
-  const { firestore, user } = useFirebase();
+  const { user } = useFirebase();
   const [isBought, setIsBought] = useState(false); // In a real app, check against user's purchased packs
 
-  const canAfford = userCoins >= pack.price;
-  const canBuy = canAfford && !isBought;
-
   const handleBuy = async () => {
-    if (!user || !firestore) return;
-
-    if (!canAfford) {
+    if (!user) {
       toast({
-        variant: 'destructive',
-        title: 'Not enough coins!',
-        description: `You need ${
-          pack.price - userCoins
-        } more coins to buy this.`,
+          variant: 'destructive',
+          title: 'Not Logged In',
+          description: 'You must be logged in to make a purchase.',
       });
       return;
     }
     
-    // Stickers are digital goods purchased with in-app coins, not Stars or real money.
-    // This logic remains a client-side coin deduction.
-    const userRef = doc(firestore, 'users', user.uid);
-    updateDocumentNonBlocking(userRef, { coins: increment(-pack.price) });
+    // Stickers are digital goods purchased with Telegram Stars.
+    const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1
+    const USD_TO_STARS_RATE = 113; // 1 USD = 113 Stars
+    const priceInUsd = pack.price * COIN_TO_USD_RATE;
+    const priceInStars = Math.ceil(priceInUsd * USD_TO_STARS_RATE);
 
-    // Here you would typically also create a record of the purchase
-    // For example, in a `/users/{userId}/purchasedStickers` subcollection
-    setIsBought(true);
-    
+    const payload = {
+        title: pack.name,
+        description: pack.description,
+        payload: `sticker-purchase-${user.uid}-${pack.id}-${Date.now()}`,
+        currency: 'XTR',
+        prices: [{ label: pack.name, amount: priceInStars }],
+        provider_token: "", // Empty for Stars
+    };
+
+    await initiateTelegramPayment(payload);
+
+    // Actual purchase/ownership handling should be done via webhook after payment confirmation
     toast({
-      title: 'Stickers Purchased!',
-      description: `You've successfully bought the "${pack.name}" pack.`,
+        title: 'Complete Your Purchase',
+        description: `Follow the instructions from Telegram to buy the "${pack.name}" pack.`,
     });
   };
 
@@ -82,10 +84,10 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
       </CardContent>
       <CardFooter className="flex items-center justify-between bg-secondary/50 p-3">
         <div className="flex items-center gap-1 font-bold">
-          <Coins className="h-4 w-4 text-primary" />
-          <span>{pack.price.toLocaleString()}</span>
+          <Star className="h-4 w-4 text-yellow-400" />
+          <span>{Math.ceil(pack.price * 0.001 * 113)}</span>
         </div>
-        <Button onClick={handleBuy} disabled={!canBuy} size="sm" className={isBought ? "bg-green-600 hover:bg-green-600" : ""}>
+        <Button onClick={handleBuy} disabled={isBought} size="sm" className={isBought ? "bg-green-600 hover:bg-green-600" : ""}>
           {isBought ? <CheckCircle className="mr-2" /> : null}
           {isBought ? 'Owned' : 'Buy'}
         </Button>

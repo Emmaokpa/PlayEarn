@@ -224,7 +224,7 @@ service cloud.firestore {
                data.amountUsd is number &&
                data.feeUsd is number &&
                data.netUsd is number &&
-               data.method is string &&
+               data.method in ['Nigerian Bank Transfer', 'Gift Card', 'PayPal'] &&
                data.recipientAddress is string &&
                data.status == 'pending' &&
                data.requestedAt == request.time;
@@ -236,6 +236,9 @@ service cloud.firestore {
      * @principle Users can create their own valid requests. Admins can read, update, and delete.
      */
     match /withdrawals/{withdrawalId} {
+      // Allow create only if the user is signed in and the request is valid.
+      // Crucially, the coin deduction should happen in a secure backend transaction, not here.
+      // This rule only validates the creation of the request document itself.
       allow create: if isSignedIn() && isValidWithdrawalRequest(request.resource.data);
       allow read, list, update, delete: if isAdmin();
     }
