@@ -14,14 +14,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  getAdditionalUserInfo,
+  signInWithPopup,
+} from 'firebase/auth';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import Link from 'next/link';
 import { Gamepad2, Check, X, Loader2 } from 'lucide-react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
 import {
   doc,
-  setDoc,
   serverTimestamp,
   writeBatch,
   query,
@@ -29,8 +33,7 @@ import {
   where,
   getDocs,
   limit,
-  increment,
-  getDoc,
+  increment, setDoc,
 } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -189,6 +192,68 @@ export default function SignUpPage() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    if (!auth || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Firebase not initialized. Please try again later.',
+      });
+      return;
+    }
+
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const additionalUserInfo = getAdditionalUserInfo(result);
+
+      // Check if it's a new user
+      if (additionalUserInfo?.isNewUser) {
+        // Create a new user profile in Firestore
+        const userDocRef = doc(firestore, 'users', user.uid);
+        await setDoc(userDocRef, {
+          id: user.uid,
+          telegramId: user.uid, // Using UID as a placeholder
+          username: (user.displayName || user.email?.split('@')[0] || 'user')
+            .toLowerCase()
+            .replace(/\s/g, ''),
+          name: user.displayName || 'New User',
+          avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
+          coins: 10, // Default starting coins
+          referralCode: `${user.uid.substring(0, 6).toUpperCase()}`,
+          isVip: false,
+          isAdmin: false,
+          registrationDate: serverTimestamp(),
+          gamePlaysToday: 0,
+          lastGameplayReset: new Date().toISOString().split('T')[0],
+        });
+        toast({
+          title: 'Account Created!',
+          description: "Welcome to RewardPlay! We're glad to have you.",
+        });
+      } else {
+        toast({
+          title: 'Login Successful!',
+          description: 'Welcome back!',
+        });
+      }
+
+      router.push('/dashboard');
+    } catch (error: any) {
+      // Don't show a toast if the user closes the popup
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        return;
+      }
+      console.error('Google Sign-In error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign In Failed',
+        description: 'An unknown error occurred during Google Sign-In.',
+      });
+    }
+  }
+
   const renderReferralStatus = () => {
     switch (referralStatus) {
       case 'loading':
@@ -283,6 +348,21 @@ export default function SignUpPage() {
                 : 'Sign Up'}
             </Button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+            Sign in with Google
+          </Button>
         </Form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {'Already have an account? '}

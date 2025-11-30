@@ -420,7 +420,8 @@
   },
   "auth": {
     "providers": [
-      "password"
+      "password",
+      "google"
     ]
   },
   "firestore": {

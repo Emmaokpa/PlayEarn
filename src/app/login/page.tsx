@@ -14,11 +14,17 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import {
+  GoogleAuthProvider,
+  getAdditionalUserInfo,
+  signInWithPopup,
+} from 'firebase/auth';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { z } from 'zod';
 import Link from 'next/link';
 import { Gamepad2 } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
@@ -31,6 +37,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -59,6 +66,68 @@ export default function LoginPage() {
         variant: 'destructive',
         title: 'Login Failed',
         description: errorMessage,
+      });
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (!auth || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Firebase not initialized. Please try again later.',
+      });
+      return;
+    }
+
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const additionalUserInfo = getAdditionalUserInfo(result);
+
+      // Check if it's a new user
+      if (additionalUserInfo?.isNewUser) {
+        // Create a new user profile in Firestore
+        const userDocRef = doc(firestore, 'users', user.uid);
+        await setDoc(userDocRef, {
+          id: user.uid,
+          telegramId: user.uid, // Using UID as a placeholder
+          username: (user.displayName || user.email?.split('@')[0] || 'user')
+            .toLowerCase()
+            .replace(/\s/g, ''),
+          name: user.displayName || 'New User',
+          avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/100/100`,
+          coins: 10, // Default starting coins
+          referralCode: `${user.uid.substring(0, 6).toUpperCase()}`,
+          isVip: false,
+          isAdmin: false,
+          registrationDate: serverTimestamp(),
+          gamePlaysToday: 0,
+          lastGameplayReset: new Date().toISOString().split('T')[0],
+        });
+        toast({
+          title: 'Account Created!',
+          description: "Welcome to RewardPlay! We're glad to have you.",
+        });
+      } else {
+        toast({
+          title: 'Login Successful!',
+          description: 'Welcome back!',
+        });
+      }
+
+      router.push('/dashboard');
+    } catch (error: any) {
+      // Don't show a toast if the user closes the popup
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        return;
+      }
+      console.error('Google Sign-In error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign In Failed',
+        description: 'An unknown error occurred during Google Sign-In.',
       });
     }
   }
@@ -112,6 +181,22 @@ export default function LoginPage() {
             </Button>
           </form>
         </Form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+          Sign in with Google
+        </Button>
+
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {"Don't have an account?"}{' '}
           <Link href="/signup" className="font-semibold text-primary hover:underline">
