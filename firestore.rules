@@ -113,7 +113,7 @@ service cloud.firestore {
      * @principle Publicly readable, but only admins can create/update.
      */
     match /games/{gameId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
