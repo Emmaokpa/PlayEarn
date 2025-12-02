@@ -247,6 +247,14 @@ export default function SignUpPage() {
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         return;
       }
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        toast({
+          variant: 'destructive',
+          title: 'Email Already in Use',
+          description: 'An account with this email already exists. Please sign in using the original method (e.g., email and password).',
+        });
+        return;
+      }
       console.error('Google Sign-In error:', error);
       toast({
         variant: 'destructive',
