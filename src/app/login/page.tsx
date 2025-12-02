@@ -26,6 +26,7 @@ import { Gamepad2 } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import GoogleIcon from '@/components/app/google-icon';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -163,7 +164,12 @@ export default function LoginPage() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <div className="flex justify-between">
+                    <FormLabel>Password</FormLabel>
+                    <Link href="/forgot-password" passHref legacyBehavior>
+                      <a className="text-sm text-primary hover:underline">Forgot Password?</a>
+                    </Link>
+                  </div>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
@@ -194,6 +200,7 @@ export default function LoginPage() {
         </div>
 
         <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+          <GoogleIcon className="mr-2 h-4 w-4" />
           Sign in with Google
         </Button>
 

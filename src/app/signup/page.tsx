@@ -39,6 +39,8 @@ import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
+import GoogleIcon from '@/components/app/google-icon';
+
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -361,6 +363,7 @@ export default function SignUpPage() {
           </div>
 
           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+            <GoogleIcon className="mr-2 h-4 w-4" />
             Sign in with Google
           </Button>
         </Form>
