@@ -35,8 +35,11 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
       });
       return;
     }
-
-    if (pack.purchaseType === 'digital') {
+    
+    // All currency packs are digital goods, so they use Telegram Stars.
+    const isDigital = pack.purchaseType !== 'physical';
+    
+    if (isDigital) {
       // PATH A: Digital Goods - Use Telegram Stars (XTR)
       const USD_TO_STARS_RATE = 113; // 1 USD = 113 Stars
       const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
@@ -47,35 +50,24 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
         payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
         currency: 'XTR',
         prices: [{ label: `${pack.amount} ${pack.type}`, amount: priceInStars }],
-        provider_token: "", // Empty for Stars
+        // provider_token is NOT needed for Stars
       };
       
       await initiateTelegramPayment(payload);
 
-    } else if (pack.purchaseType === 'physical') {
-      // PATH B: Physical Goods - Use Real Currency (USD)
-      const PHYSICAL_GOODS_PROVIDER_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_PHYSICAL_PROVIDER_TOKEN || "";
-      
-      if (!PHYSICAL_GOODS_PROVIDER_TOKEN) {
-        console.error("TELEGRAM_PHYSICAL_PROVIDER_TOKEN is not set in environment variables.");
-        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Physical goods payment provider is not configured.'});
-        return;
-      }
-
+    } else {
+      // PATH B: Physical Goods - Use Real Currency (USD) via Flutterwave
+      // The provider token for this will be added on the backend for security.
       const payload = {
         title: pack.name,
         description: pack.description,
-        payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
+        payload: `purchase-physical-${user.uid}-${pack.id}-${Date.now()}`,
         currency: 'USD',
         prices: [{ label: pack.name, amount: Math.ceil(pack.price * 100) }], // Price in cents
-        provider_token: PHYSICAL_GOODS_PROVIDER_TOKEN,
         need_shipping_address: true,
       };
 
       await initiateTelegramPayment(payload);
-
-    } else {
-        toast({ variant: 'destructive', title: 'Unknown Product Type', description: 'This item cannot be purchased.'});
     }
   };
 
@@ -91,7 +83,8 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   }
 
   const getPriceDisplay = () => {
-      if (pack.purchaseType === 'digital') {
+      const isDigital = pack.purchaseType !== 'physical';
+      if (isDigital) {
           const USD_TO_STARS_RATE = 113;
           const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
           return (
