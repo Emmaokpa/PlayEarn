@@ -41,21 +41,12 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
 
     setIsBuying(true);
     
-    // Stickers are digital goods purchased with Telegram Stars.
-    // Convert coin price to a USD equivalent then to Stars.
-    const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1
-    const USD_TO_STARS_RATE = 113; // Approximate rate
-    const priceInUsd = pack.price * COIN_TO_USD_RATE;
-    // Ensure the price is at least 1 star
-    const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
-
-    // ** FIX: Explicitly add title and description to the payload **
+    // **NEW APPROACH**: Send only the essential information to the backend.
+    // The backend will fetch the rest of the product details from Firestore.
     const payload = {
-        title: pack.name,
-        description: pack.description,
-        payload: `sticker-purchase-${user.uid}-${pack.id}-${Date.now()}`,
-        currency: 'XTR',
-        prices: [{ label: pack.name, amount: priceInStars }],
+        type: 'sticker-purchase',
+        userId: user.uid,
+        productId: pack.id,
     };
 
     const result = await initiateTelegramPayment(payload);
@@ -73,7 +64,6 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
         });
     }
     
-    // The webhook will handle the actual logic, so we don't set `isBought` here.
     setIsBuying(false);
   };
 

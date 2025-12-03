@@ -1,6 +1,20 @@
 
 import { NextResponse } from 'next/server';
 import TelegramBot from 'node-telegram-bot-api';
+import { admin, firestore } from '@/firebase/admin';
+
+// Conversion Rates
+const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1
+const USD_TO_STARS_RATE = 113; // 1 USD is approx 113 Stars
+
+async function getProductDetails(productId: string, collection: string): Promise<any> {
+    const doc = await firestore.collection(collection).doc(productId).get();
+    if (!doc.exists) {
+        throw new Error(`Product with ID ${productId} not found in ${collection}.`);
+    }
+    return doc.data();
+}
+
 
 export async function POST(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -13,35 +27,38 @@ export async function POST(request: Request) {
     const bot = new TelegramBot(botToken);
     const body = await request.json();
 
-    // ** FIX: Add validation for required fields on the backend **
-    if (!body.title || !body.description || !body.payload || !body.currency || !body.prices) {
-        return NextResponse.json({ 
-            error: 'Invalid request: Missing one or more required fields (title, description, payload, currency, prices).' 
-        }, { status: 400 });
+    // 1. Basic validation
+    const { type, userId, productId } = body;
+    if (!type || !userId || !productId) {
+        return NextResponse.json({ error: 'Invalid request: Missing type, userId, or productId.' }, { status: 400 });
     }
 
-    // Construct the final payload explicitly from the body properties
-    const finalPayload: TelegramBot.CreateInvoiceLinkArgs = {
-        title: body.title,
-        description: body.description,
-        payload: body.payload,
-        currency: body.currency,
-        prices: body.prices,
-        need_shipping_address: body.need_shipping_address,
-    };
+    // 2. Fetch product details from Firestore based on type
+    let product;
+    let payloadString: string;
+    let finalPayload: Omit<TelegramBot.CreateInvoiceLinkArgs, 'provider_token'>;
 
-    // CRITICAL: Logic to handle different payment providers
-    if (body.currency === 'USD') { // For physical goods via Flutterwave
-      const flutterwaveToken = process.env.TELEGRAM_FLUTTERWAVE_PROVIDER_TOKEN;
-      if (!flutterwaveToken) {
-        throw new Error('Flutterwave provider token is not configured for physical goods.');
-      }
-      finalPayload.provider_token = flutterwaveToken;
-    } else if (body.currency === 'XTR') { // For digital goods via Telegram Stars
-      // No provider_token is needed for Stars
-      delete finalPayload.provider_token;
+    if (type === 'sticker-purchase') {
+        product = await getProductDetails(productId, 'stickerPacks');
+        payloadString = `sticker-purchase-${userId}-${productId}-${Date.now()}`;
+        
+        const priceInUsd = product.price * COIN_TO_USD_RATE;
+        const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
+
+        finalPayload = {
+            title: product.name,
+            description: product.description,
+            payload: payloadString,
+            currency: 'XTR', // Stickers are digital, use Stars
+            prices: [{ label: product.name, amount: priceInStars }],
+        };
+    } else {
+        // Handle other purchase types like 'coins', 'spins', 'vip' etc.
+        // For now, return an error for unhandled types.
+        return NextResponse.json({ error: `Unsupported purchase type: ${type}` }, { status: 400 });
     }
 
+    // 3. Create invoice link with Telegram
     const invoiceUrl = await bot.createInvoiceLink(finalPayload);
     
     return NextResponse.json({ invoiceUrl });
