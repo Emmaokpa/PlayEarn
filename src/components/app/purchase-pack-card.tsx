@@ -43,8 +43,7 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     
     setIsBuying(true);
 
-    // This is the complete and correct payload required by Telegram.
-    const payload = {
+    const paymentPayload = {
       title: pack.name,
       description: pack.description,
       payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
@@ -60,7 +59,7 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
       is_flexible: false,
     };
     
-    const result = await initiateTelegramPayment(payload);
+    const result = await initiateTelegramPayment(paymentPayload);
 
     if (!result.success) {
       toast({

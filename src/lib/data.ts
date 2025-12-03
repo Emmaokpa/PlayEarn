@@ -61,7 +61,6 @@ export interface InAppPurchase {
     price: number; // Price in USD
     imageUrl: string;
     imageHint: string;
-    purchaseType: 'digital' | 'physical'; // Flag for payment path
 }
 
 export interface AffiliateOffer {
