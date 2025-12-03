@@ -1,67 +1,87 @@
-
 import { NextResponse } from 'next/server';
 import TelegramBot from 'node-telegram-bot-api';
+import { firestore } from '@/firebase/admin';
 
-// This is the simplified and reliable backend route.
-// It expects a complete payload from the frontend and passes it to Telegram.
+// Constants
+const USD_TO_STARS_RATE = 113;
+const COIN_TO_USD_RATE = 0.001;
+
+// Helper to fetch product details securely from Firestore
+async function getProductDetails(productId: string, purchaseType: string): Promise<any> {
+  let docRef;
+  if (purchaseType === 'sticker-purchase') {
+    docRef = firestore.collection('stickerPacks').doc(productId);
+  } else if (purchaseType === 'coins' || purchaseType === 'spins') {
+    docRef = firestore.collection('inAppPurchases').doc(productId);
+  } else {
+    return null; // Invalid purchase type
+  }
+
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    return null;
+  }
+  return doc.data();
+}
+
 export async function POST(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  
   if (!botToken) {
-    const errorMessage = 'Telegram bot token is not configured on the server.';
-    console.error(`[TELEGRAM_INVOICE_ERROR] ${errorMessage}`);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Telegram bot token is not configured on the server.' }, { status: 500 });
   }
 
   try {
-    const bot = new TelegramBot(botToken);
-    const body = await request.json();
+    const { productId, purchaseType, userId } = await request.json();
 
-    // Explicitly validate all required fields to prevent crashes and provide clear errors.
-    const requiredFields = ['title', 'description', 'payload', 'currency', 'prices'];
-    for (const field of requiredFields) {
-        if (!body[field]) {
-            const errorMessage = `Invalid request: Missing required parameter "${field}".`;
-            console.error(`[TELEGRAM_INVOICE_ERROR] ${errorMessage}`);
-            return NextResponse.json({ error: errorMessage }, { status: 400 });
-        }
+    if (!productId || !purchaseType || !userId) {
+      return NextResponse.json({ error: 'Invalid request: Missing required parameters.' }, { status: 400 });
     }
 
-    // Manually construct the payload for Telegram to ensure type safety and correctness.
+    const product = await getProductDetails(productId, purchaseType);
+
+    if (!product) {
+      return NextResponse.json({ error: `Product with ID ${productId} not found for type ${purchaseType}.` }, { status: 404 });
+    }
+
+    let priceInStars: number;
+    if (purchaseType === 'sticker-purchase') {
+        const priceInUsd = product.price > 100 ? product.price * COIN_TO_USD_RATE : product.price;
+        priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
+    } else { // coins or spins
+        priceInStars = Math.max(1, Math.ceil(product.price * USD_TO_STARS_RATE));
+    }
+
+    // Determine the main payload identifier for the webhook
+    const mainPayloadType = purchaseType === 'sticker-purchase' ? 'sticker-purchase' : 'purchase';
+    
+    // Construct the payload that Telegram will send back to our webhook
+    const invoicePayloadString = `${mainPayloadType}-${userId}-${productId}-${Date.now()}`;
+
+    const bot = new TelegramBot(botToken);
+    
     const finalPayload: TelegramBot.CreateInvoiceLinkArgs = {
-        title: body.title,
-        description: body.description,
-        payload: body.payload,
-        currency: body.currency,
-        prices: body.prices,
-        photo_url: body.photo_url,
-        photo_width: body.photo_width,
-        photo_height: body.photo_height,
-        need_name: body.need_name,
-        need_phone_number: body.need_phone_number,
-        need_email: body.need_email,
-        need_shipping_address: body.need_shipping_address,
-        is_flexible: body.is_flexible,
+        title: product.name,
+        description: product.description,
+        payload: invoicePayloadString,
+        currency: 'XTR', // Always use Stars
+        prices: [{ label: product.name, amount: priceInStars }],
+        photo_url: product.imageUrl,
+        photo_width: 512,
+        photo_height: 512,
+        need_name: false,
+        need_phone_number: false,
+        need_email: false,
+        need_shipping_address: false,
+        is_flexible: false,
     };
     
-    // The payment_provider_token is ONLY required for non-Stars currencies.
-    if (body.currency !== 'XTR') {
-        const paymentProviderToken = process.env.TELEGRAM_PAYMENT_PROVIDER_TOKEN;
-        if (!paymentProviderToken) {
-            const errorMessage = `Payment provider token is required for ${body.currency} currency but is not configured on the server.`;
-            console.error(`[TELEGRAM_INVOICE_ERROR] ${errorMessage}`);
-            return NextResponse.json({ error: errorMessage }, { status: 500 });
-        }
-        finalPayload.provider_token = paymentProviderToken;
-    }
-
     const invoiceUrl = await bot.createInvoiceLink(finalPayload);
     
     return NextResponse.json({ invoiceUrl });
 
   } catch (error) {
-    console.error('[TELEGRAM_INVOICE_ERROR]', error);
     const message = error instanceof Error ? error.message : 'An unknown error occurred on the server.';
+    console.error('[TELEGRAM_INVOICE_ERROR]', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

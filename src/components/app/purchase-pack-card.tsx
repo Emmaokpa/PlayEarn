@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { InAppPurchase } from '@/lib/data';
@@ -43,20 +42,11 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     
     setIsBuying(true);
 
+    // NEW: Simplified payload. Only send the ID and type.
     const paymentPayload = {
-      title: pack.name,
-      description: pack.description,
-      payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
-      currency: 'XTR',
-      prices: [{ label: `${pack.amount} ${pack.type}`, amount: priceInStars }],
-      photo_url: pack.imageUrl,
-      photo_width: 512,
-      photo_height: 512,
-      need_name: false,
-      need_phone_number: false,
-      need_email: false,
-      need_shipping_address: false,
-      is_flexible: false,
+      productId: pack.id,
+      purchaseType: pack.type, // 'coins' or 'spins'
+      userId: user.uid,
     };
     
     const result = await initiateTelegramPayment(paymentPayload);

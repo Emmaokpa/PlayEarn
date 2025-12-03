@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { StickerPack } from '@/lib/data';
@@ -47,21 +46,11 @@ export default function StickerPackCard({ pack }: StickerPackCardProps) {
 
     setIsBuying(true);
     
-    // This is the complete and correct payload required by Telegram.
+    // NEW: Simplified payload. Only send the ID and type.
     const payload = {
-        title: pack.name,
-        description: pack.description,
-        payload: `sticker-purchase-${user.uid}-${pack.id}-${Date.now()}`,
-        currency: 'XTR',
-        prices: [{ label: pack.name, amount: priceInStars }],
-        photo_url: pack.imageUrl,
-        photo_width: 512,
-        photo_height: 512,
-        need_name: false,
-        need_phone_number: false,
-        need_email: false,
-        need_shipping_address: false,
-        is_flexible: false,
+        productId: pack.id,
+        purchaseType: 'sticker-purchase',
+        userId: user.uid,
     };
 
     const result = await initiateTelegramPayment(payload);
