@@ -7,25 +7,6 @@ import { firestore } from '@/firebase/admin';
 const USD_TO_STARS_RATE = 113;
 const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1 USD
 
-// Helper to fetch product details securely from Firestore
-async function getProductDetails(productId: string, purchaseType: string): Promise<any> {
-  let collectionName;
-  if (purchaseType === 'sticker-purchase') {
-    collectionName = 'stickerPacks';
-  } else if (purchaseType === 'coins' || purchaseType === 'spins') {
-    collectionName = 'inAppPurchases';
-  } else {
-    return null; // Invalid purchase type
-  }
-
-  const docRef = firestore.collection(collectionName).doc(productId);
-  const doc = await docRef.get();
-  if (!doc.exists) {
-    return null;
-  }
-  return doc.data();
-}
-
 export async function POST(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
@@ -40,12 +21,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request: Missing required parameters.' }, { status: 400 });
     }
 
-    const product = await getProductDetails(productId, purchaseType);
-
-    if (!product) {
-      console.error(`[TELEGRAM_INVOICE_ERROR] Product with ID ${productId} not found for type ${purchaseType}.`);
-      return NextResponse.json({ error: `Product with ID ${productId} not found for type ${purchaseType}.` }, { status: 404 });
+    let collectionName: string;
+    if (purchaseType === 'sticker-purchase') {
+      collectionName = 'stickerPacks';
+    } else if (purchaseType === 'coins' || purchaseType === 'spins') {
+      collectionName = 'inAppPurchases';
+    } else {
+      return NextResponse.json({ error: `Invalid purchase type: ${purchaseType}` }, { status: 400 });
     }
+    
+    const productDoc = await firestore.collection(collectionName).doc(productId).get();
+
+    if (!productDoc.exists) {
+      console.error(`[TELEGRAM_INVOICE_ERROR] Product with ID ${productId} not found in collection ${collectionName}.`);
+      return NextResponse.json({ error: `Product not found.` }, { status: 404 });
+    }
+
+    const product = productDoc.data()!;
 
     // Defensive check for required product fields
     if (!product.name || !product.description || !product.imageUrl) {
@@ -54,7 +46,6 @@ export async function POST(request: Request) {
     }
 
     let priceInStars: number;
-    // Correctly handle two different pricing models: price in coins vs price in USD
     if (purchaseType === 'sticker-purchase') {
         // Sticker packs have a 'price' in coins. Convert to USD then to Stars.
         const priceInUsd = product.price * COIN_TO_USD_RATE;
@@ -91,7 +82,7 @@ export async function POST(request: Request) {
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An unknown error occurred on the server.';
-    console.error('[TELEGRAM_INVOICE_ERROR]', message);
+    console.error('[TELEGRAM_INVOICE_ERROR]', message, error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { StickerPack } from '@/lib/data';
@@ -12,8 +13,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, CheckCircle, Star } from 'lucide-react';
-import { useFirebase, useUser } from '@/firebase';
+import { CheckCircle, Star } from 'lucide-react';
+import { useFirebase } from '@/firebase';
 import { useState } from 'react';
 import { initiateTelegramPayment } from '@/lib/telegram-payment';
 
@@ -27,11 +28,11 @@ const USD_TO_STARS_RATE = 113;
 
 export default function StickerPackCard({ pack }: StickerPackCardProps) {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user } = useFirebase();
   const [isBought, setIsBought] = useState(false); // In a real app, check against user's purchased packs
   const [isBuying, setIsBuying] = useState(false);
 
-  const priceInUsd = pack.price > 100 ? pack.price * COIN_TO_USD_RATE : pack.price;
+  const priceInUsd = pack.price * COIN_TO_USD_RATE;
   const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
 
   const handleBuy = async () => {
@@ -46,7 +47,6 @@ export default function StickerPackCard({ pack }: StickerPackCardProps) {
 
     setIsBuying(true);
     
-    // NEW: Simplified payload. Only send the ID and type.
     const payload = {
         productId: pack.id,
         purchaseType: 'sticker-purchase',

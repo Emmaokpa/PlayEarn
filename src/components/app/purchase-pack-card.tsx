@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { InAppPurchase } from '@/lib/data';
@@ -42,10 +43,9 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     
     setIsBuying(true);
 
-    // NEW: Simplified payload. Only send the ID and type.
     const paymentPayload = {
       productId: pack.id,
-      purchaseType: pack.type, // 'coins' or 'spins'
+      purchaseType: pack.type,
       userId: user.uid,
     };
     
@@ -82,41 +82,27 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:border-primary">
-       {pack.imageUrl ? (
-         <CardHeader className="p-0">
-           <div className="relative aspect-video">
-             <Image
-              src={pack.imageUrl}
-              alt={pack.name}
-              fill
-              className="rounded-t-lg object-cover"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              referrerPolicy="no-referrer"
-              unoptimized
-            />
-           </div>
-         </CardHeader>
-      ) : (
-        <CardHeader>
-            <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                    <Gem className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                    <CardTitle className="text-2xl">{pack.name}</CardTitle>
-                    <CardDescription className="mt-1">{pack.description}</CardDescription>
-                </div>
-            </div>
-        </CardHeader>
-      )}
-
+       <CardHeader className="p-0">
+         <div className="relative aspect-video">
+           <Image
+            src={pack.imageUrl}
+            alt={pack.name}
+            fill
+            className="rounded-t-lg object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            referrerPolicy="no-referrer"
+            unoptimized
+          />
+         </div>
+       </CardHeader>
+      
       <CardContent className="flex-1 flex flex-col items-center justify-center text-center p-6">
          <div className="flex items-baseline gap-2 text-5xl font-bold text-primary">
             {getIcon()}
             <span>{pack.amount.toLocaleString()}</span>
          </div>
          <p className="text-muted-foreground capitalize">{pack.type}</p>
-         {!pack.imageUrl && <CardDescription className="mt-2">{pack.description}</CardDescription>}
+         <CardDescription className="mt-2">{pack.description}</CardDescription>
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
         <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold" disabled={isBuying}>
