@@ -7,20 +7,27 @@ import TelegramBot from 'node-telegram-bot-api';
 // Initialize the bot outside the handler to reuse the instance
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 if (!botToken) {
-  console.error("TELEGRAM_BOT_TOKEN is not configured.");
+  console.error("CRITICAL: TELEGRAM_BOT_TOKEN is not configured.");
 }
+// Even if token is missing, we initialize to avoid runtime errors,
+// but API calls will fail, which is handled below.
 const bot = new TelegramBot(botToken || 'dummy-token');
 
-const USD_TO_STARS = 100; // Example: $1.00 = 100 Stars
-const COINS_TO_STARS = 1;   // Example: 100 coins = 100 Stars
+// These are your conversion rates. 1000 coins = $1 = 100 stars. So 10 coins = 1 star.
+const USD_TO_STARS = 100; // $1.00 = 100 Stars
+const COINS_TO_STARS = 0.1; // 1 coin = 0.1 Stars, so 10 coins = 1 Star
 
-async function getProductDetails(productId: string, purchaseType: 'inAppPurchases' | 'stickerPacks'): Promise<any> {
+/**
+ * A server-side utility to fetch product details from Firestore.
+ * This is a more secure approach than relying on frontend data.
+ */
+async function getProductDetails(productId: string, purchaseType: 'inAppPurchases' | 'stickerPacks'): Promise<InAppPurchase | StickerPack | null> {
     const docRef = firestore.collection(purchaseType).doc(productId);
     const docSnap = await docRef.get();
     if (!docSnap.exists) {
         return null;
     }
-    return docSnap.data();
+    return docSnap.data() as InAppPurchase | StickerPack;
 }
 
 export async function POST(request: Request) {
@@ -35,14 +42,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing productId, purchaseType, or userId.' }, { status: 400 });
     }
 
+    if (purchaseType !== 'inAppPurchases' && purchaseType !== 'stickerPacks') {
+      return NextResponse.json({ error: 'Invalid purchase type specified.' }, { status: 400 });
+    }
+    
     const product = await getProductDetails(productId, purchaseType);
 
     if (!product) {
-      return NextResponse.json({ error: `Product with ID ${productId} not found.` }, { status: 404 });
+      return NextResponse.json({ error: `Product with ID ${productId} not found in ${purchaseType}.` }, { status: 404 });
     }
 
     let priceInStars: number;
-    const currency = 'XTR'; // Telegram Stars
+    const currency = 'XTR'; // Telegram Stars currency code
 
     // Calculate price in Stars based on product type
     if (purchaseType === 'inAppPurchases') {
@@ -51,21 +62,19 @@ export async function POST(request: Request) {
         throw new Error(`Invalid USD price for product ${productId}`);
       }
       priceInStars = Math.round(pack.price * USD_TO_STARS);
-    } else if (purchaseType === 'stickerPacks') {
+    } else { // 'stickerPacks'
       const pack = product as StickerPack;
       if (typeof pack.price !== 'number') {
          throw new Error(`Invalid coin price for product ${productId}`);
       }
       priceInStars = Math.round(pack.price * COINS_TO_STARS);
-    } else {
-      return NextResponse.json({ error: 'Invalid purchase type specified.' }, { status: 400 });
     }
 
     if (priceInStars <= 0) {
         return NextResponse.json({ error: 'Calculated price must be positive.' }, { status: 400 });
     }
     
-    // Construct a unique payload for this transaction
+    // Construct a unique payload for this transaction.
     const payload = `${purchaseType}-${productId}-${userId}-${Date.now()}`;
 
     const invoiceArgs: TelegramBot.CreateInvoiceLinkArgs = {
@@ -85,7 +94,8 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Error creating invoice link:', error);
-    const errorMessage = error.response?.body?.description || error.message || 'An unknown error occurred.';
+    // This helps debug by logging the actual error from the Telegram API
+    const errorMessage = error.response?.body?.description || error.message || 'An unknown error occurred on the server.';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
