@@ -39,8 +39,9 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
     }
     
     // Stickers are digital goods purchased with Telegram Stars.
+    // Convert coin price to a USD equivalent then to Stars.
     const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1
-    const USD_TO_STARS_RATE = 113; // 1 USD = 113 Stars
+    const USD_TO_STARS_RATE = 113; // Approximate rate
     const priceInUsd = pack.price * COIN_TO_USD_RATE;
     const priceInStars = Math.ceil(priceInUsd * USD_TO_STARS_RATE);
 
@@ -50,17 +51,30 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
         payload: `sticker-purchase-${user.uid}-${pack.id}-${Date.now()}`,
         currency: 'XTR',
         prices: [{ label: pack.name, amount: priceInStars }],
-        provider_token: "", // Empty for Stars
     };
 
-    await initiateTelegramPayment(payload);
+    const result = await initiateTelegramPayment(payload);
 
-    // Actual purchase/ownership handling should be done via webhook after payment confirmation
-    toast({
-        title: 'Complete Your Purchase',
-        description: `Follow the instructions from Telegram to buy the "${pack.name}" pack.`,
-    });
+    if (!result.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Payment Failed',
+        description: result.error || 'Could not initiate the payment process.',
+      });
+    } else {
+        toast({
+            title: 'Complete Your Purchase',
+            description: `Follow the instructions from Telegram to buy the "${pack.name}" pack.`,
+        });
+    }
   };
+
+  const getPriceInStars = () => {
+    const COIN_TO_USD_RATE = 0.001;
+    const USD_TO_STARS_RATE = 113;
+    const priceInUsd = pack.price * COIN_TO_USD_RATE;
+    return Math.ceil(priceInUsd * USD_TO_STARS_RATE);
+  }
 
   return (
     <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-lg">
@@ -85,10 +99,10 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
       <CardFooter className="flex items-center justify-between bg-secondary/50 p-3">
         <div className="flex items-center gap-1 font-bold">
           <Star className="h-4 w-4 text-yellow-400" />
-          <span>{Math.ceil(pack.price * 0.001 * 113)}</span>
+          <span>{getPriceInStars()}</span>
         </div>
         <Button onClick={handleBuy} disabled={isBought} size="sm" className={isBought ? "bg-green-600 hover:bg-green-600" : ""}>
-          {isBought ? <CheckCircle className="mr-2" /> : null}
+          {isBought ? <CheckCircle className="h-4 w-4" /> : null}
           {isBought ? 'Owned' : 'Buy'}
         </Button>
       </CardFooter>

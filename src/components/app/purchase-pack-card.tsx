@@ -37,11 +37,11 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     }
     
     // All currency packs are digital goods, so they use Telegram Stars.
-    const isDigital = pack.purchaseType !== 'physical';
+    const isDigital = true;
     
     if (isDigital) {
-      // PATH A: Digital Goods - Use Telegram Stars (XTR)
-      const USD_TO_STARS_RATE = 113; // 1 USD = 113 Stars
+      // Digital Goods - Use Telegram Stars (XTR)
+      const USD_TO_STARS_RATE = 113; // 1 USD is approx 113 Stars
       const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
       
       const payload = {
@@ -50,13 +50,25 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
         payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
         currency: 'XTR',
         prices: [{ label: `${pack.amount} ${pack.type}`, amount: priceInStars }],
-        // provider_token is NOT needed for Stars
       };
       
-      await initiateTelegramPayment(payload);
+      const result = await initiateTelegramPayment(payload);
+
+      if (!result.success) {
+        toast({
+          variant: 'destructive',
+          title: 'Payment Failed',
+          description: result.error || 'Could not initiate the payment process.',
+        });
+      } else {
+        toast({
+          title: 'Complete Your Purchase',
+          description: 'Follow the instructions from Telegram to complete your purchase.',
+        });
+      }
 
     } else {
-      // PATH B: Physical Goods - Use Real Currency (USD) via Flutterwave
+      // Physical Goods - Use Real Currency (USD) via a provider like Flutterwave
       // The provider token for this will be added on the backend for security.
       const payload = {
         title: pack.name,
@@ -83,7 +95,7 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   }
 
   const getPriceDisplay = () => {
-      const isDigital = pack.purchaseType !== 'physical';
+      const isDigital = true;
       if (isDigital) {
           const USD_TO_STARS_RATE = 113;
           const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
