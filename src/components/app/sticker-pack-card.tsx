@@ -49,6 +49,7 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
     // Ensure the price is at least 1 star
     const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
 
+    // ** FIX: Explicitly add title and description to the payload **
     const payload = {
         title: pack.name,
         description: pack.description,

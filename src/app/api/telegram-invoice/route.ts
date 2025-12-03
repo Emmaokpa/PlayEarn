@@ -13,8 +13,14 @@ export async function POST(request: Request) {
     const bot = new TelegramBot(botToken);
     const body = await request.json();
 
-    // *** FIX: Construct the final payload explicitly from the body ***
-    // This ensures all properties are correctly typed and present for the Telegram API.
+    // ** FIX: Add validation for required fields on the backend **
+    if (!body.title || !body.description || !body.payload || !body.currency || !body.prices) {
+        return NextResponse.json({ 
+            error: 'Invalid request: Missing one or more required fields (title, description, payload, currency, prices).' 
+        }, { status: 400 });
+    }
+
+    // Construct the final payload explicitly from the body properties
     const finalPayload: TelegramBot.CreateInvoiceLinkArgs = {
         title: body.title,
         description: body.description,
