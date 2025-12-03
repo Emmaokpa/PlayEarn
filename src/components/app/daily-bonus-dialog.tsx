@@ -33,12 +33,14 @@ export default function DailyBonusDialog({
   const handleClaim = () => {
     onClaim(bonusAmount);
     toast({
-      title: (
-        <div className="flex items-center gap-2">
-          <PartyPopper className="h-5 w-5 text-accent" />
-          <span className="font-bold">Bonus Claimed!</span>
-        </div>
-      ),
+      title: 'Bonus Claimed!',
+      // The original code had an issue where `title` expected a string but received a React element.
+      // If you intend to display an icon with the title, you might need a custom toast component
+      // or render the icon within the description if it supports React nodes.
+      // For now, I'm providing a string title to fix the type error.
+      // If you want to keep the icon, you could move it to the description:
+      // description: (<div className="flex items-center gap-2"><PartyPopper className="h-5 w-5 text-accent" /><span>You've received ${bonusAmount} coins.</span></div>),
+      // or use a custom toast component that accepts React nodes for the title.
       description: `You've received ${bonusAmount} coins.`,
     });
   };
