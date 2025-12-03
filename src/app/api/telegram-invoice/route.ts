@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server';
 import TelegramBot from 'node-telegram-bot-api';
 import { firestore } from '@/firebase/admin';
 
-// Conversion Rates
+// Conversion Rates - ensure these are defined
 const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1
 const USD_TO_STARS_RATE = 113; // 1 USD is approx 113 Stars
 
+// Helper function to get product details from Firestore
 async function getProductDetails(productId: string, collection: string): Promise<any> {
     const doc = await firestore.collection(collection).doc(productId).get();
     if (!doc.exists) {
@@ -27,8 +28,8 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const { type, userId, productId } = body;
-    if (!type || !userId || !productId) {
-        return NextResponse.json({ error: 'Invalid request: Missing type, userId, or productId.' }, { status: 400 });
+    if (!type || !userId) {
+        return NextResponse.json({ error: 'Invalid request: Missing type or userId.' }, { status: 400 });
     }
 
     let product;
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
     let finalPayload: Omit<TelegramBot.CreateInvoiceLinkArgs, 'provider_token'>;
 
     if (type === 'sticker-purchase') {
+        if (!productId) return NextResponse.json({ error: 'Missing productId for sticker purchase.' }, { status: 400 });
         product = await getProductDetails(productId, 'stickerPacks');
         payloadString = `sticker-purchase-${userId}-${productId}-${Date.now()}`;
         
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
             photo_height: 512,
         };
     } else if (type === 'coins' || type === 'spins') {
+        if (!productId) return NextResponse.json({ error: 'Missing productId for IAP.' }, { status: 400 });
         product = await getProductDetails(productId, 'inAppPurchases');
         payloadString = `purchase-${userId}-${productId}-${Date.now()}`;
 
@@ -79,9 +82,12 @@ export async function POST(request: Request) {
             payload: payloadString,
             currency: 'XTR',
             prices: [{ label: 'VIP Membership (1 Month)', amount: priceInStars }],
+            // Optional: Add a generic VIP image URL
+            photo_url: 'https://i.imgur.com/exampleVipImage.png',
+            photo_width: 512,
+            photo_height: 512,
         };
-    }
-     else {
+    } else {
         return NextResponse.json({ error: `Unsupported purchase type: ${type}` }, { status: 400 });
     }
 
