@@ -43,7 +43,8 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
     const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1
     const USD_TO_STARS_RATE = 113; // Approximate rate
     const priceInUsd = pack.price * COIN_TO_USD_RATE;
-    const priceInStars = Math.ceil(priceInUsd * USD_TO_STARS_RATE);
+    // Ensure the price is at least 1 star
+    const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
 
     const payload = {
         title: pack.name,
@@ -73,7 +74,7 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
     const COIN_TO_USD_RATE = 0.001;
     const USD_TO_STARS_RATE = 113;
     const priceInUsd = pack.price * COIN_TO_USD_RATE;
-    return Math.ceil(priceInUsd * USD_TO_STARS_RATE);
+    return Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
   }
 
   return (

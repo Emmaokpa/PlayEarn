@@ -42,7 +42,8 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     if (isDigital) {
       // Digital Goods - Use Telegram Stars (XTR)
       const USD_TO_STARS_RATE = 113; // 1 USD is approx 113 Stars
-      const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
+      // Ensure the price is at least 1 star
+      const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
       
       const payload = {
         title: pack.name,
@@ -98,7 +99,7 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
       const isDigital = true;
       if (isDigital) {
           const USD_TO_STARS_RATE = 113;
-          const priceInStars = Math.ceil(pack.price * USD_TO_STARS_RATE);
+          const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
           return (
               <div className="flex items-center gap-1">
                   <Star className="h-5 w-5 text-yellow-400" />
