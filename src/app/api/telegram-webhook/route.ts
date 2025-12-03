@@ -66,9 +66,15 @@ export async function POST(request: Request) {
                 transaction.set(spinDataRef, { purchasedSpinsRemaining: admin.firestore.FieldValue.increment(pack.amount) }, { merge: true });
             }
           } else if (purchaseType === 'stickerPacks') {
-             // Logic for sticker packs can be added here in the future.
-             // For example, you could add the sticker pack ID to a user's collection.
-             // For now, it doesn't do anything, but the structure is ready.
+             // For sticker packs, we'll record that the user owns this pack.
+             // A real app might have a `userStickers` subcollection.
+             // For now, we can add a simple record.
+             const userStickerRef = firestore.doc(`users/${userId}/ownedStickerPacks/${product.id}`);
+             transaction.set(userStickerRef, {
+                packId: product.id,
+                packName: product.name,
+                acquiredAt: admin.firestore.FieldValue.serverTimestamp(),
+             });
           }
       });
 
