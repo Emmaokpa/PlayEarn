@@ -69,9 +69,14 @@ export async function POST(request: Request) {
           }
           break;
         case 'sticker-purchase':
-           // You could add logic here to unlock a sticker pack for the user
+           if (!productId) throw new Error(`Missing productId in payload for sticker purchase: ${invoicePayload}`);
            console.log(`User ${userId} purchased sticker pack ${productId}`);
-           // e.g., await userRef.collection('unlockedStickers').doc(productId).set({ unlockedAt: serverTimestamp() });
+           // Add the sticker pack to the user's 'unlockedStickers' subcollection
+           await userRef.collection('unlockedStickers').doc(productId).set({
+             unlockedAt: admin.firestore.FieldValue.serverTimestamp(),
+             packId: productId,
+           });
+           console.log(`Successfully unlocked sticker pack ${productId} for user ${userId}.`);
            break;
         case 'purchase-physical':
             // For physical goods, create an order document for fulfillment

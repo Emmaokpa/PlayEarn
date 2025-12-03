@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     // *** FIX: Construct the final payload explicitly from the body ***
-    // The body itself contains all the necessary properties.
+    // This ensures all properties are correctly typed and present for the Telegram API.
     const finalPayload: TelegramBot.CreateInvoiceLinkArgs = {
         title: body.title,
         description: body.description,

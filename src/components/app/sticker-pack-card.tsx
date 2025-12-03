@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Coins, CheckCircle, Star } from 'lucide-react';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useUser } from '@/firebase';
 import { useState } from 'react';
 import { initiateTelegramPayment } from '@/lib/telegram-payment';
 
@@ -25,8 +25,9 @@ interface StickerPackCardProps {
 
 export default function StickerPackCard({ pack, userCoins }: StickerPackCardProps) {
   const { toast } = useToast();
-  const { user } = useFirebase();
+  const { user } = useUser();
   const [isBought, setIsBought] = useState(false); // In a real app, check against user's purchased packs
+  const [isBuying, setIsBuying] = useState(false);
 
   const handleBuy = async () => {
     if (!user) {
@@ -37,6 +38,8 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
       });
       return;
     }
+
+    setIsBuying(true);
     
     // Stickers are digital goods purchased with Telegram Stars.
     // Convert coin price to a USD equivalent then to Stars.
@@ -67,6 +70,8 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
             title: 'Complete Your Purchase',
             description: `Follow the instructions from Telegram to buy the "${pack.name}" pack.`,
         });
+    } finally {
+      setIsBuying(false);
     }
   };
 
@@ -102,9 +107,10 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
           <Star className="h-4 w-4 text-yellow-400" />
           <span>{getPriceInStars()}</span>
         </div>
-        <Button onClick={handleBuy} disabled={isBought} size="sm" className={isBought ? "bg-green-600 hover:bg-green-600" : ""}>
+        <Button onClick={handleBuy} disabled={isBought || isBuying} size="sm" className={isBought ? "bg-green-600 hover:bg-green-600" : ""}>
           {isBought ? <CheckCircle className="h-4 w-4" /> : null}
-          {isBought ? 'Owned' : 'Buy'}
+          {isBuying && 'Processing...'}
+          {!isBuying && (isBought ? 'Owned' : 'Buy')}
         </Button>
       </CardFooter>
     </Card>
