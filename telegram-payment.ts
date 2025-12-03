@@ -1,6 +1,3 @@
-
-'use client';
-
 import type TelegramBot from 'node-telegram-bot-api';
 
 /**

@@ -25,9 +25,9 @@ export default function DailyBonusDialog({
 }) {
   const { toast } = useToast();
   // We're leaving mockUser here just to get the isVip flag.
-  // In a real app, this would come from the user's profile data.
-  const { user } = useUser(); // Using a placeholder for now
-  const isVip = false; // Placeholder
+  // In a real app, this would come from the user's profile data, which we can get from the useUser hook.
+  const { userData } = useUser();
+  const isVip = userData?.isVip || false;
   const bonusAmount = isVip ? 60 : 20;
 
   const handleClaim = () => {
