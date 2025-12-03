@@ -11,19 +11,27 @@ export async function POST(request: Request) {
 
   try {
     const bot = new TelegramBot(botToken);
-    const payload = await request.json();
+    const body = await request.json();
 
-    // The final payload to be sent to Telegram
-    const finalPayload: TelegramBot.CreateInvoiceLinkArgs = { ...payload };
+    // *** FIX: Construct the final payload explicitly from the body ***
+    // The body itself contains all the necessary properties.
+    const finalPayload: TelegramBot.CreateInvoiceLinkArgs = {
+        title: body.title,
+        description: body.description,
+        payload: body.payload,
+        currency: body.currency,
+        prices: body.prices,
+        need_shipping_address: body.need_shipping_address,
+    };
 
     // CRITICAL: Logic to handle different payment providers
-    if (payload.currency === 'USD') { // For physical goods via Flutterwave
+    if (body.currency === 'USD') { // For physical goods via Flutterwave
       const flutterwaveToken = process.env.TELEGRAM_FLUTTERWAVE_PROVIDER_TOKEN;
       if (!flutterwaveToken) {
         throw new Error('Flutterwave provider token is not configured for physical goods.');
       }
       finalPayload.provider_token = flutterwaveToken;
-    } else if (payload.currency === 'XTR') { // For digital goods via Telegram Stars
+    } else if (body.currency === 'XTR') { // For digital goods via Telegram Stars
       // No provider_token is needed for Stars
       delete finalPayload.provider_token;
     }

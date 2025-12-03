@@ -47,11 +47,11 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
     const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
 
     const payload = {
-        title: pack.name,
-        description: pack.description,
+        title: pack.name || 'Untitled Sticker Pack', // Ensure title is always a string
+        description: pack.description || 'A unique sticker pack for your collection.', // Ensure description is always a string
         payload: `sticker-purchase-${user.uid}-${pack.id}-${Date.now()}`,
         currency: 'XTR',
-        prices: [{ label: pack.name, amount: priceInStars }],
+        prices: [{ label: pack.name || 'Sticker Pack', amount: priceInStars }],
     };
 
     const result = await initiateTelegramPayment(payload);
