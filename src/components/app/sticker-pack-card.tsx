@@ -70,9 +70,10 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
             title: 'Complete Your Purchase',
             description: `Follow the instructions from Telegram to buy the "${pack.name}" pack.`,
         });
-    } finally {
-      setIsBuying(false);
     }
+    
+    // The webhook will handle the actual logic, so we don't set `isBought` here.
+    setIsBuying(false);
   };
 
   const getPriceInStars = () => {
