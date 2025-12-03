@@ -41,8 +41,6 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
 
     setIsBuying(true);
     
-    // **NEW APPROACH**: Send only the essential information to the backend.
-    // The backend will fetch the rest of the product details from Firestore.
     const payload = {
         type: 'sticker-purchase',
         userId: user.uid,

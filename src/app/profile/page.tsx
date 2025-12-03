@@ -22,11 +22,12 @@ import AppLayout from '@/components/layout/app-layout';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { initiateTelegramPayment } from '@/lib/telegram-payment';
+import { useState } from 'react';
 
 const menuItems = [
   { icon: UserIcon, text: 'Edit Profile' },
@@ -42,6 +43,7 @@ const menuItems = [
 export default function ProfilePage() {
   const { auth, user, firestore } = useFirebase();
   const { toast } = useToast();
+  const [isBuying, setIsBuying] = useState(false);
   
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, 'users', user.uid) : null, 
@@ -54,29 +56,29 @@ export default function ProfilePage() {
   const handleVipUpgrade = async () => {
     if (!user || isVip) return;
 
-    // This is now a digital purchase via Telegram Stars
-    const VIP_PRICE_USD = 4.99;
-    const USD_TO_STARS_RATE = 113;
-    const priceInStars = Math.ceil(VIP_PRICE_USD * USD_TO_STARS_RATE);
+    setIsBuying(true);
 
     const payload = {
-        title: 'VIP Subscription',
-        description: 'Unlock all exclusive features and multiply your earnings!',
-        payload: `vip-upgrade-${user.uid}-${Date.now()}`,
-        currency: 'XTR',
-        prices: [{ label: 'VIP Membership (1 Month)', amount: priceInStars }],
-        provider_token: "", // Empty for Stars
+      type: 'vip-upgrade',
+      userId: user.uid,
     };
       
-    await initiateTelegramPayment(payload);
+    const result = await initiateTelegramPayment(payload);
 
-    // The actual granting of VIP status should be handled by a webhook
-    // after the payment is confirmed by Telegram. For now, the button
-    // will just trigger the payment flow.
-    toast({
-        title: 'Complete Your Purchase',
-        description: 'Follow the instructions from Telegram to become a VIP.',
-    });
+    if (!result.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Payment Failed',
+        description: result.error || 'Could not initiate the payment process.',
+      });
+    } else {
+        toast({
+            title: 'Complete Your Purchase',
+            description: 'Follow the instructions from Telegram to become a VIP.',
+        });
+    }
+    
+    setIsBuying(false);
   };
 
   return (
@@ -133,8 +135,8 @@ export default function ProfilePage() {
                 <Crown className="h-4 w-4 text-yellow-400" /> Claim exclusive gift cards
               </li>
             </ul>
-             <Button className="w-full font-bold" size="lg" onClick={handleVipUpgrade} disabled={isVip}>
-              {isVip ? 'Manage Subscription' : 'Upgrade with Stars'}
+             <Button className="w-full font-bold" size="lg" onClick={handleVipUpgrade} disabled={isVip || isBuying}>
+              {isVip ? 'Manage Subscription' : (isBuying ? 'Processing...' : 'Upgrade with Stars')}
             </Button>
           </CardContent>
         </Card>

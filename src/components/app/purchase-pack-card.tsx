@@ -16,6 +16,7 @@ import { Coins, Gem, Star } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import Image from 'next/image';
 import { initiateTelegramPayment } from '@/lib/telegram-payment';
+import { useState } from 'react';
 
 
 interface PurchasePackCardProps {
@@ -25,6 +26,7 @@ interface PurchasePackCardProps {
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
+  const [isBuying, setIsBuying] = useState(false);
 
   const handleBuy = async () => {
     if (!user) {
@@ -36,52 +38,30 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
       return;
     }
     
-    // All currency packs are digital goods, so they use Telegram Stars.
-    const isDigital = true;
+    setIsBuying(true);
+
+    const payload = {
+      type: pack.type, // 'coins' or 'spins'
+      userId: user.uid,
+      productId: pack.id,
+    };
     
-    if (isDigital) {
-      // Digital Goods - Use Telegram Stars (XTR)
-      const USD_TO_STARS_RATE = 113; // 1 USD is approx 113 Stars
-      // Ensure the price is at least 1 star
-      const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
-      
-      const payload = {
-        title: pack.name,
-        description: pack.description,
-        payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
-        currency: 'XTR',
-        prices: [{ label: `${pack.amount} ${pack.type}`, amount: priceInStars }],
-      };
-      
-      const result = await initiateTelegramPayment(payload);
+    const result = await initiateTelegramPayment(payload);
 
-      if (!result.success) {
-        toast({
-          variant: 'destructive',
-          title: 'Payment Failed',
-          description: result.error || 'Could not initiate the payment process.',
-        });
-      } else {
-        toast({
-          title: 'Complete Your Purchase',
-          description: 'Follow the instructions from Telegram to complete your purchase.',
-        });
-      }
-
+    if (!result.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Payment Failed',
+        description: result.error || 'Could not initiate the payment process.',
+      });
     } else {
-      // Physical Goods - Use Real Currency (USD) via a provider like Flutterwave
-      // The provider token for this will be added on the backend for security.
-      const payload = {
-        title: pack.name,
-        description: pack.description,
-        payload: `purchase-physical-${user.uid}-${pack.id}-${Date.now()}`,
-        currency: 'USD',
-        prices: [{ label: pack.name, amount: Math.ceil(pack.price * 100) }], // Price in cents
-        need_shipping_address: true,
-      };
-
-      await initiateTelegramPayment(payload);
+      toast({
+        title: 'Complete Your Purchase',
+        description: 'Follow the instructions from Telegram to complete your purchase.',
+      });
     }
+    
+    setIsBuying(false);
   };
 
   const getIcon = () => {
@@ -96,18 +76,14 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   }
 
   const getPriceDisplay = () => {
-      const isDigital = true;
-      if (isDigital) {
-          const USD_TO_STARS_RATE = 113;
-          const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
-          return (
-              <div className="flex items-center gap-1">
-                  <Star className="h-5 w-5 text-yellow-400" />
-                  <span>{priceInStars.toLocaleString()}</span>
-              </div>
-          )
-      }
-      return `$${pack.price.toFixed(2)}`;
+      const USD_TO_STARS_RATE = 113;
+      const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
+      return (
+          <div className="flex items-center gap-1">
+              <Star className="h-5 w-5 text-yellow-400" />
+              <span>{priceInStars.toLocaleString()}</span>
+          </div>
+      )
   }
 
   return (
@@ -149,8 +125,8 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
          {!pack.imageUrl && <CardDescription className="mt-2">{pack.description}</CardDescription>}
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
-        <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold">
-            Buy for {getPriceDisplay()}
+        <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold" disabled={isBuying}>
+            {isBuying ? 'Processing...' : `Buy for ${getPriceDisplay()}`}
         </Button>
       </CardFooter>
     </Card>
