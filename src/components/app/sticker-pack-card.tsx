@@ -13,28 +13,58 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Star, Coins } from 'lucide-react';
+import { CheckCircle, Star, Coins, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useFirebase } from '@/firebase';
 
 interface StickerPackCardProps {
   pack: StickerPack;
   userCoins: number;
 }
 
-export default function StickerPackCard({ pack }: StickerPackCardProps) {
+export default function StickerPackCard({ pack, userCoins }: StickerPackCardProps) {
   const { toast } = useToast();
-  const [isBought, setIsBought] = useState(false);
+  const { user } = useFirebase();
   const [isBuying, setIsBuying] = useState(false);
 
   const priceDisplayText = pack.price.toLocaleString();
 
   const handleBuy = async () => {
-    // All payment logic has been temporarily removed as requested.
-    toast({
-      variant: 'destructive',
-      title: 'Feature Disabled',
-      description: 'The payment feature is currently undergoing maintenance.',
-    });
+     if (!user) {
+        toast({ variant: 'destructive', title: 'Not Logged In', description: 'You must be logged in to make a purchase.'});
+        return;
+    }
+    setIsBuying(true);
+
+    try {
+        const response = await fetch('/api/telegram-invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                productId: pack.id,
+                purchaseType: 'stickerPacks',
+                userId: user.uid,
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to create invoice.');
+        }
+
+        window.open(result.invoiceUrl, '_blank');
+        toast({ title: 'Complete Your Purchase', description: 'Please follow the instructions in Telegram to complete your purchase.' });
+
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Purchase Failed',
+            description: error.message || 'An unknown error occurred.',
+        });
+    } finally {
+        setIsBuying(false);
+    }
   };
 
   return (
@@ -62,9 +92,8 @@ export default function StickerPackCard({ pack }: StickerPackCardProps) {
           <Coins className="h-4 w-4 text-primary" />
           <span>{priceDisplayText}</span>
         </div>
-        <Button onClick={handleBuy} disabled size="sm">
-          <Star className="h-4 w-4 mr-1" />
-          Buy
+        <Button onClick={handleBuy} disabled={isBuying} size="sm">
+          {isBuying ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Star className="h-4 w-4 mr-1" />Buy</>}
         </Button>
       </CardFooter>
     </Card>
