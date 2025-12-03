@@ -1,22 +1,24 @@
+
 import { NextResponse } from 'next/server';
 import TelegramBot from 'node-telegram-bot-api';
 import { firestore } from '@/firebase/admin';
 
 // Constants
 const USD_TO_STARS_RATE = 113;
-const COIN_TO_USD_RATE = 0.001;
+const COIN_TO_USD_RATE = 0.001; // 1000 coins = $1 USD
 
 // Helper to fetch product details securely from Firestore
 async function getProductDetails(productId: string, purchaseType: string): Promise<any> {
-  let docRef;
+  let collectionName;
   if (purchaseType === 'sticker-purchase') {
-    docRef = firestore.collection('stickerPacks').doc(productId);
+    collectionName = 'stickerPacks';
   } else if (purchaseType === 'coins' || purchaseType === 'spins') {
-    docRef = firestore.collection('inAppPurchases').doc(productId);
+    collectionName = 'inAppPurchases';
   } else {
     return null; // Invalid purchase type
   }
 
+  const docRef = firestore.collection(collectionName).doc(productId);
   const doc = await docRef.get();
   if (!doc.exists) {
     return null;
@@ -27,6 +29,7 @@ async function getProductDetails(productId: string, purchaseType: string): Promi
 export async function POST(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
+    console.error('[TELEGRAM_INVOICE_ERROR] Telegram bot token is not configured on the server.');
     return NextResponse.json({ error: 'Telegram bot token is not configured on the server.' }, { status: 500 });
   }
 
@@ -40,22 +43,29 @@ export async function POST(request: Request) {
     const product = await getProductDetails(productId, purchaseType);
 
     if (!product) {
+      console.error(`[TELEGRAM_INVOICE_ERROR] Product with ID ${productId} not found for type ${purchaseType}.`);
       return NextResponse.json({ error: `Product with ID ${productId} not found for type ${purchaseType}.` }, { status: 404 });
     }
 
-    let priceInStars: number;
-    if (purchaseType === 'sticker-purchase') {
-        const priceInUsd = product.price > 100 ? product.price * COIN_TO_USD_RATE : product.price;
-        priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
-    } else { // coins or spins
-        priceInStars = Math.max(1, Math.ceil(product.price * USD_TO_STARS_RATE));
+    // Defensive check for required product fields
+    if (!product.name || !product.description || !product.imageUrl) {
+        console.error(`[TELEGRAM_INVOICE_ERROR] Product ${productId} is missing required fields (name, description, or imageUrl).`);
+        return NextResponse.json({ error: 'Product configuration is incomplete on the server.' }, { status: 500 });
     }
 
-    // Determine the main payload identifier for the webhook
-    const mainPayloadType = purchaseType === 'sticker-purchase' ? 'sticker-purchase' : 'purchase';
+    let priceInStars: number;
+    // Correctly handle two different pricing models: price in coins vs price in USD
+    if (purchaseType === 'sticker-purchase') {
+        // Sticker packs have a 'price' in coins. Convert to USD then to Stars.
+        const priceInUsd = product.price * COIN_TO_USD_RATE;
+        priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
+    } else { 
+        // Coin/Spin packs have a 'price' directly in USD. Convert to Stars.
+        priceInStars = Math.max(1, Math.ceil(product.price * USD_TO_STARS_RATE));
+    }
     
     // Construct the payload that Telegram will send back to our webhook
-    const invoicePayloadString = `${mainPayloadType}-${userId}-${productId}-${Date.now()}`;
+    const invoicePayloadString = `${purchaseType}-${userId}-${productId}-${Date.now()}`;
 
     const bot = new TelegramBot(botToken);
     
@@ -63,7 +73,7 @@ export async function POST(request: Request) {
         title: product.name,
         description: product.description,
         payload: invoicePayloadString,
-        currency: 'XTR', // Always use Stars
+        currency: 'XTR', // Always use Stars for digital goods
         prices: [{ label: product.name, amount: priceInStars }],
         photo_url: product.imageUrl,
         photo_width: 512,
