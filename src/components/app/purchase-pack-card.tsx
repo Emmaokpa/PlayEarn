@@ -15,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Coins, Gem, Star } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import Image from 'next/image';
-import { initiateTelegramPayment } from '@/lib/telegram-payment';
 import { useState } from 'react';
 
 interface PurchasePackCardProps {
@@ -24,47 +23,17 @@ interface PurchasePackCardProps {
 
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
-  const { user } = useFirebase();
   const [isBuying, setIsBuying] = useState(false);
 
-  // Note: Price in Stars is now calculated on the backend for security and consistency.
   const priceDisplayText = `Buy for $${pack.price.toFixed(2)}`;
 
   const handleBuy = async () => {
-    if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Not Logged In',
-        description: 'You must be logged in to make a purchase.',
-      });
-      return;
-    }
-    
-    setIsBuying(true);
-
-    // Frontend now only needs to send the product ID and its type.
-    // The backend will fetch all other details from Firestore.
-    const paymentPayload = {
-      productId: pack.id,
-      purchaseType: pack.type,
-    };
-    
-    const result = await initiateTelegramPayment(paymentPayload, user.uid);
-
-    if (!result.success) {
-      toast({
-        variant: 'destructive',
-        title: 'Payment Failed',
-        description: result.error || 'Could not initiate the payment process.',
-      });
-    } else {
-      toast({
-        title: 'Complete Your Purchase',
-        description: 'Follow the instructions from Telegram to complete your purchase.',
-      });
-    }
-    
-    setIsBuying(false);
+    // All payment logic has been temporarily removed as requested.
+    toast({
+      variant: 'destructive',
+      title: 'Feature Disabled',
+      description: 'The payment feature is currently undergoing maintenance.',
+    });
   };
 
   const getIcon = () => {
@@ -103,8 +72,8 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
          <CardDescription className="mt-2">{pack.description}</CardDescription>
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
-        <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold" disabled={isBuying}>
-          {isBuying ? 'Processing...' : priceDisplayText}
+        <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold" disabled>
+          {priceDisplayText}
         </Button>
       </CardFooter>
     </Card>
