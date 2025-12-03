@@ -28,10 +28,20 @@ export async function initiateTelegramPayment(
     const { invoiceUrl } = result;
 
     if (invoiceUrl && window.Telegram?.WebApp) {
-      window.Telegram.WebApp.openInvoice(invoiceUrl);
+      window.Telegram.WebApp.openInvoice(invoiceUrl, (status) => {
+        if (status === 'paid') {
+          // You can use this callback to update the UI immediately after successful payment
+          // For example, show a success message or update the user's balance optimistically.
+          console.log('Invoice paid!');
+        } else if (status === 'cancelled') {
+          console.log('Invoice cancelled.');
+        } else if (status === 'failed') {
+          console.error('Invoice payment failed.');
+        }
+      });
       return { success: true };
     } else {
-      throw new Error('Could not open the invoice.');
+      throw new Error('Could not open the invoice. Ensure you are running in the Telegram app.');
     }
   } catch (error) {
     console.error('Telegram Payment Error:', error);

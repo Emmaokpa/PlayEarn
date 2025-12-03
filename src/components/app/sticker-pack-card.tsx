@@ -23,11 +23,17 @@ interface StickerPackCardProps {
   userCoins: number;
 }
 
-export default function StickerPackCard({ pack, userCoins }: StickerPackCardProps) {
+const COIN_TO_USD_RATE = 0.001;
+const USD_TO_STARS_RATE = 113;
+
+export default function StickerPackCard({ pack }: StickerPackCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
   const [isBought, setIsBought] = useState(false); // In a real app, check against user's purchased packs
   const [isBuying, setIsBuying] = useState(false);
+
+  const priceInUsd = pack.price > 100 ? pack.price * COIN_TO_USD_RATE : pack.price;
+  const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
 
   const handleBuy = async () => {
     if (!user) {
@@ -41,10 +47,21 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
 
     setIsBuying(true);
     
+    // This is the complete and correct payload required by Telegram.
     const payload = {
-        type: 'sticker-purchase',
-        userId: user.uid,
-        productId: pack.id,
+        title: pack.name,
+        description: pack.description,
+        payload: `sticker-purchase-${user.uid}-${pack.id}-${Date.now()}`,
+        currency: 'XTR',
+        prices: [{ label: pack.name, amount: priceInStars }],
+        photo_url: pack.imageUrl,
+        photo_width: 512,
+        photo_height: 512,
+        need_name: false,
+        need_phone_number: false,
+        need_email: false,
+        need_shipping_address: false,
+        is_flexible: false,
     };
 
     const result = await initiateTelegramPayment(payload);
@@ -65,12 +82,7 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
     setIsBuying(false);
   };
 
-  const getPriceInStars = () => {
-    const COIN_TO_USD_RATE = 0.001;
-    const USD_TO_STARS_RATE = 113;
-    const priceInUsd = pack.price * COIN_TO_USD_RATE;
-    return Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
-  }
+  const priceDisplayText = `${priceInStars.toLocaleString()}`;
 
   return (
     <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-lg">
@@ -95,11 +107,11 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
       <CardFooter className="flex items-center justify-between bg-secondary/50 p-3">
         <div className="flex items-center gap-1 font-bold">
           <Star className="h-4 w-4 text-yellow-400" />
-          <span>{getPriceInStars()}</span>
+          <span>{priceDisplayText}</span>
         </div>
         <Button onClick={handleBuy} disabled={isBought || isBuying} size="sm" className={isBought ? "bg-green-600 hover:bg-green-600" : ""}>
           {isBought ? <CheckCircle className="h-4 w-4" /> : null}
-          {isBuying && 'Processing...'}
+          {isBuying && '...'}
           {!isBuying && (isBought ? 'Owned' : 'Buy')}
         </Button>
       </CardFooter>

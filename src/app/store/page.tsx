@@ -37,18 +37,32 @@ function CurrencyStore() {
   const isLoading = packsLoading;
   
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-      {isLoading ? (
-          <>
-              <Skeleton className="h-64" />
-              <Skeleton className="h-64" />
-          </>
-      ) : (
-          <>
-              {coinPacks.map((pack) => <PurchasePackCard key={pack.id} pack={pack} />)}
-              {spinPacks.map((pack) => <PurchasePackCard key={pack.id} pack={pack} />)}
-          </>
-      )}
+    <div className="space-y-6">
+      <h3 className="text-xl font-bold">Coin Packs</h3>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {isLoading ? (
+            <>
+                <Skeleton className="h-64" />
+                <Skeleton className="h-64" />
+            </>
+        ) : (
+            <>
+                {coinPacks.map((pack) => <PurchasePackCard key={pack.id} pack={pack} />)}
+            </>
+        )}
+      </div>
+      <h3 className="text-xl font-bold mt-8">Spin Packs</h3>
+       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {isLoading ? (
+            <>
+                <Skeleton className="h-64" />
+            </>
+        ) : (
+            <>
+                {spinPacks.map((pack) => <PurchasePackCard key={pack.id} pack={pack} />)}
+            </>
+        )}
+      </div>
     </div>
   )
 }
@@ -119,7 +133,7 @@ export default function StorePage() {
           </p>
         </div>
 
-        <Tabs defaultValue="digital" className="w-full">
+        <Tabs defaultValue="currency" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="currency"><Coins className="mr-2 h-4 w-4" />Currency</TabsTrigger>
                 <TabsTrigger value="digital"><Package className="mr-2 h-4 w-4" />Digital Goods</TabsTrigger>

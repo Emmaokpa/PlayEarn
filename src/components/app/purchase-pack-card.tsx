@@ -18,15 +18,18 @@ import Image from 'next/image';
 import { initiateTelegramPayment } from '@/lib/telegram-payment';
 import { useState } from 'react';
 
-
 interface PurchasePackCardProps {
   pack: InAppPurchase;
 }
+
+const USD_TO_STARS_RATE = 113;
 
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
   const [isBuying, setIsBuying] = useState(false);
+
+  const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
 
   const handleBuy = async () => {
     if (!user) {
@@ -40,10 +43,21 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     
     setIsBuying(true);
 
+    // This is the complete and correct payload required by Telegram.
     const payload = {
-      type: pack.type, // 'coins' or 'spins'
-      userId: user.uid,
-      productId: pack.id,
+      title: pack.name,
+      description: pack.description,
+      payload: `purchase-${user.uid}-${pack.id}-${Date.now()}`,
+      currency: 'XTR',
+      prices: [{ label: `${pack.amount} ${pack.type}`, amount: priceInStars }],
+      photo_url: pack.imageUrl,
+      photo_width: 512,
+      photo_height: 512,
+      need_name: false,
+      need_phone_number: false,
+      need_email: false,
+      need_shipping_address: false,
+      is_flexible: false,
     };
     
     const result = await initiateTelegramPayment(payload);
@@ -75,16 +89,7 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     }
   }
 
-  const getPriceDisplay = () => {
-      const USD_TO_STARS_RATE = 113;
-      const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
-      return (
-          <div className="flex items-center gap-1">
-              <Star className="h-5 w-5 text-yellow-400" />
-              <span>{priceInStars.toLocaleString()}</span>
-          </div>
-      )
-  }
+  const priceDisplayText = `Buy for ${priceInStars.toLocaleString()} Stars`;
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:border-primary">
@@ -121,12 +126,12 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
             {getIcon()}
             <span>{pack.amount.toLocaleString()}</span>
          </div>
-         <p className="text-muted-foreground">{pack.type}</p>
+         <p className="text-muted-foreground capitalize">{pack.type}</p>
          {!pack.imageUrl && <CardDescription className="mt-2">{pack.description}</CardDescription>}
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
         <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold" disabled={isBuying}>
-            {isBuying ? 'Processing...' : `Buy for ${getPriceDisplay()}`}
+          {isBuying ? 'Processing...' : priceDisplayText}
         </Button>
       </CardFooter>
     </Card>
