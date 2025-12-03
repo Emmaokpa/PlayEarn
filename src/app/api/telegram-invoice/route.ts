@@ -22,10 +22,14 @@ export async function POST(request: Request) {
     }
 
     let collectionName: string;
+    let isPricedInCoins = false;
+
     if (purchaseType === 'sticker-purchase') {
       collectionName = 'stickerPacks';
+      isPricedInCoins = true;
     } else if (purchaseType === 'coins' || purchaseType === 'spins') {
       collectionName = 'inAppPurchases';
+      isPricedInCoins = false;
     } else {
       return NextResponse.json({ error: `Invalid purchase type: ${purchaseType}` }, { status: 400 });
     }
@@ -40,18 +44,16 @@ export async function POST(request: Request) {
     const product = productDoc.data()!;
 
     // Defensive check for required product fields
-    if (!product.name || !product.description || !product.imageUrl) {
-        console.error(`[TELEGRAM_INVOICE_ERROR] Product ${productId} is missing required fields (name, description, or imageUrl).`);
+    if (!product.name || !product.description || !product.imageUrl || product.price === undefined) {
+        console.error(`[TELEGRAM_INVOICE_ERROR] Product ${productId} is missing required fields (name, description, imageUrl, or price).`);
         return NextResponse.json({ error: 'Product configuration is incomplete on the server.' }, { status: 500 });
     }
 
     let priceInStars: number;
-    if (purchaseType === 'sticker-purchase') {
-        // Sticker packs have a 'price' in coins. Convert to USD then to Stars.
+    if (isPricedInCoins) {
         const priceInUsd = product.price * COIN_TO_USD_RATE;
         priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
     } else { 
-        // Coin/Spin packs have a 'price' directly in USD. Convert to Stars.
         priceInStars = Math.max(1, Math.ceil(product.price * USD_TO_STARS_RATE));
     }
     
