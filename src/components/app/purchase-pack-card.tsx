@@ -22,14 +22,13 @@ interface PurchasePackCardProps {
   pack: InAppPurchase;
 }
 
-const USD_TO_STARS_RATE = 113;
-
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
   const [isBuying, setIsBuying] = useState(false);
 
-  const priceInStars = Math.max(1, Math.ceil(pack.price * USD_TO_STARS_RATE));
+  // Note: Price in Stars is now calculated on the backend for security and consistency.
+  const priceDisplayText = `Buy for $${pack.price.toFixed(2)}`;
 
   const handleBuy = async () => {
     if (!user) {
@@ -43,13 +42,14 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
     
     setIsBuying(true);
 
+    // Frontend now only needs to send the product ID and its type.
+    // The backend will fetch all other details from Firestore.
     const paymentPayload = {
       productId: pack.id,
       purchaseType: pack.type,
-      userId: user.uid,
     };
     
-    const result = await initiateTelegramPayment(paymentPayload);
+    const result = await initiateTelegramPayment(paymentPayload, user.uid);
 
     if (!result.success) {
       toast({
@@ -77,8 +77,6 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
             return <Gem className="h-10 w-10" />;
     }
   }
-
-  const priceDisplayText = `Buy for ${priceInStars.toLocaleString()} Stars`;
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg hover:border-primary">

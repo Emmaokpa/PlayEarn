@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Star } from 'lucide-react';
+import { CheckCircle, Star, Coins } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { useState } from 'react';
 import { initiateTelegramPayment } from '@/lib/telegram-payment';
@@ -23,17 +23,15 @@ interface StickerPackCardProps {
   userCoins: number;
 }
 
-const COIN_TO_USD_RATE = 0.001;
-const USD_TO_STARS_RATE = 113;
-
 export default function StickerPackCard({ pack }: StickerPackCardProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
   const [isBought, setIsBought] = useState(false); // In a real app, check against user's purchased packs
   const [isBuying, setIsBuying] = useState(false);
 
-  const priceInUsd = pack.price * COIN_TO_USD_RATE;
-  const priceInStars = Math.max(1, Math.ceil(priceInUsd * USD_TO_STARS_RATE));
+  // Note: Price in Stars is now calculated on the backend.
+  // The price shown here is in game coins.
+  const priceDisplayText = pack.price.toLocaleString();
 
   const handleBuy = async () => {
     if (!user) {
@@ -47,13 +45,13 @@ export default function StickerPackCard({ pack }: StickerPackCardProps) {
 
     setIsBuying(true);
     
+    // Frontend now only needs to send the product ID and its type.
     const payload = {
         productId: pack.id,
         purchaseType: 'sticker-purchase',
-        userId: user.uid,
     };
 
-    const result = await initiateTelegramPayment(payload);
+    const result = await initiateTelegramPayment(payload, user.uid);
 
     if (!result.success) {
       toast({
@@ -70,8 +68,6 @@ export default function StickerPackCard({ pack }: StickerPackCardProps) {
     
     setIsBuying(false);
   };
-
-  const priceDisplayText = `${priceInStars.toLocaleString()}`;
 
   return (
     <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-lg">
@@ -95,11 +91,11 @@ export default function StickerPackCard({ pack }: StickerPackCardProps) {
       </CardContent>
       <CardFooter className="flex items-center justify-between bg-secondary/50 p-3">
         <div className="flex items-center gap-1 font-bold">
-          <Star className="h-4 w-4 text-yellow-400" />
+          <Coins className="h-4 w-4 text-primary" />
           <span>{priceDisplayText}</span>
         </div>
         <Button onClick={handleBuy} disabled={isBought || isBuying} size="sm" className={isBought ? "bg-green-600 hover:bg-green-600" : ""}>
-          {isBought ? <CheckCircle className="h-4 w-4" /> : null}
+          {isBought ? <CheckCircle className="h-4 w-4" /> : <Star className="h-4 w-4 mr-1" />}
           {isBuying && '...'}
           {!isBuying && (isBought ? 'Owned' : 'Buy')}
         </Button>

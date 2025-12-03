@@ -4,17 +4,20 @@
 /**
  * Initiates a Telegram payment by creating an invoice and opening it.
  *
- * @param payload The data required by the backend to create an invoice.
+ * @param payload The data required by the backend to create an invoice. It should
+ * at least contain `productId` and `purchaseType`.
  * @returns A promise that resolves with a success status or rejects with an error.
  */
 export async function initiateTelegramPayment(
-  payload: Record<string, any> // Use a generic object for flexibility
+  payload: Record<string, any>,
+  userId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch('/api/telegram-invoice', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-user-id': userId, // Pass user ID in a header for backend access
       },
       body: JSON.stringify(payload),
     });
@@ -30,9 +33,9 @@ export async function initiateTelegramPayment(
     if (invoiceUrl && window.Telegram?.WebApp) {
       window.Telegram.WebApp.openInvoice(invoiceUrl, (status) => {
         if (status === 'paid') {
-          // You can use this callback to update the UI immediately after successful payment
-          // For example, show a success message or update the user's balance optimistically.
           console.log('Invoice paid!');
+          // The webhook on the backend will handle fulfillment.
+          // Optional: You can show an immediate UI update here.
         } else if (status === 'cancelled') {
           console.log('Invoice cancelled.');
         } else if (status === 'failed') {
@@ -41,7 +44,8 @@ export async function initiateTelegramPayment(
       });
       return { success: true };
     } else {
-      throw new Error('Could not open the invoice. Ensure you are running in the Telegram app.');
+      // This error occurs if not running inside Telegram or if Telegram's script hasn't loaded
+      throw new Error('Could not open the invoice. Please ensure you are in the Telegram app.');
     }
   } catch (error) {
     console.error('Telegram Payment Error:', error);
