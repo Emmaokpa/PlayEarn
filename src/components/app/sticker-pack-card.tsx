@@ -30,41 +30,12 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
   const priceDisplayText = pack.price.toLocaleString();
 
   const handleBuy = async () => {
-     if (!user) {
-        toast({ variant: 'destructive', title: 'Not Logged In', description: 'You must be logged in to make a purchase.'});
-        return;
-    }
-    setIsBuying(true);
-
-    try {
-        const response = await fetch('/api/telegram-invoice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                productId: pack.id,
-                purchaseType: 'stickerPacks',
-                userId: user.uid,
-            }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to create invoice.');
-        }
-
-        window.open(result.invoiceUrl, '_blank');
-        toast({ title: 'Complete Your Purchase', description: 'Please follow the instructions in Telegram to complete your purchase.' });
-
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Purchase Failed',
-            description: error.message || 'An unknown error occurred.',
-        });
-    } finally {
-        setIsBuying(false);
-    }
+    // Payment logic removed
+    toast({
+        variant: 'destructive',
+        title: 'Feature Unavailable',
+        description: 'The payment system is currently disabled.',
+    });
   };
 
   return (
@@ -92,8 +63,9 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
           <Coins className="h-4 w-4 text-primary" />
           <span>{priceDisplayText}</span>
         </div>
-        <Button onClick={handleBuy} disabled={isBuying} size="sm">
-          {isBuying ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Star className="h-4 w-4 mr-1" />Buy</>}
+        <Button onClick={handleBuy} disabled size="sm">
+          <Star className="h-4 w-4 mr-1" />
+          Buy
         </Button>
       </CardFooter>
     </Card>

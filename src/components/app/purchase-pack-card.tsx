@@ -26,45 +26,15 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { user } = useFirebase();
   const [isBuying, setIsBuying] = useState(false);
 
-  const priceDisplayText = `Buy for $${pack.price.toFixed(2)}`;
+  const priceDisplayText = `Unavailable`;
 
   const handleBuy = async () => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Not Logged In', description: 'You must be logged in to make a purchase.'});
-        return;
-    }
-    setIsBuying(true);
-
-    try {
-        const response = await fetch('/api/telegram-invoice', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                productId: pack.id,
-                purchaseType: 'inAppPurchases',
-                userId: user.uid,
-            }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to create invoice.');
-        }
-
-        // Redirect user to the Telegram invoice URL
-        window.open(result.invoiceUrl, '_blank');
-        toast({ title: 'Complete Your Purchase', description: 'Please follow the instructions in Telegram to complete your purchase.' });
-
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Purchase Failed',
-            description: error.message || 'An unknown error occurred.',
-        });
-    } finally {
-        setIsBuying(false);
-    }
+    // Payment logic removed
+    toast({
+        variant: 'destructive',
+        title: 'Feature Unavailable',
+        description: 'The payment system is currently disabled.',
+    });
   };
 
   const getIcon = () => {
@@ -104,8 +74,8 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
          <CardDescription className="mt-2">{pack.description}</CardDescription>
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
-        <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold" disabled={isBuying}>
-          {isBuying ? <Loader2 className="h-6 w-6 animate-spin" /> : priceDisplayText}
+        <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold" disabled>
+          {priceDisplayText}
         </Button>
       </CardFooter>
     </Card>

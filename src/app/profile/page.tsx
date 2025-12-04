@@ -26,7 +26,6 @@ import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { initiateTelegramPayment } from '@/lib/telegram-payment';
 import { useState } from 'react';
 
 const menuItems = [
@@ -43,7 +42,6 @@ const menuItems = [
 export default function ProfilePage() {
   const { auth, user, firestore } = useFirebase();
   const { toast } = useToast();
-  const [isBuying, setIsBuying] = useState(false);
   
   const userProfileRef = useMemoFirebase(() => 
     user ? doc(firestore, 'users', user.uid) : null, 
@@ -54,31 +52,12 @@ export default function ProfilePage() {
   const isVip = userProfile?.isVip ?? false;
 
   const handleVipUpgrade = async () => {
-    if (!user || isVip) return;
-
-    setIsBuying(true);
-
-    const payload = {
-      type: 'vip-upgrade',
-      userId: user.uid,
-    };
-      
-    const result = await initiateTelegramPayment(payload);
-
-    if (!result.success) {
-      toast({
+    // Payment logic removed
+    toast({
         variant: 'destructive',
-        title: 'Payment Failed',
-        description: result.error || 'Could not initiate the payment process.',
-      });
-    } else {
-        toast({
-            title: 'Complete Your Purchase',
-            description: 'Follow the instructions from Telegram to become a VIP.',
-        });
-    }
-    
-    setIsBuying(false);
+        title: 'Feature Unavailable',
+        description: 'The payment system is currently disabled.',
+    });
   };
 
   return (
@@ -135,8 +114,8 @@ export default function ProfilePage() {
                 <Crown className="h-4 w-4 text-yellow-400" /> Claim exclusive gift cards
               </li>
             </ul>
-             <Button className="w-full font-bold" size="lg" onClick={handleVipUpgrade} disabled={isVip || isBuying}>
-              {isVip ? 'Manage Subscription' : (isBuying ? 'Processing...' : 'Upgrade with Stars')}
+             <Button className="w-full font-bold" size="lg" onClick={handleVipUpgrade} disabled>
+              {isVip ? 'Manage Subscription' : 'Upgrade Unavailable'}
             </Button>
           </CardContent>
         </Card>
