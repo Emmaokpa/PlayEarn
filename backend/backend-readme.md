@@ -1,3 +1,4 @@
+
 # RewardPlay Backend Server
 
 This Node.js server runs the Telegram bot using a polling mechanism. It is designed to be deployed on a persistent hosting service like Render.
