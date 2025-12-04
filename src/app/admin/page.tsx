@@ -386,11 +386,11 @@ function AddIAPForm({ selectedPack, onClearSelection }: { selectedPack: InAppPur
             const imageHint = values.name.split(' ').slice(0, 2).join(' ');
             if (selectedPack) {
                 const packRef = doc(firestore, 'inAppPurchases', selectedPack.id);
-                await setDoc(packRef, { ...values, imageHint, purchaseType: 'digital' }, { merge: true });
+                await setDoc(packRef, { ...values, imageHint }, { merge: true });
                 toast({ title: 'Pack Updated!', description: `"${values.name}" has been updated.` });
             } else {
                 const newPackRef = doc(collection(firestore, 'inAppPurchases'));
-                await setDoc(newPackRef, { ...values, id: newPackRef.id, imageHint, purchaseType: 'digital' });
+                await setDoc(newPackRef, { ...values, id: newPackRef.id, imageHint });
                 toast({ title: 'Pack Added!', description: `"${values.name}" is now available in the store.` });
             }
             form.reset({ name: '', description: '', type: 'coins', amount: 1, price: 0.99, imageUrl: '' });
