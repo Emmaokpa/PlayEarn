@@ -20,7 +20,7 @@ interface StickerPackCardProps {
   userCoins: number;
 }
 
-const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "YourBotUsername";
+const TELEGRAM_BOT_USERNAME = "gameshu_bot";
 
 export default function StickerPackCard({ pack }: StickerPackCardProps) {
   
