@@ -1,3 +1,4 @@
+// File: src/app/api/telegram-invoice/route.ts
 
 import { NextResponse } from 'next/server';
 import { admin, firestore } from '@/firebase/admin';
@@ -8,27 +9,32 @@ const USD_TO_STARS = 100; // $1.00 = 100 Stars
 const COINS_TO_STARS = 0.1; // 1 coin = 0.1 Stars, so 10 coins = 1 Star
 
 async function getProductDetails(productId: string, purchaseType: 'inAppPurchases' | 'stickerPacks'): Promise<InAppPurchase | StickerPack | null> {
+    console.log(`[getProductDetails] Fetching product: ${productId} from ${purchaseType}`);
     const docRef = firestore.collection(purchaseType).doc(productId);
     const docSnap = await docRef.get();
     if (!docSnap.exists) {
         console.error(`[getProductDetails] Product with ID ${productId} not found in collection ${purchaseType}.`);
         return null;
     }
+    console.log(`[getProductDetails] Product found.`);
     return docSnap.data() as InAppPurchase | StickerPack;
 }
 
 export async function POST(request: Request) {
+  console.log('[API START] Received request for telegram-invoice.');
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
     console.error("CRITICAL: TELEGRAM_BOT_TOKEN is not configured.");
     return NextResponse.json({ error: "Bot token not configured on server." }, { status: 500 });
   }
   
-  // CORRECT INITIALIZATION: Initialize the bot inside the handler.
-  const bot = new TelegramBot(botToken);
+  // CRITICAL FIX: Disable polling for serverless environment
+  const bot = new TelegramBot(botToken, { polling: false });
 
   try {
+    console.log('[API TRY] Inside try block.');
     const { productId, purchaseType, userId } = await request.json();
+    console.log(`[API PARSED] Parsed request body:`, { productId, purchaseType, userId });
 
     if (!productId || !purchaseType || !userId) {
       return NextResponse.json({ error: 'Missing productId, purchaseType, or userId.' }, { status: 400 });
@@ -46,6 +52,7 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!product.name || !product.description || !product.imageUrl) {
+        console.error(`[API VALIDATION FAILED] Product ${productId} is missing required fields.`);
         return NextResponse.json({ error: `Product ${productId} is missing required fields (name, description, or imageUrl).` }, { status: 500 });
     }
 
@@ -71,6 +78,7 @@ export async function POST(request: Request) {
     }
     
     const payload = `${purchaseType}-${productId}-${userId}-${Date.now()}`;
+    console.log(`[API PAYLOAD] Generated invoice payload: ${payload}`);
 
     const invoiceArgs: TelegramBot.CreateInvoiceLinkArgs = {
       title: product.name,
@@ -83,12 +91,16 @@ export async function POST(request: Request) {
       photo_height: 400,
     };
     
+    console.log('[API INVOICE_ARGS] Creating invoice link with args:', invoiceArgs);
     const invoiceUrl = await bot.createInvoiceLink(invoiceArgs);
+    console.log(`[API SUCCESS] Invoice link created: ${invoiceUrl}`);
     
     return NextResponse.json({ success: true, invoiceUrl });
 
   } catch (error: any) {
     console.error('[API CATCH BLOCK] An error occurred:', error);
+    // This log helps see the actual error object from the Telegram library or elsewhere
+    console.error('Error object:', JSON.stringify(error, null, 2));
     const errorMessage = error.response?.body?.description || error.message || 'An unknown error occurred on the server.';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
