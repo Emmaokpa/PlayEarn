@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { InAppPurchase } from '@/lib/data';
@@ -21,14 +22,14 @@ interface PurchasePackCardProps {
   pack: InAppPurchase;
 }
 
-const TELEGRAM_BOT_USERNAME = "YourBotUsername"; // TODO: Replace with your actual bot username
+const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "YourBotUsername";
 
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
 
-  // Construct the deep link for the Telegram bot
-  const deepLink = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=purchase-${pack.id}`;
+  // The payload format is `purchaseType|productId`
+  const deepLink = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=purchase-inAppPurchases-${pack.id}`;
 
   const priceDisplayText = `Buy for $${pack.price.toFixed(2)}`;
 
