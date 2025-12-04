@@ -1,4 +1,3 @@
-
 // A single, stable Node.js server for handling Telegram bot logic with polling.
 // This is designed to be deployed on a persistent hosting service like Render.
 
@@ -118,10 +117,11 @@ bot.onText(/\/start(.*)/, (msg, match) => {
   const userId = msg.from.id.toString();
   const payload = (match[1] || '').trim();
 
-  // Check if the start command has a deep link payload
+  // Check if the start command has a deep link payload for a purchase
   if (payload.startsWith('purchase-')) {
     const productId = payload.replace('purchase-', '');
-    // Assume all deep-linked purchases are from 'inAppPurchases' for now
+    // Assume all deep-linked purchases are from 'inAppPurchases' for now.
+    // In a more complex app, the payload could be 'purchase-inAppPurchases-pack1'
     handlePurchaseRequest(chatId, userId, 'inAppPurchases', productId);
   } else {
     bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
