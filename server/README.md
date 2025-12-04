@@ -8,7 +8,7 @@ This Node.js server runs the Telegram bot using a polling mechanism. It is desig
 ### 1. Prepare Your GitHub Repository
 Before deploying, make sure your new GitHub repository (e.g., `PlayEarn-Backend`) contains the following files from this directory:
 - `server.js`
-- `package.json` (You should rename the `backend-package.json` file to `package.json` in your new repository)
+- `package.json`
 
 ### 2. Deploy to Render (Step-by-Step)
 Render is a service that can run this server for you 24/7. Follow these steps:
