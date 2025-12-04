@@ -35,11 +35,19 @@ Render is a service that can run this server for you 24/7. Follow these steps:
     *   Click **Add Environment Variable**. You need to add all the secrets from your `.env` file here, one by one.
     *   **Required Variables:**
         *   `TELEGRAM_BOT_TOKEN`
-        *   `TELEGRAM_PHYSICAL_PROVIDER_TOKEN`
+        *   `TELEGRAM_PHYSICAL_PROVIDER_TOKEN` (See note below)
         *   `FIREBASE_PROJECT_ID`
         *   `FIREBASE_CLIENT_EMAIL`
         *   `FIREBASE_PRIVATE_KEY` (For this one, copy the entire key, including the `-----BEGIN...` and `-----END...` parts. Render handles multi-line secrets correctly).
     *   Double-check that the keys and values are correct.
+
+    **IMPORTANT NOTE ON PAYMENT PROVIDER TOKEN:**
+    The `TELEGRAM_PHYSICAL_PROVIDER_TOKEN` is **NOT** your Flutterwave token. It must come from a payment provider that is directly supported by Telegram (e.g., **Stripe**, which is the most common). To get this token:
+    1. Create an account with a supported provider like Stripe.
+    2. In Telegram, go to `@BotFather`, select your bot, and go to `Bot Settings` -> `Payments`.
+    3. Follow the instructions to connect your provider (e.g., Stripe) to your bot.
+    4. Once connected, `@BotFather` will give you the token. Use that token for this environment variable.
+    5. You can leave this blank for now to test digital (Telegram Stars) payments.
 
 5.  **Create the Service:**
     *   Click the **Create Web Service** button.
