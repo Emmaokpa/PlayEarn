@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { InAppPurchase } from '@/lib/data';
@@ -16,24 +15,22 @@ import { Coins, Gem, Loader2, Star } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import Image from 'next/image';
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface PurchasePackCardProps {
   pack: InAppPurchase;
 }
 
+const TELEGRAM_BOT_USERNAME = "YourBotUsername"; // TODO: Replace with your actual bot username
+
 export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
 
-  const priceDisplayText = `Buy for $${pack.price.toFixed(2)}`;
+  // Construct the deep link for the Telegram bot
+  const deepLink = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=purchase-${pack.id}`;
 
-  const handleBuy = async () => {
-    // Logic is now handled by the external bot server.
-    toast({
-        title: 'Check Telegram',
-        description: 'Please interact with the RewardPlay Telegram bot to make purchases.',
-    });
-  };
+  const priceDisplayText = `Buy for $${pack.price.toFixed(2)}`;
 
   const getIcon = () => {
     switch (pack.type) {
@@ -72,8 +69,10 @@ export default function PurchasePackCard({ pack }: PurchasePackCardProps) {
          <CardDescription className="mt-2">{pack.description}</CardDescription>
       </CardContent>
       <CardFooter className="flex-col items-stretch p-4">
-        <Button onClick={handleBuy} size="lg" className="w-full text-lg font-bold">
-          {priceDisplayText}
+        <Button asChild size="lg" className="w-full text-lg font-bold">
+            <Link href={deepLink} target="_blank" rel="noopener noreferrer">
+                {priceDisplayText}
+            </Link>
         </Button>
       </CardFooter>
     </Card>
