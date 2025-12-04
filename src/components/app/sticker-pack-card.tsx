@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { StickerPack } from '@/lib/data';
@@ -30,11 +29,11 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
   const priceDisplayText = pack.price.toLocaleString();
 
   const handleBuy = async () => {
-    // Payment logic removed
+    // All payment logic has been removed as requested.
     toast({
         variant: 'destructive',
-        title: 'Feature Unavailable',
-        description: 'The payment system is currently disabled.',
+        title: 'Feature Disabled',
+        description: 'The payment system is currently unavailable.',
     });
   };
 
@@ -63,7 +62,7 @@ export default function StickerPackCard({ pack, userCoins }: StickerPackCardProp
           <Coins className="h-4 w-4 text-primary" />
           <span>{priceDisplayText}</span>
         </div>
-        <Button onClick={handleBuy} disabled size="sm">
+        <Button onClick={handleBuy} disabled={true} size="sm">
           <Star className="h-4 w-4 mr-1" />
           Buy
         </Button>
