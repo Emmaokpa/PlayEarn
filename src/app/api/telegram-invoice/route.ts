@@ -4,12 +4,6 @@ import { admin, firestore } from '@/firebase/admin';
 import type { InAppPurchase, StickerPack } from '@/lib/data';
 import TelegramBot from 'node-telegram-bot-api';
 
-const botToken = process.env.TELEGRAM_BOT_TOKEN;
-if (!botToken) {
-  console.error("CRITICAL: TELEGRAM_BOT_TOKEN is not configured.");
-}
-const bot = new TelegramBot(botToken || 'dummy-token');
-
 const USD_TO_STARS = 100; // $1.00 = 100 Stars
 const COINS_TO_STARS = 0.1; // 1 coin = 0.1 Stars, so 10 coins = 1 Star
 
@@ -24,9 +18,14 @@ async function getProductDetails(productId: string, purchaseType: 'inAppPurchase
 }
 
 export async function POST(request: Request) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
+    console.error("CRITICAL: TELEGRAM_BOT_TOKEN is not configured.");
     return NextResponse.json({ error: "Bot token not configured on server." }, { status: 500 });
   }
+  
+  // CORRECT INITIALIZATION: Initialize the bot inside the handler.
+  const bot = new TelegramBot(botToken);
 
   try {
     const { productId, purchaseType, userId } = await request.json();
