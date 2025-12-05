@@ -1,4 +1,3 @@
-
 // A single, stable Node.js server for handling Telegram bot logic with polling.
 // This is designed to be deployed on a persistent hosting service like Render.
 
@@ -38,8 +37,8 @@ const bot = new TelegramBot(botToken, { polling: true });
 console.log('Telegram Bot started with polling...');
 
 // --- Helper Functions ---
-const USD_TO_STARS_RATE = 113; // Approx. 1 USD = 113 Telegram Stars
-const COIN_TO_USD_RATE = 0.001; // 1000 coins = 1 USD
+const USD_TO_STARS = 113; // 1000 coins -> $1 -> 113 Stars
+const COINS_TO_USD = 0.001; // 1000 coins = $1
 
 async function getProductDetails(productId, purchaseType) {
   const docRef = firestore.collection(purchaseType).doc(productId);
@@ -64,8 +63,7 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
             return bot.sendMessage(chatId, "Sorry, that product could not be found.");
         }
 
-        const isPhysical = product.type === 'physical';
-        // Payload format: `purchaseType|productId|userId`
+        const isDigital = product.type === 'coins' || product.type === 'spins';
         const payload = `${purchaseType}|${productId}|${userId}`;
         
         let invoiceArgs = {
@@ -77,8 +75,16 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
             photo_height: 400,
         };
 
-        if (isPhysical) {
-             // Physical goods paid with real currency
+        if (isDigital) {
+            // Digital goods paid with Telegram Stars
+            const priceInStars = Math.round(product.price * USD_TO_STARS);
+            Object.assign(invoiceArgs, {
+                provider_token: '', // Not needed for Stars
+                currency: 'XTR',
+                prices: [{ label: product.name, amount: priceInStars }]
+            });
+        } else {
+            // Physical goods paid with real currency
             const physicalProviderToken = process.env.TELEGRAM_PHYSICAL_PROVIDER_TOKEN;
             if (!physicalProviderToken) {
                 console.error("TELEGRAM_PHYSICAL_PROVIDER_TOKEN is not set for physical goods.");
@@ -91,26 +97,9 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
                 prices: [{ label: product.name, amount: priceInCents }],
                 need_shipping_address: true,
             });
-        } else {
-            // Digital goods (coins, spins, stickers) paid with Telegram Stars
-            let priceInStars;
-            if (purchaseType === 'stickerPacks') {
-                // For stickers, price is in coins. Convert coins to USD then to Stars.
-                priceInStars = Math.round(product.price * COIN_TO_USD_RATE * USD_TO_STARS_RATE);
-            } else {
-                // For coin/spin packs, price is in USD. Convert directly to Stars.
-                priceInStars = Math.round(product.price * USD_TO_STARS_RATE);
-            }
-            // Minimum price for stars is 1 star.
-            if (priceInStars < 1) priceInStars = 1;
-
-            Object.assign(invoiceArgs, {
-                provider_token: '', // Not needed for Stars
-                currency: 'XTR',
-                prices: [{ label: product.name, amount: priceInStars }]
-            });
         }
         
+        // Use sendInvoice directly instead of creating a link for a smoother in-app experience
         await bot.sendInvoice(chatId, invoiceArgs.title, invoiceArgs.description, invoiceArgs.payload, invoiceArgs.provider_token, invoiceArgs.currency, invoiceArgs.prices, { photo_url: invoiceArgs.photo_url, photo_width: invoiceArgs.photo_width, photo_height: invoiceArgs.photo_height });
 
     } catch (error) {
@@ -122,20 +111,21 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
 
 // --- Bot Logic ---
 
-// Listen for the /start command with a deep link payload
-bot.onText(/\/start purchase-(.+)-(.+)/, (msg, match) => {
+// Listen for the /start command
+bot.onText(/\/start(.*)/, (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
-  const purchaseType = match[1]; // e.g., 'inAppPurchases' or 'stickerPacks'
-  const productId = match[2]; // e.g., 'pack1'
-  
-  handlePurchaseRequest(chatId, userId, purchaseType, productId);
-});
+  const payload = (match[1] || '').trim();
 
-// Generic /start command
-bot.onText(/\/start$/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
+  // Check if the start command has a deep link payload for a purchase
+  if (payload.startsWith('purchase-')) {
+    const productId = payload.replace('purchase-', '');
+    // Assume all deep-linked purchases are from 'inAppPurchases' for now.
+    // In a more complex app, the payload could be 'purchase-inAppPurchases-pack1'
+    handlePurchaseRequest(chatId, userId, 'inAppPurchases', productId);
+  } else {
+    bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
+  }
 });
 
 // A command to manually trigger a purchase for testing purposes.
@@ -195,17 +185,9 @@ bot.on('successful_payment', async (msg) => {
         await bot.sendMessage(chatId, `Thank you for your purchase! ${pack.amount.toLocaleString()} spins have been added to your account.`);
       }
     } else if (purchaseType === 'stickerPacks') {
-      // For sticker packs, we need to deduct the coin cost from the user
-      const userDoc = await userRef.get();
-      if (userDoc.exists && userDoc.data().coins >= product.price) {
-          await userRef.update({ coins: admin.firestore.FieldValue.increment(-product.price) });
-          // In a real app, you would add the sticker pack to the user's collection here.
-          console.log(`User ${userId} purchased sticker pack ${productId} for ${product.price} coins.`);
-          await bot.sendMessage(chatId, `Thank you for your purchase! You've unlocked the "${product.name}" sticker pack.`);
-      } else {
-          console.log(`User ${userId} has insufficient coins for sticker pack ${productId}.`);
-          await bot.sendMessage(chatId, `Sorry, you do not have enough coins to purchase the "${product.name}" sticker pack.`);
-      }
+      // Logic to award a sticker pack would go here
+      console.log(`User ${userId} purchased sticker pack ${productId}.`);
+      await bot.sendMessage(chatId, `Thank you for your purchase! You've unlocked the "${product.name}" sticker pack.`);
     }
 
   } catch (error) {
