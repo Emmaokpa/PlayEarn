@@ -30,41 +30,49 @@ export async function POST(request: Request) {
 
     // 2. Handle Successful Payment
     if (update.message?.successful_payment) {
-      console.log('Processing successful payment...');
+      console.log('Processing successful payment from webhook...');
       const payment = update.message.successful_payment;
       const invoicePayload = payment.invoice_payload;
 
-      // Example payload: "purchase-USER_ID-PRODUCT_ID-TIMESTAMP"
-      const [type, userId, productId] = invoicePayload.split('-');
+      // Consistent payload format: "purchaseType|productId|userId"
+      const [purchaseType, productId, userId] = invoicePayload.split('|');
 
-      if (!type || !userId || !productId) {
-        throw new Error(`Invalid invoice payload: ${invoicePayload}`);
+      if (!purchaseType || !productId || !userId) {
+        throw new Error(`Invalid invoice payload received in webhook: ${invoicePayload}`);
       }
       
       const userRef = firestore.collection('users').doc(userId);
 
       // Securely fulfill the order using Firebase Admin SDK
-      switch (type) {
-        case 'vip-upgrade':
-          await userRef.update({ isVip: true });
-          console.log(`VIP access granted to user ${userId}`);
-          break;
-        case 'coin-purchase':
-          // Fetch the product details from Firestore to get amount
-          const productRef = firestore.collection('coinPacks').doc(productId);
-          const productDoc = await productRef.get();
-          if (!productDoc.exists) {
-            throw new Error(`Product with ID ${productId} not found.`);
-          }
-          const product = productDoc.data();
-          await userRef.update({
-            coins: admin.firestore.FieldValue.increment(product.amount),
-          });
-          console.log(`Added ${product.amount} coins to user ${userId}`);
-          break;
-        default:
-          console.warn(`Unhandled payload type: ${type}`);
-      }
+       if (purchaseType === 'inAppPurchases') {
+            const productRef = firestore.collection('inAppPurchases').doc(productId);
+            const productDoc = await productRef.get();
+            if (!productDoc.exists) {
+                throw new Error(`Product with ID ${productId} not found in inAppPurchases.`);
+            }
+            const pack = productDoc.data();
+            
+            if (pack.type === 'coins') {
+                await userRef.update({ coins: admin.firestore.FieldValue.increment(pack.amount) });
+                console.log(`Webhook: Awarded ${pack.amount} coins to user ${userId}.`);
+            } else if (pack.type === 'spins') {
+                const spinDataRef = firestore.doc(`users/${userId}/spinData/spin_status`);
+                await spinDataRef.set({
+                    purchasedSpinsRemaining: admin.firestore.FieldValue.increment(pack.amount)
+                }, { merge: true });
+                 console.log(`Webhook: Awarded ${pack.amount} spins to user ${userId}.`);
+            }
+        } else if (purchaseType === 'stickerPacks') {
+             const productRef = firestore.collection('stickerPacks').doc(productId);
+             const productDoc = await productRef.get();
+             if (!productDoc.exists) throw new Error(`Sticker pack ${productId} not found.`);
+             
+             const pack = productDoc.data();
+             await userRef.update({ coins: admin.firestore.FieldValue.increment(-pack.price) });
+             console.log(`Webhook: User ${userId} purchased sticker pack ${productId} for ${pack.price} coins.`);
+        } else {
+            console.warn(`Webhook: Unhandled payload type: ${purchaseType}`);
+        }
     }
 
     // Always return a 200 OK to Telegram to acknowledge receipt

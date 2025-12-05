@@ -96,6 +96,10 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
             let priceInStars;
             if (purchaseType === 'stickerPacks') {
                 // For stickers, price is in coins. Convert coins to USD then to Stars.
+                const userDoc = await firestore.collection('users').doc(userId).get();
+                if (!userDoc.exists || userDoc.data().coins < product.price) {
+                     return bot.sendMessage(chatId, `You do not have enough coins to buy this sticker pack. You need ${product.price.toLocaleString()} coins.`);
+                }
                 priceInStars = Math.round(product.price * COIN_TO_USD_RATE * USD_TO_STARS_RATE);
             } else {
                 // For coin/spin packs, price is in USD. Convert directly to Stars.
@@ -132,7 +136,7 @@ bot.onText(/\/start purchase-(.+)-(.+)/, (msg, match) => {
   handlePurchaseRequest(chatId, userId, purchaseType, productId);
 });
 
-// Generic /start command
+// Generic /start command - must be exact match
 bot.onText(/^\/start$/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
@@ -168,14 +172,14 @@ bot.on('successful_payment', async (msg) => {
     const [purchaseType, productId, userId] = payment.invoice_payload.split('|');
 
     if (!purchaseType || !productId || !userId) {
-      throw new Error(`Invalid invoice payload received: ${payment.invoice_payload}`);
+      throw new Error(`Invalid invoice payload received: ${payment.invoice_payload}. Expected format: 'purchaseType|productId|userId'`);
     }
 
     const userRef = firestore.collection('users').doc(userId);
     const product = await getProductDetails(productId, purchaseType);
 
     if (!product) {
-      throw new Error(`Product ${productId} from payload not found.`);
+      throw new Error(`Product ${productId} from payload not found in collection ${purchaseType}.`);
     }
 
     // Award the item to the user
