@@ -1,4 +1,3 @@
-
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -6,41 +5,37 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-// --- New Simplified Initialization Logic ---
+// --- New Robust Initialization Logic ---
 
-let firebaseApp: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
-
-/**
- * A robust function to initialize Firebase, ensuring it only happens once.
- * It checks if an app is already initialized; if not, it creates one.
- * This is the standard and recommended way for client-side apps.
- */
-function initializeFirebaseServices() {
-  if (!getApps().length) {
-    // No apps initialized yet, so create a new one.
-    firebaseApp = initializeApp(firebaseConfig);
+// A function that initializes Firebase and returns the services.
+// It ensures that initialization only happens once by checking getApps().
+const initializeFirebaseServices = () => {
+  if (getApps().length === 0) {
+    // If no app is initialized, create the main app instance.
+    const firebaseApp = initializeApp(firebaseConfig);
+    const auth = getAuth(firebaseApp);
+    const firestore = getFirestore(firebaseApp);
+    return { firebaseApp, auth, firestore };
   } else {
-    // An app is already initialized, so get the existing one.
-    firebaseApp = getApp();
+    // If an app is already initialized, get the existing instance.
+    const firebaseApp = getApp();
+    const auth = getAuth(firebaseApp);
+    const firestore = getFirestore(firebaseApp);
+    return { firebaseApp, auth, firestore };
   }
-  auth = getAuth(firebaseApp);
-  firestore = getFirestore(firebaseApp);
-}
+};
 
-// Immediately initialize Firebase services when this module is loaded.
-initializeFirebaseServices();
+// Immediately initialize and store the services.
+// This code runs once per client session.
+const { firebaseApp, auth, firestore } = initializeFirebaseServices();
 
 /**
- * A simple function to return the initialized Firebase services.
- * This replaces the previous complex logic.
+ * A simple function to return the already initialized Firebase services.
+ * This function's only job is to provide access to the services initialized above.
  *
  * @returns An object containing the initialized Firebase services.
  */
 export function initializeFirebase() {
-  // The services are already initialized above, so we just return them.
-  // This function signature is kept for compatibility with where it's called.
   return { firebaseApp, auth, firestore };
 }
 
