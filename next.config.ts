@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://web.telegram.org; connect-src 'self' *.cloudinary.com;",
+            value: "frame-ancestors 'self' https://web.telegram.org; connect-src 'self' *.cloudinary.com res.cloudinary.com;",
           },
         ],
       },
@@ -45,6 +45,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
     NEXT_PUBLIC_TELEGRAM_BOT_USERNAME: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME,
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
   }
 };
 
