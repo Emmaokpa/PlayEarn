@@ -96,12 +96,9 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
             let priceInStars;
             if (purchaseType === 'stickerPacks') {
                 // For stickers, price is in coins. Convert coins to USD then to Stars.
-                const userDoc = await firestore.collection('users').doc(userId).get();
-                if (!userDoc.exists || userDoc.data().coins < product.price) {
-                     return bot.sendMessage(chatId, `You do not have enough coins to buy this sticker pack. You need ${product.price.toLocaleString()} coins.`);
-                }
-                priceInStars = Math.round(product.price * COIN_TO_USD_RATE * USD_TO_STARS_RATE);
-            } else {
+                const priceInUsd = product.price * COIN_TO_USD_RATE;
+                priceInStars = Math.round(priceInUsd * USD_TO_STARS_RATE);
+            } else { // 'inAppPurchases'
                 // For coin/spin packs, price is in USD. Convert directly to Stars.
                 priceInStars = Math.round(product.price * USD_TO_STARS_RATE);
             }
@@ -199,17 +196,11 @@ bot.on('successful_payment', async (msg) => {
         await bot.sendMessage(chatId, `Thank you for your purchase! ${pack.amount.toLocaleString()} spins have been added to your account.`);
       }
     } else if (purchaseType === 'stickerPacks') {
-      // For sticker packs, we need to deduct the coin cost from the user
-      const userDoc = await userRef.get();
-      if (userDoc.exists && userDoc.data().coins >= product.price) {
-          await userRef.update({ coins: admin.firestore.FieldValue.increment(-product.price) });
-          // In a real app, you would add the sticker pack to the user's collection here.
-          console.log(`User ${userId} purchased sticker pack ${productId} for ${product.price} coins.`);
-          await bot.sendMessage(chatId, `Thank you for your purchase! You've unlocked the "${product.name}" sticker pack.`);
-      } else {
-          console.log(`User ${userId} has insufficient coins for sticker pack ${productId}.`);
-          await bot.sendMessage(chatId, `Sorry, you do not have enough coins to purchase the "${product.name}" sticker pack.`);
-      }
+      // For sticker packs, we need to deduct the coin cost from the user *after* payment
+      await userRef.update({ coins: admin.firestore.FieldValue.increment(-product.price) });
+      // In a real app, you would add the sticker pack to the user's collection here.
+      console.log(`User ${userId} purchased sticker pack ${productId} for ${product.price} coins.`);
+      await bot.sendMessage(chatId, `Thank you for your purchase! You've unlocked the "${product.name}" sticker pack.`);
     }
 
   } catch (error) {
