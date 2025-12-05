@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://web.telegram.org; connect-src 'self' *.cloudinary.com res.cloudinary.com;",
+            value: "frame-ancestors 'self' https://web.telegram.org; connect-src 'self' *.cloudinary.com res.cloudinary.com *.googleapis.com https://*.google.com https://*.gstatic.com;",
           },
         ],
       },
